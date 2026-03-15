@@ -1,0 +1,28 @@
+# ==========================================
+# IGNORAR ARQUIVOS DE SEGURANÇA E DADOS PESSOAIS
+# ==========================================
+# O nosso cofre de senhas jamais deve ir para a nuvem!
+credenciais.xml
+*.xml
+*.json
+
+# ==========================================
+# IGNORAR LOGS E ARQUIVOS TEMPORÁRIOS
+# ==========================================
+*.log
+*.tmp
+*.bak
+
+# Ignorar atalhos do Windows (Caminhos absolutos locais)
+atalhos/
+*.lnk
+
+# ==========================================
+# IGNORAR BINÁRIOS (Opcional)
+# ==========================================
+# Se você quiser subir o WebDriver.dll para facilitar a instalação em outro PC, 
+# deixe essa linha comentada com '#'. Se preferir não subir arquivos pesados, remova o '#'.
+WebDriver.dll
+msedgedriver.exe
+
+config.ps1

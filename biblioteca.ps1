@@ -84,8 +84,11 @@ function Limpar-Ambiente {
     $processos = [ordered]@{
         "msedge" = "Microsoft Edge"
         "msedgewebview2" = "Edge WebView2"
+        "msedgedriver" = "Moto Selenium Edge"
         "chrome" = "Google Chrome"
-        "msteams" = "Microsoft Teams"
+        "msteams" = "Microsoft Teams 01"
+        "Teams" = "Microsoft Teams 02"
+        "ms-teams" = "Microsoft Teams 03"
         "mmc" = "Active Directory (MMC)"
         "Microsoft.ConfigurationManagement" = "SCCM"
         "saj" = "SAJMP"

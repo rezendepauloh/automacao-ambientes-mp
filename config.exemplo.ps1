@@ -16,10 +16,18 @@ $usuarioAdminAD = "dominio\usuario"
 $driverSelenium = "C:\Caminho\WebDriver.dll"
 
 # Caminho credenciais
-$credenciais = "C:\Caminho\credenciais.xml" 
+# Get-Credential | Export-Clixml -Path "C:\Caminho\Credenciais\credencial.xml"
+$credenciais = "C:\Caminho\Credenciais\credenciais.xml" 
+$usuarioEstrategia = "C:\Caminho\Credenciais\cred_estrategia.xml"
+$usuarioGran = "C:\Caminho\Credenciais\cred_gran.xml"
+$usuarioUnigran = "C:\Caminho\Credenciais\cred_unigran.xml"
 
 # Domínio
 $dominioLocal = "dominio"
+
+# --- Contas Google (Forçando Usuário) ---
+$emailPessoal = "email@gmail.com"
+$emailFaculdade = "rga@alunos.unigran.br"
 
 # Sites Estudo
 $unigranEAD = "www.site.com.br"

@@ -2,6 +2,7 @@
 # IGNORAR ARQUIVOS DE SEGURANÇA E DADOS PESSOAIS
 # ==========================================
 # O nosso cofre de senhas jamais deve ir para a nuvem!
+Credenciais/
 credenciais.xml
 *.xml
 *.json
@@ -14,7 +15,7 @@ credenciais.xml
 *.bak
 
 # Ignorar atalhos do Windows (Caminhos absolutos locais)
-atalhos/
+Atalhos/
 *.lnk
 
 # ==========================================
@@ -25,4 +26,5 @@ atalhos/
 WebDriver.dll
 msedgedriver.exe
 
+# Arquivo de configuração (vai subir apenas o exemplo)
 config.ps1

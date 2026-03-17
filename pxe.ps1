@@ -15,9 +15,7 @@ runas.exe /user:$($usuarioAdminAD) /savecred "powershell.exe -WindowStyle Hidden
 
 # 4. Iniciar o Configuration Manager
 Write-Host "Iniciando Configuration Manager..." -ForegroundColor Green -BackgroundColor Black
-
-$atalhoSCCM = $atalhoInternoSCCM
-Start-Process $atalhoSCCM
+Start-Process $atalhoInternoSCCM
 
 Write-Host "Ambiente PXE carregado!" -ForegroundColor Green -BackgroundColor Black
 Start-Sleep -Seconds 2

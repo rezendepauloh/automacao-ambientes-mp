@@ -7,6 +7,30 @@
 # 2. Chama a função que criamos lá dentro (Isso vai rodar tudo: Office, Programas e Pastas)
 Limpar-Ambiente
 
+Start-Sleep -Seconds 2
+
+# =======================================================================
+# --- TIRO DE PRECISÃO NO TEAMS (PÓS-EXPLORER) ---
+# =======================================================================
+Write-Host "Verificando se o Teams pegou carona no Explorer..." -ForegroundColor Yellow -BackgroundColor Black
+
+# Colocamos os três nomes possíveis do Teams (O Antigo, o Novo e o processo de Background)
+$fantasmasDoTeams = @("Teams", "ms-teams", "msteams")
+
+# Damos uma pausa de 3 segundos só para garantir que o Explorer já chamou o intruso
+Start-Sleep -Seconds 3 
+
+foreach ($fantasma in $fantasmasDoTeams) {
+    if (Get-Process -Name $fantasma -ErrorAction SilentlyContinue) {
+        Write-Host "  -> Abatendo $fantasma indesejado..." -ForegroundColor Gray
+        Stop-Process -Name $fantasma -Force
+    }
+}
+
+Write-Host "Área de estudos 100% blindada contra distrações!" -ForegroundColor Green -BackgroundColor Black
+
+Start-Sleep -Seconds 2
+
 # --- 1. Abrir Pastas em Abas (Modo Teclado Fantasma) ---
 Write-Host "Abrindo pastas de trabalho agrupadas em abas..." -ForegroundColor Cyan -BackgroundColor Black
 
@@ -26,15 +50,14 @@ Start-Sleep -Seconds 1
 
 # Envia Ctrl + L (Focar na barra de endereço lá em cima)
 $wshell.SendKeys("^l")
-Start-Sleep -Milliseconds 500
+Start-Sleep -Milliseconds 600
 
 # Copia o caminho da segunda pasta para a memória do Windows (evita erros de digitação do robô)
-$caminhoAulas = $pastaProvas
-Set-Clipboard -Value $caminhoAulas
+Set-Clipboard -Value $pastaProvas
 
 # Envia Ctrl + V (Colar o caminho)
 $wshell.SendKeys("^v")
-Start-Sleep -Milliseconds 500
+Start-Sleep -Milliseconds 600
 
 # Envia Enter
 $wshell.SendKeys("~")
@@ -49,31 +72,23 @@ Start-Sleep -Seconds 1
 
 # Envia Ctrl + L (Focar na barra de endereço lá em cima)
 $wshell.SendKeys("^l")
-Start-Sleep -Milliseconds 500
+Start-Sleep -Milliseconds 600
 
 # Copia o caminho da segunda pasta para a memória do Windows (evita erros de digitação do robô)
-$caminhoSharePoint = $pastaSharePoint
-Set-Clipboard -Value $caminhoSharePoint
+Set-Clipboard -Value $pastaSharePoint
 
 # Envia Ctrl + V (Colar o caminho)
 $wshell.SendKeys("^v")
-Start-Sleep -Milliseconds 500
+Start-Sleep -Milliseconds 600
 
 # Envia Enter
 $wshell.SendKeys("~")
 Write-Host "  -> Pasta SharePoint aberta" -ForegroundColor Cyan -BackgroundColor Black
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 4
 
 # --- 2. Abrir a Planilha de Chamados no Excel ---
 Write-Host "Abrindo Planilha de Chamados..." -ForegroundColor Green -BackgroundColor Black
-$planilha = $planilhaChamados
-Start-Process "excel.exe" -ArgumentList "`"$planilha`""
-
-foreach ($pasta in $pastas) {
-    # Usamos explorer.exe passando o caminho da pasta
-    Start-Process "explorer.exe" -ArgumentList "`"$pasta`""
-    Start-Sleep -Milliseconds 500 # Uma pequena pausa para o Windows não se engasgar
-}
+Start-Process "excel.exe" -ArgumentList "`"$planilhaChamados`""
 
 # --- 3. Abrir o Edge SEM Extensões e com as abas do setor ---
 Write-Host "Abrindo sistemas web no Edge (Modo Leve)..." -ForegroundColor Green -BackgroundColor Black
@@ -91,6 +106,7 @@ $opcoes.AddExcludedArgument("enable-automation")
 # --- A MÁGICA ANTI-CRASH ---
 # Impede que o Edge mostre aquele balão chato de "O Edge foi fechado inesperadamente. Restaurar páginas?"
 $opcoes.AddArgument("--disable-session-crashed-bubble")
+$opcoes.AddUserProfilePreference("profile.exit_type", "Normal")
 
 # 3. Prepara o Motorista Invisível
 $servico = [OpenQA.Selenium.Edge.EdgeDriverService]::CreateDefaultService("C:\AmbientesVirtuais")
@@ -120,10 +136,8 @@ else {
     $campoUsuario = $existeTelaLogin[0]
     $campoSenha = $driver.FindElement([OpenQA.Selenium.By]::Id("password"))
     
-    $caminhoCofre = $credenciais
-    
-    if (Test-Path $caminhoCofre) {
-        $credencial = Import-Clixml -Path $caminhoCofre
+    if (Test-Path $credenciais) {
+        $credencial = Import-Clixml -Path $credenciais
         $senhaDescriptografada = $credencial.GetNetworkCredential().Password
         
         # --- SOLUÇÃO 1: Limpar o domínio do usuário ---
@@ -184,10 +198,8 @@ else {
     $campoUsuarioOTRS = $existeTelaLoginOTRS[0]
     $campoSenhaOTRS = $driver.FindElement([OpenQA.Selenium.By]::Id("Password"))
     
-    $caminhoCofre = $credenciais 
-    
-    if (Test-Path $caminhoCofre) {
-        $credencial = Import-Clixml -Path $caminhoCofre
+    if (Test-Path $credenciais) {
+        $credencial = Import-Clixml -Path $credenciais
         $senhaDescriptografada = $credencial.GetNetworkCredential().Password
         
         # Reaproveitamos a lógica de limpar o domínio
@@ -235,17 +247,30 @@ $outrasAbas = @(
 )
 
 foreach ($url in $outrasAbas) {
-    # Abre uma nova aba e acessa a URL
     $driver.SwitchTo().NewWindow([OpenQA.Selenium.WindowType]::Tab) | Out-Null
     $driver.Navigate().GoToUrl($url)
-    Start-Sleep -Milliseconds 500 # Uma pausa bem curtinha só para o Edge não engasgar
+    
+    # Se for o Gemini ou NotebookLM, damos um tempo extra para o redirecionamento de conta
+    if ($url -like "*gemini.google.com*" -or $url -like "*notebooklm*") {
+        Write-Host "  -> Sincronizando conta acadêmica para ferramenta de IA..." -ForegroundColor Gray
+        Start-Sleep -Seconds 2
+    }
+    
+    Start-Sleep -Milliseconds 800
 }
 
 # --- Abrir o WhatsApp (App do Edge) ---
+Write-Host "Aguardando o Edge principal estabilizar..." -ForegroundColor Yellow -BackgroundColor Black
+Start-Sleep -Seconds 3 # 👇 ESSA PAUSA É O SEGREDO 👇
+
 Write-Host "Iniciando WhatsApp App..." -ForegroundColor Green -BackgroundColor Black
-# Substitua o texto abaixo pelo ID que você copiou do seu atalho
 $idWhatsApp = "--app-id=$($idWhatsAppConfig)" 
 Start-Process "msedge.exe" -ArgumentList $idWhatsApp
+
+# --- Abrir o MS Teams ---
+Write-Host "Iniciando Microsoft Teams..." -ForegroundColor Green -BackgroundColor Black
+# No Windows 11, a melhor forma de chamar o Teams novo é usando o protocolo URI dele
+Start-Process "msteams:"
 
 Write-Host "Ambiente Chamados carregado com sucesso!" -ForegroundColor Green -BackgroundColor Black
 Start-Sleep -Seconds 2

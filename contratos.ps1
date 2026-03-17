@@ -28,8 +28,10 @@ $edgeArgs = @(
 Start-Process "msedge.exe" -ArgumentList $edgeArgs
 
 # --- Abrir o WhatsApp (App do Edge) ---
+Write-Host "Aguardando o Edge principal estabilizar..." -ForegroundColor Yellow -BackgroundColor Black
+Start-Sleep -Seconds 3 # 👇 ESSA PAUSA É O SEGREDO 👇
+
 Write-Host "Iniciando WhatsApp App..." -ForegroundColor Green -BackgroundColor Black
-# Substitua o texto abaixo pelo ID que você copiou do seu atalho
 $idWhatsApp = "--app-id=$($idWhatsAppConfig)" 
 Start-Process "msedge.exe" -ArgumentList $idWhatsApp
 
@@ -38,8 +40,7 @@ Start-Sleep -Seconds 4
 
 # --- 3. Abrir o SAJMP e digitar a senha automaticamente ---
 Write-Host "Iniciando SAJMP..." -ForegroundColor Green -BackgroundColor Black
-$atalhoSAJ = $sajmpAtalho
-Start-Process $atalhoSAJ
+Start-Process $sajmpAtalho
 
 Write-Host "Aguardando o SAJMP carregar a tela de login..." -ForegroundColor Green -BackgroundColor Black
 # IMPORTANTE: Se o seu computador for muito rápido, pode diminuir esse tempo. 

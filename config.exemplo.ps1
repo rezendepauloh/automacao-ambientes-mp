@@ -1,5 +1,6 @@
 ﻿$pastaProvas = "C:\Caminho\Para\Suas\Provas"
 $pastaSharePoint = "C:\Caminho\Para\Seu\SharePoint"
+$pastaContratos = "C:\Caminho\Para\Seu\Contrato"
 $planilhaChamados = "C:\Caminho\Para\Sua\Planilha.xlsx"
 $pastaAulas = "C:\Caminho\Para\Suas\Aulas"
 
@@ -11,6 +12,7 @@ $atalhoInternoSCCM = "C:\Caminho\Console do Configuration Manager.lnk"
 
 # Credenciais de Administrador (Para o PXE)
 $usuarioAdminAD = "dominio\usuario"
+$usuarioAdminComum = "mpe\usuario"
 
 # Driver Selenium
 $driverSelenium = "C:\Caminho\WebDriver.dll"
@@ -50,3 +52,8 @@ $gemini = "www.site.com.br"
 $googleCalendar = "www.site.com.br"
 $tasks = "www.site.com.br"
 $idWhatsAppConfig = "id-whatsapp"
+
+# Pasta de Scripts PowerShell
+$pastaScripts1 = "C:\Caminho"
+$pastaScripts2 = "C:\Caminho"
+$pastaScripts3 = "C:\Caminho"

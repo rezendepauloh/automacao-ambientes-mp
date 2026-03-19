@@ -84,18 +84,22 @@ function Limpar-Ambiente {
     $processos = [ordered]@{
         "msedge" = "Microsoft Edge"
         "msedgewebview2" = "Edge WebView2"
-        "msedgedriver" = "Moto Selenium Edge"
+        "msedgedriver" = "Motor Selenium Edge"
+        "firefox" = "Mozilla Firefox"
         "chrome" = "Google Chrome"
         "msteams" = "Microsoft Teams 01"
         "Teams" = "Microsoft Teams 02"
         "ms-teams" = "Microsoft Teams 03"
         "mmc" = "Active Directory (MMC)"
         "Microsoft.ConfigurationManagement" = "SCCM"
-        "saj" = "SAJMP"
+        "sajapp" = "SAJMP"
         "olk" = "Novo Outlook"
         "FoxitPDFEditor" = "Foxit PDF"
         "Notepad" = "Bloco de Notas"
         "Time" = "Relógio do Windows"
+        "RemoteDesktopManager" = "Remote Desktop Manager"
+        "WindowsTerminal" = "Windows Terminal"
+        # "pwsh" = "PowerShell 7"
     }
 
     foreach ($proc in $processos.Keys) {
@@ -158,4 +162,134 @@ function Limpar-Ambiente {
 
     Write-Host "Aguardando estabilização do sistema..." -ForegroundColor Green -BackgroundColor Black
     Start-Sleep -Seconds 2
+}
+
+function Matar-Teams {
+    Start-Sleep -Seconds 2
+
+    Write-Host "Verificando se o Teams pegou carona no Explorer..." -ForegroundColor Yellow -BackgroundColor Black
+
+    # Colocamos os três nomes possíveis do Teams (O Antigo, o Novo e o processo de Background)
+    $fantasmasDoTeams = @("Teams", "ms-teams", "msteams")
+
+    # Damos uma pausa de 3 segundos só para garantir que o Explorer já chamou o intruso
+    Start-Sleep -Seconds 3 
+
+    foreach ($fantasma in $fantasmasDoTeams) {
+        if (Get-Process -Name $fantasma -ErrorAction SilentlyContinue) {
+            Write-Host "  -> Abatendo $fantasma indesejado..." -ForegroundColor Gray
+            Stop-Process -Name $fantasma -Force
+        }
+    }
+
+    Write-Host "Área de estudos 100% blindada contra distrações!" -ForegroundColor Green -BackgroundColor Black
+
+    Start-Sleep -Seconds 2
+}
+
+function Abrir-PastasEmAbas {
+    param (
+        # Aceita um dicionário (chave = Nome pro Log, valor = Caminho da pasta)
+        [Parameter(Mandatory=$true)]
+        [System.Collections.IDictionary]$Pastas
+    )
+
+    if ($Pastas.Count -eq 0) { return }
+
+    Write-Host "Abrindo pastas de trabalho agrupadas em abas..." -ForegroundColor Cyan -BackgroundColor Black
+    $wshell = New-Object -ComObject WScript.Shell
+
+    # Extrai as chaves (os nomes/alias) para podermos usar um índice numérico
+    $chaves = @($Pastas.Keys)
+
+    # Passo 1: Abre a PRIMEIRA pasta (cria a janela base)
+    $primeiraChave = $chaves[0]
+    $primeiroCaminho = $Pastas[$primeiraChave]
+
+    Start-Process "explorer.exe" -ArgumentList "`"$primeiroCaminho`""
+    Write-Host "  -> $primeiraChave aberto" -ForegroundColor Cyan -BackgroundColor Black
+    
+    # Pausa generosa para a janela base carregar e ganhar o foco
+    Start-Sleep -Seconds 4
+
+    # Passo 2: Abre as pastas seguintes (se existirem)
+    if ($chaves.Count -gt 1) {
+        for ($i = 1; $i -lt $chaves.Count; $i++) {
+            $chaveAtual = $chaves[$i]
+            $caminhoAtual = $Pastas[$chaveAtual]
+
+            # Envia Ctrl + T (Nova Aba)
+            $wshell.SendKeys("^t")
+            Start-Sleep -Seconds 2
+
+            # Envia Ctrl + L (Focar na barra de endereço)
+            $wshell.SendKeys("^l")
+            Start-Sleep -Milliseconds 600
+
+            # Copia o caminho para a memória (Zero erros de digitação!)
+            Set-Clipboard -Value $caminhoAtual
+
+            # Envia Ctrl + V (Colar o caminho)
+            $wshell.SendKeys("^v")
+            Start-Sleep -Milliseconds 600
+
+            # Envia Enter
+            $wshell.SendKeys("~")
+            Write-Host "  -> $chaveAtual aberto" -ForegroundColor Cyan -BackgroundColor Black
+            
+            # Pausa antes da próxima aba
+            Start-Sleep -Seconds 2
+        }
+    }
+    
+    # Pausa final para estabilização da interface
+    Start-Sleep -Seconds 4
+}
+
+function Abrir-SitesEdgeLeve {
+    param (
+        # Aceita um dicionário (chave = Nome pro Log, valor = URL do site)
+        [Parameter(Mandatory=$true)]
+        [System.Collections.IDictionary]$Sites
+    )
+
+    if ($Sites.Count -eq 0) { return }
+
+    Write-Host "Preparando o Edge leve..." -ForegroundColor Cyan -BackgroundColor Black
+
+    # --- O ANTÍDOTO ANTI-CRASH NATIVO ---
+    # Vamos direto no arquivo de preferências do seu perfil padrão do Edge
+    $caminhoPrefs = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Preferences"
+    
+    if (Test-Path $caminhoPrefs) {
+        Write-Host "  -> Aplicando vacina anti-crash no perfil do Edge..." -ForegroundColor Gray
+        
+        # Lê o arquivo inteiro como um blocão de texto
+        $textoPrefs = Get-Content -Path $caminhoPrefs -Raw
+        
+        # Se ele achar a marcação de 'Crashed', ele troca para 'Normal'
+        if ($textoPrefs -match '"exit_type":"Crashed"') {
+            $textoPrefs = $textoPrefs -replace '"exit_type":"Crashed"', '"exit_type":"Normal"'
+            
+            # Salva de volta garantindo a codificação correta para não corromper o arquivo
+            [System.IO.File]::WriteAllText($caminhoPrefs, $textoPrefs, [System.Text.Encoding]::UTF8)
+        }
+    }
+
+    # --- MONTANDO O COMANDO ---
+    $flagsEdge = "--new-window --disable-extensions"
+    $urlsParaAbrir = ""
+
+    foreach ($chave in $Sites.Keys) {
+        $url = $Sites[$chave]
+        # Adiciona a URL com aspas ao redor, separada por espaço
+        $urlsParaAbrir += "`"$url`" "
+        Write-Host "  -> Carregando: $chave" -ForegroundColor Cyan -BackgroundColor Black
+    }
+
+    # --- O TIRO FINAL ---
+    $argumentosEdge = "$flagsEdge $urlsParaAbrir"
+    Start-Process "msedge.exe" -ArgumentList $argumentosEdge
+
+    Write-Host "Edge iniciado limpo e sem balões!" -ForegroundColor Green -BackgroundColor Black
 }

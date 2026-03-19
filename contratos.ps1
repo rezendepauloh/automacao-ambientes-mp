@@ -9,25 +9,48 @@ Write-Host "Iniciando limpeza para o Ambiente de Contratos..." -ForegroundColor 
 # 2. Chama a função que criamos lá dentro (Isso vai rodar tudo: Office, Programas e Pastas)
 Limpar-Ambiente
 
-# --- 1. Abrir o MS Teams ---
+# Matar Teams
+Matar-Teams
+
+##########################
+# Abrir pastas em abas
+##########################
+
+# Montamos o dicionário (Alias = Caminho). 
+# O [ordered] garante que a primeira da lista sempre será a janela mãe!
+$minhasPastas = [ordered]@{
+    "Download"         = "$env:USERPROFILE\Downloads"
+    "Contratos"        = $pastaContratos
+}
+
+# Chamamos a função passando o nosso cardápio
+Abrir-PastasEmAbas -Pastas $minhasPastas
+
+##########################
+# MS Teams
+##########################
 Write-Host "Iniciando Microsoft Teams..." -ForegroundColor Green -BackgroundColor Black
-# No Windows 11, a melhor forma de chamar o Teams novo é usando o protocolo URI dele
 Start-Process "msteams:"
 
-# --- 2. Abrir o Edge com YouTube Music (Limpo) ---
-Write-Host "Iniciando YouTube Music no Edge leve..." -ForegroundColor Green -BackgroundColor Black
-$edgeArgs = @(
-    "--disable-extensions",
-    "--disable-session-crashed-bubble", 
-    $youtubeMusic,
-    $gemini,
-    $keepChamados,
-    $tasks,
-    $googleCalendar
-)
-Start-Process "msedge.exe" -ArgumentList $edgeArgs
+##########################
+# MS Edge Leve (Nativo e Modular)
+##########################
 
-# --- Abrir o WhatsApp (App do Edge) ---
+# Montamos o dicionário (Alias = URL)
+$meusSitesContratos = [ordered]@{
+    "YouTube Music"   = $youtubeMusic
+    "Google Gemini"   = $gemini
+    "Google Keep"     = $keepChamados
+    "Google Tasks"    = $tasks
+    "Google Calendar" = $googleCalendar
+}
+
+# Chamamos a função da nossa biblioteca!
+Abrir-SitesEdgeLeve -Sites $meusSitesContratos
+
+##########################
+# WhatsApp App
+##########################
 Write-Host "Aguardando o Edge principal estabilizar..." -ForegroundColor Yellow -BackgroundColor Black
 Start-Sleep -Seconds 3 # 👇 ESSA PAUSA É O SEGREDO 👇
 
@@ -38,7 +61,9 @@ Start-Process "msedge.exe" -ArgumentList $idWhatsApp
 # Dá um tempo para o Teams e o Edge "pularem" na tela e não atrapalharem depois
 Start-Sleep -Seconds 4
 
-# --- 3. Abrir o SAJMP e digitar a senha automaticamente ---
+##########################
+# SAJMP
+##########################
 Write-Host "Iniciando SAJMP..." -ForegroundColor Green -BackgroundColor Black
 Start-Process $sajmpAtalho
 
@@ -60,8 +85,6 @@ if ($processoSAJ) {
 
 Write-Host "Buscando credencial segura..." -ForegroundColor Green -BackgroundColor Black
 $credSAJ = Import-Clixml -Path $credenciais
-
-# Converte a senha segura em texto apenas na memória
 $senhaDescriptografada = $credSAJ.GetNetworkCredential().Password
 
 Write-Host "Digitando credenciais..." -ForegroundColor Green -BackgroundColor Black

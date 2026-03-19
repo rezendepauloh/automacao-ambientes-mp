@@ -7,13 +7,17 @@
 # 2. Chama a função que criamos lá dentro (Isso vai rodar tudo: Office, Programas e Pastas)
 Limpar-Ambiente
 
-# --- 3. Abrir o AD (Usando runas em cascata para forçar a elevação UAC) ---
+##########################
+# AD (mmc)
+##########################
 Write-Host "Iniciando Active Directory..." -ForegroundColor Green -BackgroundColor Black
 
 # Na PRIMEIRA execução, uma tela preta do CMD pedirá a senha. Nas próximas, vai abrir direto!
-runas.exe /user:$($usuarioAdminAD) /savecred "powershell.exe -WindowStyle Hidden -Command `"Start-Process mmc dsa.msc -Verb RunAs`""
+runas.exe /user:$($usuarioAdminAD) /savecred "pwsh.exe -WindowStyle Hidden -Command `"Start-Process mmc dsa.msc -Verb RunAs`""
 
-# 4. Iniciar o Configuration Manager
+##########################
+# SCCM
+##########################
 Write-Host "Iniciando Configuration Manager..." -ForegroundColor Green -BackgroundColor Black
 Start-Process $atalhoInternoSCCM
 

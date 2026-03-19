@@ -7,90 +7,33 @@
 # 2. Chama a função que criamos lá dentro (Isso vai rodar tudo: Office, Programas e Pastas)
 Limpar-Ambiente
 
-Start-Sleep -Seconds 2
+# Matar Teams
+Matar-Teams
 
-# =======================================================================
-# --- TIRO DE PRECISÃO NO TEAMS (PÓS-EXPLORER) ---
-# =======================================================================
-Write-Host "Verificando se o Teams pegou carona no Explorer..." -ForegroundColor Yellow -BackgroundColor Black
+##########################
+# Abrir pastas em abas
+##########################
 
-# Colocamos os três nomes possíveis do Teams (O Antigo, o Novo e o processo de Background)
-$fantasmasDoTeams = @("Teams", "ms-teams", "msteams")
-
-# Damos uma pausa de 3 segundos só para garantir que o Explorer já chamou o intruso
-Start-Sleep -Seconds 3 
-
-foreach ($fantasma in $fantasmasDoTeams) {
-    if (Get-Process -Name $fantasma -ErrorAction SilentlyContinue) {
-        Write-Host "  -> Abatendo $fantasma indesejado..." -ForegroundColor Gray
-        Stop-Process -Name $fantasma -Force
-    }
+# Montamos o dicionário (Alias = Caminho). 
+# O [ordered] garante que a primeira da lista sempre será a janela mãe!
+$minhasPastas = [ordered]@{
+    "Download"         = "$env:USERPROFILE\Downloads"
+    "Provas"           = $pastaProvas
+    "Pasta SharePoint" = $pastaSharePoint
 }
 
-Write-Host "Área de estudos 100% blindada contra distrações!" -ForegroundColor Green -BackgroundColor Black
+# Chamamos a função passando o nosso cardápio
+Abrir-PastasEmAbas -Pastas $minhasPastas
 
-Start-Sleep -Seconds 2
-
-# --- 1. Abrir Pastas em Abas (Modo Teclado Fantasma) ---
-Write-Host "Abrindo pastas de trabalho agrupadas em abas..." -ForegroundColor Cyan -BackgroundColor Black
-
-$wshell = New-Object -ComObject WScript.Shell
-
-# Passo 1: Abre a PRIMEIRA pasta normalmente (Isso cria a janela base)
-Start-Process "explorer.exe" -ArgumentList "`"$env:USERPROFILE\Downloads`""
-Write-Host "  -> Download aberto" -ForegroundColor Cyan -BackgroundColor Black
-
-# Dá um tempo bem generoso para a janela do Windows abrir, carregar e ganhar o foco do mouse
-Start-Sleep -Seconds 4 
-
-# Passo 2: Abre a SEGUNDA pasta em uma nova aba
-# Envia Ctrl + T (Nova Aba)
-$wshell.SendKeys("^t")
-Start-Sleep -Seconds 1
-
-# Envia Ctrl + L (Focar na barra de endereço lá em cima)
-$wshell.SendKeys("^l")
-Start-Sleep -Milliseconds 600
-
-# Copia o caminho da segunda pasta para a memória do Windows (evita erros de digitação do robô)
-Set-Clipboard -Value $pastaProvas
-
-# Envia Ctrl + V (Colar o caminho)
-$wshell.SendKeys("^v")
-Start-Sleep -Milliseconds 600
-
-# Envia Enter
-$wshell.SendKeys("~")
-Write-Host "  -> Provas aberto" -ForegroundColor Cyan -BackgroundColor Black
-Start-Sleep -Seconds 2
-
-
-# Passo 3: Abre a TERCEIRA pasta em uma nova aba
-# Envia Ctrl + T (Nova Aba)
-$wshell.SendKeys("^t")
-Start-Sleep -Seconds 1
-
-# Envia Ctrl + L (Focar na barra de endereço lá em cima)
-$wshell.SendKeys("^l")
-Start-Sleep -Milliseconds 600
-
-# Copia o caminho da segunda pasta para a memória do Windows (evita erros de digitação do robô)
-Set-Clipboard -Value $pastaSharePoint
-
-# Envia Ctrl + V (Colar o caminho)
-$wshell.SendKeys("^v")
-Start-Sleep -Milliseconds 600
-
-# Envia Enter
-$wshell.SendKeys("~")
-Write-Host "  -> Pasta SharePoint aberta" -ForegroundColor Cyan -BackgroundColor Black
-Start-Sleep -Seconds 4
-
-# --- 2. Abrir a Planilha de Chamados no Excel ---
+##########################
+# Planilha Chamados
+##########################
 Write-Host "Abrindo Planilha de Chamados..." -ForegroundColor Green -BackgroundColor Black
 Start-Process "excel.exe" -ArgumentList "`"$planilhaChamados`""
 
-# --- 3. Abrir o Edge SEM Extensões e com as abas do setor ---
+##########################
+# MS Edge Leve
+##########################
 Write-Host "Abrindo sistemas web no Edge (Modo Leve)..." -ForegroundColor Green -BackgroundColor Black
 # 1. Carrega a biblioteca do Selenium
 Add-Type -Path $driverSelenium
@@ -259,7 +202,9 @@ foreach ($url in $outrasAbas) {
     Start-Sleep -Milliseconds 800
 }
 
-# --- Abrir o WhatsApp (App do Edge) ---
+##########################
+# WhatsApp App
+##########################
 Write-Host "Aguardando o Edge principal estabilizar..." -ForegroundColor Yellow -BackgroundColor Black
 Start-Sleep -Seconds 3 # 👇 ESSA PAUSA É O SEGREDO 👇
 
@@ -267,13 +212,48 @@ Write-Host "Iniciando WhatsApp App..." -ForegroundColor Green -BackgroundColor B
 $idWhatsApp = "--app-id=$($idWhatsAppConfig)" 
 Start-Process "msedge.exe" -ArgumentList $idWhatsApp
 
-# --- Abrir o MS Teams ---
+##########################
+# MS Teams
+##########################
 Write-Host "Iniciando Microsoft Teams..." -ForegroundColor Green -BackgroundColor Black
 # No Windows 11, a melhor forma de chamar o Teams novo é usando o protocolo URI dele
 Start-Process "msteams:"
 
-Write-Host "Ambiente Chamados carregado com sucesso!" -ForegroundColor Green -BackgroundColor Black
+##########################
+# Windows Terminal
+##########################
+Write-Host "  -> Abrindo Terminal Padrão..." -ForegroundColor Gray
+Start-Process "wt.exe"
+
 Start-Sleep -Seconds 2
+
+# =======================================================================
+# --- INVOCANDO TERMINAL ADMIN COM ABAS ESPECÍFICAS ---
+# =======================================================================
+Write-Host "  -> Abrindo Terminal Elevado..." -ForegroundColor Gray
+
+$caminhoScriptTemp = "$env:TEMP\IniciaTerminalAdmin.ps1"
+
+# 1. A MÁGICA DO ARQUIVO TEMPORÁRIO AVANÇADO:
+# Usamos o 'Here-String' (@" "@) para montar o código com perfeição.
+# A crase (`) antes do $ impede o PowerShell atual de ler a variável, forçando a leitura apenas no Admin!
+$conteudoTemp = @"
+`$pastaRaiz = `$env:USERPROFILE
+`$argWt = '-w new -d "' + `$pastaRaiz + '" ; new-tab -d "$pastaScripts1" ; new-tab -d "$pastaScripts2" ; new-tab -d "$pastaScripts3"'
+Start-Process wt.exe -ArgumentList `$argWt -Verb RunAs
+
+# A SUA IDEIA AQUI: O script mata o próprio processo (PID) instantaneamente!
+Stop-Process -Id `$PID -Force
+"@
+
+Set-Content -Path $caminhoScriptTemp -Value $conteudoTemp -Encoding UTF8
+
+# 2. O TIRO FINAL (AGORA COM -NoProfile PARA MATAR A JANELA FANTASMA)
+runas.exe /user:$($usuarioAdminComum) /savecred "pwsh.exe -WindowStyle Hidden -NoProfile -NonInteractive -WindowStyle Hidden -File `"$caminhoScriptTemp`""
+
+Start-Sleep -Seconds 2
+
+Write-Host "Ambiente Chamados carregado com sucesso!" -ForegroundColor Green -BackgroundColor Black
 
 # Carrega a biblioteca gráfica do Windows
 Add-Type -AssemblyName System.Windows.Forms

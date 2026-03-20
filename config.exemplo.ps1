@@ -4,11 +4,10 @@ $pastaContratos = "C:\Caminho\Para\Seu\Contrato"
 $planilhaChamados = "C:\Caminho\Para\Sua\Planilha.xlsx"
 $pastaAulas = "C:\Caminho\Para\Suas\Aulas"
 
-# Atalho SAJMP
+# Atalhos
 $sajmpAtalho = "C:\Caminho\SAJMP.lnk"
-
-# Atalho SCCM
 $atalhoInternoSCCM = "C:\Caminho\Console do Configuration Manager.lnk"
+$caminhoRDM = "C:\Caminho\RemoteDesktopManager.exe"
 
 # Credenciais de Administrador (Para o PXE)
 $usuarioAdminAD = "dominio\usuario"
@@ -23,6 +22,8 @@ $credenciais = "C:\Caminho\Credenciais\credenciais.xml"
 $usuarioEstrategia = "C:\Caminho\Credenciais\cred_estrategia.xml"
 $usuarioGran = "C:\Caminho\Credenciais\cred_gran.xml"
 $usuarioUnigran = "C:\Caminho\Credenciais\cred_unigran.xml"
+$usuarioPaperCut = "C:\Caminho\Credenciais\cred_papercut.xml"
+$cofreAdminComum = "C:\Caminho\Credenciais\cred_admin.xml"
 
 # Domínio
 $dominioLocal = "dominio"
@@ -52,6 +53,9 @@ $gemini = "www.site.com.br"
 $googleCalendar = "www.site.com.br"
 $tasks = "www.site.com.br"
 $idWhatsAppConfig = "id-whatsapp"
+
+# Site PaperCut
+$sitePapercut = "www.site.com.br"
 
 # Pasta de Scripts PowerShell
 $pastaScripts1 = "C:\Caminho"

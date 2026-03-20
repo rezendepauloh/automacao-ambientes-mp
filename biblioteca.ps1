@@ -2,6 +2,9 @@
 # BIBLIOTECA DE FUNÇÕES - AUTOMAÇÃO MP
 # ==========================================
 
+# Inicia a gravação de tudo que acontece no terminal
+Start-Transcript -Path "$env:USERPROFILE\Desktop\Log_Automacao.txt" -Force
+
 function Limpar-Ambiente {
     Write-Host "Iniciando limpeza do ambiente..." -ForegroundColor Green -BackgroundColor Black
 
@@ -99,16 +102,30 @@ function Limpar-Ambiente {
         "Time" = "Relógio do Windows"
         "RemoteDesktopManager" = "Remote Desktop Manager"
         "WindowsTerminal" = "Windows Terminal"
-        # "pwsh" = "PowerShell 7"
+        #"pwsh" = "PowerShell 7"
     }
 
-    foreach ($proc in $processos.Keys) {
-        $nomeElegante = $processos[$proc]
-        if (Get-Process -Name $proc -ErrorAction SilentlyContinue) {
-            Write-Host "Processo $nomeElegante encontrado. Fechando..." -ForegroundColor Yellow -BackgroundColor Black
-            Stop-Process -Name $proc -Force
-        } else {
-            Write-Host "Processo $nomeElegante não está aberto. Pulando..." -ForegroundColor DarkGray -BackgroundColor Black
+    Write-Host "Gerando escudo de proteção (Apenas para Terminais)..." -ForegroundColor DarkGray
+    
+    # Define a linha de corte: 15 segundos atrás
+    $tempoLimite = (Get-Date).AddSeconds(-15)
+
+    foreach ($chave in $processos.Keys) {
+        $processosEncontrados = Get-Process -Name $chave -ErrorAction SilentlyContinue
+        
+        if ($processosEncontrados) {
+            foreach ($proc in $processosEncontrados) {
+                
+                # REGRA DE OURO: Só poupamos se for o Terminal ou PowerShell, E se for novo.
+                # Se for Edge, Teams, Firefox, ele mata sem dó, não importa a idade.
+                if (($chave -match "WindowsTerminal|pwsh|powershell") -and ($proc.StartTime -gt $tempoLimite)) {
+                    Write-Host "  -> Poupando $($processos[$chave]) (Terminal recém-nascido)." -ForegroundColor Cyan
+                    continue
+                }
+                
+                Write-Host "Processo $($processos[$chave]) encontrado. Fechando..." -ForegroundColor Yellow -BackgroundColor Black
+                Stop-Process -Id $proc.Id -Force
+            }
         }
     }
 
@@ -293,3 +310,5 @@ function Abrir-SitesEdgeLeve {
 
     Write-Host "Edge iniciado limpo e sem balões!" -ForegroundColor Green -BackgroundColor Black
 }
+
+Stop-Transcript

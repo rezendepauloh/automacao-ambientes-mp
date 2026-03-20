@@ -2,9 +2,6 @@
 # BIBLIOTECA DE FUNÇÕES - AUTOMAÇÃO MP
 # ==========================================
 
-# Inicia a gravação de tudo que acontece no terminal
-Start-Transcript -Path "$env:USERPROFILE\Desktop\Log_Automacao.txt" -Force
-
 function Limpar-Ambiente {
     Write-Host "Iniciando limpeza do ambiente..." -ForegroundColor Green -BackgroundColor Black
 
@@ -83,7 +80,7 @@ function Limpar-Ambiente {
     # Executa o bloco acima usando o PowerShell nativo do Windows
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $codigoSalvarOffice
 
-    # --- 2. FECHAR PROCESSOS (ALIASES) ---
+# --- 2. FECHAR PROCESSOS (ALIASES E ESCUDO FAMILIAR) ---
     $processos = [ordered]@{
         "msedge" = "Microsoft Edge"
         "msedgewebview2" = "Edge WebView2"
@@ -102,29 +99,45 @@ function Limpar-Ambiente {
         "Time" = "Relógio do Windows"
         "RemoteDesktopManager" = "Remote Desktop Manager"
         "WindowsTerminal" = "Windows Terminal"
-        #"pwsh" = "PowerShell 7"
+        "pwsh" = "PowerShell 7"
     }
 
-    Write-Host "Gerando escudo de proteção (Apenas para Terminais)..." -ForegroundColor DarkGray
+    Write-Host "Gerando escudo de proteção (Script e Janela Pai)..." -ForegroundColor Cyan -BackgroundColor Black
     
-    # Define a linha de corte: 15 segundos atrás
-    $tempoLimite = (Get-Date).AddSeconds(-15)
+    # Descobre quem somos nós ($meuPid) e qual o título do nosso terminal atual ($meuTitulo)
+    $meuPid = $PID
+    $meuPaiPid = (Get-CimInstance Win32_Process -Filter "ProcessId = $PID").ParentProcessId
+    $meuTitulo = $Host.UI.RawUI.WindowTitle
 
     foreach ($chave in $processos.Keys) {
         $processosEncontrados = Get-Process -Name $chave -ErrorAction SilentlyContinue
         
         if ($processosEncontrados) {
+            # Variável para evitar o "flood" (spam) de dezenas de mensagens iguais do WebView2
+            $jaAvisou = $false 
+
             foreach ($proc in $processosEncontrados) {
                 
-                # REGRA DE OURO: Só poupamos se for o Terminal ou PowerShell, E se for novo.
-                # Se for Edge, Teams, Firefox, ele mata sem dó, não importa a idade.
-                if (($chave -match "WindowsTerminal|pwsh|powershell") -and ($proc.StartTime -gt $tempoLimite)) {
-                    Write-Host "  -> Poupando $($processos[$chave]) (Terminal recém-nascido)." -ForegroundColor Cyan
+                # A SUA IDEIA AQUI: O Escudo de Título da Janela!
+                # Ele verifica se a janela tem o emoji com a palavra Modo, ou se é igual ao título atual
+                $temTituloProtegido = ($proc.MainWindowTitle -and ($proc.MainWindowTitle -match "🛠️ Modo" -or $proc.MainWindowTitle -eq $meuTitulo))
+                
+                # ESCUDO: Se o processo na mira for o script atual, o pai, ou tiver o título sagrado, pula!
+                if ($proc.Id -eq $meuPid -or $proc.Id -eq $meuPaiPid -or $temTituloProtegido) {
+                    Write-Host "  -> Poupando o $($processos[$chave]) (Escudo de Título/PID ativado)." -ForegroundColor Cyan
                     continue
                 }
                 
-                Write-Host "Processo $($processos[$chave]) encontrado. Fechando..." -ForegroundColor Yellow -BackgroundColor Black
-                Stop-Process -Id $proc.Id -Force
+                # Avisa na tela que achou o processo (apenas 1 vez por aplicativo, para o log ficar limpo)
+                if (-not $jaAvisou) {
+                    Write-Host "Processo $($processos[$chave]) encontrado. Fechando..." -ForegroundColor Yellow -BackgroundColor Black
+                    
+                    # Se for Edge ou WebView2, avisa só uma vez, porque eles abrem 50 de uma vez.
+                    if ($chave -match "msedge") { $jaAvisou = $true }
+                }
+
+                # O TIRO SILENCIOSO: Mata o processo. Se ele já morreu em cascata, o SilentlyContinue esconde o erro vermelho!
+                Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
             }
         }
     }
@@ -199,7 +212,7 @@ function Matar-Teams {
         }
     }
 
-    Write-Host "Área de estudos 100% blindada contra distrações!" -ForegroundColor Green -BackgroundColor Black
+    Write-Host "Teams neutralizado!" -ForegroundColor Yellow -BackgroundColor Black
 
     Start-Sleep -Seconds 2
 }
@@ -311,4 +324,31 @@ function Abrir-SitesEdgeLeve {
     Write-Host "Edge iniciado limpo e sem balões!" -ForegroundColor Green -BackgroundColor Black
 }
 
-Stop-Transcript
+function Remover-CredenciaisMemoria {
+    <#
+    .SYNOPSIS
+    Apaga variáveis com senhas da memória e força a limpeza do Garbage Collector para evitar detecção de Antivírus.
+    #>
+    param (
+        # Já deixamos os nomes das variáveis que você costuma usar como padrão!
+        [string[]]$Variaveis = @(
+            "senhaDescriptografada", 
+            "credencial", 
+            "credSAJ",
+            "credEstudo"
+            )
+    )
+
+    Write-Host "  -> [Segurança] Varrando credenciais temporárias da memória..." -ForegroundColor DarkGray
+    
+    foreach ($var in $Variaveis) {
+        # O Scope 1 garante que ele vai apagar a variável lá no script principal que chamou a função
+        Remove-Variable -Name $var -Scope 1 -ErrorAction SilentlyContinue
+    }
+
+    # Força o Windows a limpar os resíduos da memória RAM imediatamente
+    [System.GC]::Collect()
+    [System.GC]::WaitForPendingFinalizers()
+    
+    Write-Host "  -> [Segurança] Rastros apagados com sucesso!" -ForegroundColor Green -BackgroundColor Black
+}

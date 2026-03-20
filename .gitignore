@@ -25,6 +25,8 @@ Atalhos/
 # deixe essa linha comentada com '#'. Se preferir não subir arquivos pesados, remova o '#'.
 WebDriver.dll
 msedgedriver.exe
+*.exe
 
 # Arquivo de configuração (vai subir apenas o exemplo)
 config.ps1
+login.ps1

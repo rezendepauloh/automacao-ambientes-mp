@@ -37,12 +37,7 @@ Add-Type -Path $driverSelenium
 $opcoes = New-Object OpenQA.Selenium.Edge.EdgeOptions
 $opcoes.AddArgument("user-data-dir=$env:LOCALAPPDATA\Microsoft\Edge\User Data")
 $opcoes.AddArgument("--disable-extensions")
-
-# --- A MÁGICA PARA ESCONDER A FAIXA DE TESTE AUTOMATIZADO ---
 $opcoes.AddExcludedArgument("enable-automation")
-
-# --- A MÁGICA ANTI-CRASH ---
-# Impede que o Edge mostre aquele balão chato de "O Edge foi fechado inesperadamente. Restaurar páginas?"
 $opcoes.AddArgument("--disable-session-crashed-bubble")
 $opcoes.AddUserProfilePreference("profile.exit_type", "Normal")
 
@@ -57,9 +52,9 @@ $driver = New-Object OpenQA.Selenium.Edge.EdgeDriver($servico, $opcoes)
 # =======================================================================
 # --- ESTÁGIO: ESTRATÉGIA CONCURSOS ---
 # =======================================================================
-Write-Host "Acessando a porta de autenticação do Estratégia..." -ForegroundColor Cyan -BackgroundColor Black
+Write-Host "  -> Acessando a porta de autenticação do Estratégia..." -ForegroundColor Cyan -BackgroundColor Black
 
-$driver.Navigate().GoToUrl("https://www.estrategiaconcursos.com.br/loja/entrar/")
+$driver.Navigate().GoToUrl($estrategiaConcursos)
 
 # Pausa mínima de 2 segundos só para garantir que a tela carregou visualmente
 Start-Sleep -Seconds 2 
@@ -67,11 +62,11 @@ Start-Sleep -Seconds 2
 $existeLoginEstrategia = $driver.FindElements([OpenQA.Selenium.By]::Name("loginField"))
 
 if ($existeLoginEstrategia.Count -eq 0) {
-    Write-Host "Sessão já está ativa no Estratégia! O site fará o redirecionamento sozinho..." -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Sessão já está ativa no Estratégia! O site fará o redirecionamento sozinho..." -ForegroundColor Green -BackgroundColor Black
     Start-Sleep -Seconds 2
 } 
 else {
-    Write-Host "Sessão expirada. Injetando credenciais..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Sessão expirada. Injetando credenciais..." -ForegroundColor Yellow -BackgroundColor Black
     
     if (Test-Path $usuarioEstrategia) {
         $credEstudo = Import-Clixml -Path $usuarioEstrategia
@@ -98,22 +93,22 @@ else {
         
         Start-Sleep -Milliseconds 500
         
-        Write-Host "Clicando no botão Entrar..." -ForegroundColor Yellow -BackgroundColor Black
+        Write-Host "  -> Clicando no botão Entrar..." -ForegroundColor Yellow -BackgroundColor Black
         $botaoEntrar = $driver.FindElement([OpenQA.Selenium.By]::XPath("//button[@type='submit']"))
         $botaoEntrar.Click()
         
-        Write-Host "Login efetuado! Aguardando carregamento do Dashboard..." -ForegroundColor Green -BackgroundColor Black
+        Write-Host "  -> Login efetuado! Aguardando carregamento do Dashboard..." -ForegroundColor Green -BackgroundColor Black
         Start-Sleep -Seconds 2 
         
     } else {
-        Write-Host "ERRO: Arquivo de credenciais não encontrado!" -ForegroundColor Red -BackgroundColor Black
+        Write-Host "  -> ERRO: Arquivo de credenciais não encontrado!" -ForegroundColor Red -BackgroundColor Black
     }
 }
 
 # =======================================================================
 # --- ESTÁGIO: GRAN CURSOS ---
 # =======================================================================
-Write-Host "Verificando porta de autenticação do Gran Cursos..." -ForegroundColor Cyan -BackgroundColor Black
+Write-Host "  -> Verificando porta de autenticação do Gran Cursos..." -ForegroundColor Cyan -BackgroundColor Black
 
 # O comando abaixo é exclusivo do Selenium 4: Ele cria uma aba nova e já foca nela!
 $driver.SwitchTo().NewWindow([OpenQA.Selenium.WindowType]::Tab) | Out-Null
@@ -128,15 +123,15 @@ Start-Sleep -Seconds 4
 $existeLoginGran = $driver.FindElements([OpenQA.Selenium.By]::Id("login-email-site"))
 
 if ($existeLoginGran.Count -eq 0) {
-    Write-Host "Sessão já está ativa no Gran Cursos! Área do aluno carregada." -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Sessão já está ativa no Gran Cursos! Área do aluno carregada." -ForegroundColor Green -BackgroundColor Black
 } 
 else {
-    Write-Host "Sessão expirada no Gran. Injetando credenciais de Rezende..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Sessão expirada no Gran. Injetando credenciais de Rezende..." -ForegroundColor Yellow -BackgroundColor Black
     
     if (Test-Path $usuarioGran) {
-        $credGran = Import-Clixml -Path $usuarioGran
-        $emailGran = $credGran.UserName
-        $senhaGran = $credGran.GetNetworkCredential().Password
+        $credEstudo = Import-Clixml -Path $usuarioGran
+        $emailGran = $credEstudo.UserName
+        $senhaGran = $credEstudo.GetNetworkCredential().Password
         
         # Localiza os elementos pelos IDs fornecidos
         $campoEmailGran = $existeLoginGran[0]
@@ -158,21 +153,21 @@ else {
         Start-Sleep -Milliseconds 500
         
         # Clique no botão entrar
-        Write-Host "Finalizando login no Gran..." -ForegroundColor Yellow -BackgroundColor Black
+        Write-Host "  -> Finalizando login no Gran..." -ForegroundColor Yellow -BackgroundColor Black
         $botaoEntrarGran.Click()
         
-        Write-Host "Login no Gran efetuado com sucesso!" -ForegroundColor Green -BackgroundColor Black
+        Write-Host "  -> Login no Gran efetuado com sucesso!" -ForegroundColor Green -BackgroundColor Black
         Start-Sleep -Seconds 5
         
     } else {
-        Write-Host "ERRO: Arquivo de credencial não encontrado em $usuarioGran" -ForegroundColor Red -BackgroundColor Black
+        Write-Host "  -> ERRO: Arquivo de credencial não encontrado em $usuarioGran" -ForegroundColor Red -BackgroundColor Black
     }
 }
 
 # =======================================================================
 # --- ESTÁGIO: UNIGRAN EAD ---
 # =======================================================================
-Write-Host "Abrindo aba da Unigran EAD..." -ForegroundColor Cyan -BackgroundColor Black
+Write-Host "  -> Abrindo aba da Unigran EAD..." -ForegroundColor Cyan -BackgroundColor Black
 
 # Abre nova aba e navega
 $driver.SwitchTo().NewWindow([OpenQA.Selenium.WindowType]::Tab) | Out-Null
@@ -185,15 +180,15 @@ Start-Sleep -Seconds 4
 $existeLoginUnigran = $driver.FindElements([OpenQA.Selenium.By]::Id("login"))
 
 if ($existeLoginUnigran.Count -eq 0) {
-    Write-Host "Sessão já está ativa na Unigran!" -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Sessão já está ativa na Unigran!" -ForegroundColor Green -BackgroundColor Black
 } 
 else {
-    Write-Host "Sessão expirada na Unigran. Injetando credenciais de RGA..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Sessão expirada na Unigran. Injetando credenciais de RGA..." -ForegroundColor Yellow -BackgroundColor Black
     
     if (Test-Path $usuarioUnigran) {
-        $credUnigran = Import-Clixml -Path $usuarioUnigran
-        $rgaUnigran = $credUnigran.UserName
-        $senhaUnigran = $credUnigran.GetNetworkCredential().Password
+        $credEstudo = Import-Clixml -Path $usuarioUnigran
+        $rgaUnigran = $credEstudo.UserName
+        $senhaUnigran = $credEstudo.GetNetworkCredential().Password
         
         $campoRga = $existeLoginUnigran[0]
         $campoSenhaUnigran = $driver.FindElement([OpenQA.Selenium.By]::Id("senha"))
@@ -207,47 +202,61 @@ else {
         $campoSenhaUnigran.SendKeys($senhaUnigran)
         
         # Primeiro Clique: Login Principal
-        Write-Host "Realizando login primário..." -ForegroundColor Yellow -BackgroundColor Black
+        Write-Host "  -> Realizando login primário..." -ForegroundColor Yellow -BackgroundColor Black
         $driver.FindElement([OpenQA.Selenium.By]::CssSelector("button.entrar")).Click()
         
         # --- ETAPA 2: TELA DE DISCIPLINAS ---
-        Write-Host "Aguardando tela de seleção de disciplina..." -ForegroundColor Cyan -BackgroundColor Black
+        Write-Host "  -> Aguardando tela de seleção de disciplina..." -ForegroundColor Cyan -BackgroundColor Black
         Start-Sleep -Seconds 3
         
         # Como o botão é um submit simples, vamos pegá-lo pelo tipo
         $botoesSubmit = $driver.FindElements([OpenQA.Selenium.By]::XPath("//button[@type='submit']"))
         
         if ($botoesSubmit.Count -gt 0) {
-            Write-Host "Confirmando acesso à plataforma..." -ForegroundColor Yellow -BackgroundColor Black
+            Write-Host "  -> Confirmando acesso à plataforma..." -ForegroundColor Yellow -BackgroundColor Black
             $botoesSubmit[0].Click()
         }
         
-        Write-Host "Login Unigran concluído!" -ForegroundColor Green -BackgroundColor Black
+        Write-Host "  -> Login Unigran concluído!" -ForegroundColor Green -BackgroundColor Black
         Start-Sleep -Seconds 2
         
     } else {
-        Write-Host "ERRO: Arquivo credencial não encontrado em $usuarioUnigran" -ForegroundColor Red -BackgroundColor Black
+        Write-Host "  -> ERRO: Arquivo credencial não encontrado em $usuarioUnigran" -ForegroundColor Red -BackgroundColor Black
     }
 }
+
+# --- DESPISTANDO O ANTIVÍRUS ---
+Remover-CredenciaisMemoria
 
 # =======================================================================
 # --- ESTÁGIO 4: ABRINDO AS FERRAMENTAS RESTANTES ---
 # =======================================================================
-Write-Host "Logins críticos concluídos! Abrindo ferramentas Google..." -ForegroundColor Magenta -BackgroundColor Black
+Write-Host "Logins críticos concluídos! Abrindo as demais ferramentas..." -ForegroundColor Magenta -BackgroundColor Black
 
-$outrasAbas = @($notebookLM, $gemini, $youtubeLofiGirl, $googleCalendar, $keepEstudos, $tasks)
+$meusSites = [ordered]@{
+    "Notebook LM"     = $notebookLM
+    "Google Gemini"   = $gemini
+    "Lofi Girl"       = $youtubeLofiGirl
+    "Google Keep"     = $keepEstudos
+    "Google Tasks"    = $tasks
+    "Google Calendar" = $googleCalendar
+}
 
-foreach ($url in $outrasAbas) {
+foreach ($chave in $meusSites.Keys) {
+    $url = $meusSites[$chave]
+
     $driver.SwitchTo().NewWindow([OpenQA.Selenium.WindowType]::Tab) | Out-Null
     $driver.Navigate().GoToUrl($url)
-    
+
+    Write-Host "  -> Carregando: $chave" -ForegroundColor Cyan -BackgroundColor Black
+    Start-Sleep -Milliseconds 500
+
     # Se for o Gemini ou NotebookLM, damos um tempo extra para o redirecionamento de conta
     if ($url -like "*gemini.google.com*" -or $url -like "*notebooklm*") {
         Write-Host "  -> Sincronizando conta acadêmica para ferramenta de IA..." -ForegroundColor Gray
-        Start-Sleep -Seconds 2
+        Start-Sleep -Milliseconds 500
     }
-    
-    Start-Sleep -Milliseconds 800
+
 }
 
 ##########################

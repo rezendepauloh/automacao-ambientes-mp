@@ -56,11 +56,11 @@ $servico = [OpenQA.Selenium.Edge.EdgeDriverService]::CreateDefaultService("C:\Am
 $servico.HideCommandPromptWindow = $true
 
 # 4. Abre o Navegador
-Write-Host "Iniciando o Motor do Selenium..." -ForegroundColor Yellow
+Write-Host "  -> Iniciando o Motor do Selenium..." -ForegroundColor Yellow
 $driver = New-Object OpenQA.Selenium.Edge.EdgeDriver($servico, $opcoes)
 
 # 5. Navega para o SIMP
-Write-Host "Acessando o SIMP..." -ForegroundColor Cyan -BackgroundColor Black
+Write-Host "  -> Acessando o SIMP..." -ForegroundColor Cyan -BackgroundColor Black
 $driver.Navigate().GoToUrl($simp)
 
 # Dá 3 segundos generosos para a página carregar, redirecionar ou o Edge preencher a senha
@@ -71,10 +71,10 @@ $existeTelaLogin = $driver.FindElements([OpenQA.Selenium.By]::Id("username"))
 
 if ($existeTelaLogin.Count -eq 0) {
     # Cenário 1: Já está logado!
-    Write-Host "Sessão já está ativa no SIMP! Pulando etapa de login." -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Sessão já está ativa no SIMP! Pulando etapa de login." -ForegroundColor Green -BackgroundColor Black
 } 
 else {
-    Write-Host "Sessão expirada. Injetando credenciais do cofre XML..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Sessão expirada. Injetando credenciais do cofre XML..." -ForegroundColor Yellow -BackgroundColor Black
     
     $campoUsuario = $existeTelaLogin[0]
     $campoSenha = $driver.FindElement([OpenQA.Selenium.By]::Id("password"))
@@ -90,7 +90,7 @@ else {
         # Prepara a combinação de teclas Ctrl + A
         $teclaCtrlA = [OpenQA.Selenium.Keys]::Control + "a"
         
-        Write-Host "Forçando limpeza dos campos e injetando credenciais limpas..." -ForegroundColor Cyan -BackgroundColor Black
+        Write-Host "  -> Forçando limpeza dos campos e injetando credenciais limpas..." -ForegroundColor Cyan -BackgroundColor Black
         
         # Campo de Usuário: Seleciona tudo (Ctrl+A) e digita o usuário limpo por cima
         $campoUsuario.SendKeys($teclaCtrlA)
@@ -104,23 +104,23 @@ else {
         
         Start-Sleep -Milliseconds 500
     } else {
-        Write-Host "ERRO: Arquivo XML de senha não encontrado!" -ForegroundColor Red -BackgroundColor Black
-        throw "Sem credenciais para continuar." 
+        Write-Host "  -> ERRO: Arquivo XML de senha não encontrado!" -ForegroundColor Red -BackgroundColor Black
+        throw "  -> Sem credenciais para continuar." 
     }
 
     # --- O CLIQUE FINAL ---
-    Write-Host "Clicando no botão de Acessar..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Clicando no botão de Acessar..." -ForegroundColor Yellow -BackgroundColor Black
     $botaoEntrar = $driver.FindElement([OpenQA.Selenium.By]::XPath("//button[@type='submit']"))
     $botaoEntrar.Click()
     
-    Write-Host "Login no SIMP efetuado com sucesso!" -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Login no SIMP efetuado com sucesso!" -ForegroundColor Green -BackgroundColor Black
 }
 
 # =======================================================================
 # --- ESTÁGIO 2: CENTRAL (OTRS) ---
 # =======================================================================
 
-Write-Host "Criando nova aba para a Central (OTRS)..." -ForegroundColor Cyan -BackgroundColor Black
+Write-Host "  -> Criando nova aba para a Central (OTRS)..." -ForegroundColor Cyan -BackgroundColor Black
 # O comando abaixo é exclusivo do Selenium 4: Ele cria uma aba nova e já foca nela!
 $driver.SwitchTo().NewWindow([OpenQA.Selenium.WindowType]::Tab) | Out-Null
 
@@ -133,10 +133,10 @@ Start-Sleep -Seconds 3
 $existeTelaLoginOTRS = $driver.FindElements([OpenQA.Selenium.By]::Id("User"))
 
 if ($existeTelaLoginOTRS.Count -eq 0) {
-    Write-Host "Sessão já está ativa no OTRS! Pulando etapa de login." -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Sessão já está ativa no OTRS! Pulando etapa de login." -ForegroundColor Green -BackgroundColor Black
 } 
 else {
-    Write-Host "Sessão do OTRS expirada. Injetando credenciais do cofre..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Sessão do OTRS expirada. Injetando credenciais do cofre..." -ForegroundColor Yellow -BackgroundColor Black
     
     $campoUsuarioOTRS = $existeTelaLoginOTRS[0]
     $campoSenhaOTRS = $driver.FindElement([OpenQA.Selenium.By]::Id("Password"))
@@ -161,45 +161,51 @@ else {
         
         Start-Sleep -Milliseconds 500
     } else {
-        Write-Host "ERRO: Arquivo XML de senha não encontrado!" -ForegroundColor Red -BackgroundColor Black
-        throw "Sem credenciais para continuar." 
+        Write-Host "  -> ERRO: Arquivo XML de senha não encontrado!" -ForegroundColor Red -BackgroundColor Black
+        throw "  -> Sem credenciais para continuar." 
     }
 
     # --- O CLIQUE FINAL NO OTRS ---
-    Write-Host "Clicando no botão de Login do OTRS..." -ForegroundColor Yellow -BackgroundColor Black
+    Write-Host "  -> Clicando no botão de Login do OTRS..." -ForegroundColor Yellow -BackgroundColor Black
     $botaoEntrarOTRS = $driver.FindElement([OpenQA.Selenium.By]::Id("LoginButton"))
     $botaoEntrarOTRS.Click()
     
-    Write-Host "Login no OTRS efetuado com sucesso!" -ForegroundColor Green -BackgroundColor Black
+    Write-Host "  -> Login no OTRS efetuado com sucesso!" -ForegroundColor Green -BackgroundColor Black
 }
+
+# --- DESPISTANDO O ANTIVÍRUS ---
+Remover-CredenciaisMemoria
 
 # =======================================================================
 # --- ESTÁGIO 3: ABRINDO AS FERRAMENTAS RESTANTES ---
 # =======================================================================
 Write-Host "Logins críticos concluídos! Abrindo o restante das abas..." -ForegroundColor Magenta -BackgroundColor Black
 
-# A sua lista de sites que não precisam de login forçado
-$outrasAbas = @(
-    $citsmart,
-    $sharePointSite,
-    $gemini,
-    $youtubeMusic,
-    $keepChamados,
-    $tasks,
-    $googleCalendar
-)
+$meusSites = [ordered]@{
+    "CitSmart"        = $citsmart
+    "SharePoint"      = $sharePointSite
+    "YouTube Music"   = $youtubeMusic
+    "Google Gemini"   = $gemini
+    "Google Keep"     = $keepChamados
+    "Google Tasks"    = $tasks
+    "Google Calendar" = $googleCalendar
+}
 
-foreach ($url in $outrasAbas) {
+foreach ($chave in $meusSites.Keys) {
+    $url = $meusSites[$chave]
+
     $driver.SwitchTo().NewWindow([OpenQA.Selenium.WindowType]::Tab) | Out-Null
     $driver.Navigate().GoToUrl($url)
-    
+
+    Write-Host "  -> Carregando: $chave" -ForegroundColor Cyan -BackgroundColor Black
+    Start-Sleep -Milliseconds 500
+
     # Se for o Gemini ou NotebookLM, damos um tempo extra para o redirecionamento de conta
     if ($url -like "*gemini.google.com*" -or $url -like "*notebooklm*") {
         Write-Host "  -> Sincronizando conta acadêmica para ferramenta de IA..." -ForegroundColor Gray
-        Start-Sleep -Seconds 2
+        Start-Sleep -Milliseconds 500
     }
-    
-    Start-Sleep -Milliseconds 800
+
 }
 
 ##########################
@@ -224,34 +230,37 @@ Start-Process "msteams:"
 ##########################
 Write-Host "  -> Abrindo Terminal Padrão..." -ForegroundColor Gray
 Start-Process "wt.exe"
-
 Start-Sleep -Seconds 2
 
 # =======================================================================
 # --- INVOCANDO TERMINAL ADMIN COM ABAS ESPECÍFICAS ---
 # =======================================================================
-Write-Host "  -> Abrindo Terminal Elevado..." -ForegroundColor Gray
+# Write-Host "  -> Abrindo Terminal Elevado..." -ForegroundColor Gray
 
-$caminhoScriptTemp = "$env:TEMP\IniciaTerminalAdmin.ps1"
+# $caminhoScriptTemp = "$env:TEMP\IniciaTerminalAdmin.ps1"
 
-# 1. A MÁGICA DO ARQUIVO TEMPORÁRIO AVANÇADO:
-# Usamos o 'Here-String' (@" "@) para montar o código com perfeição.
-# A crase (`) antes do $ impede o PowerShell atual de ler a variável, forçando a leitura apenas no Admin!
-$conteudoTemp = @"
-`$pastaRaiz = `$env:USERPROFILE
-`$argWt = '-w new -d "' + `$pastaRaiz + '" ; new-tab -d "$pastaScripts1" ; new-tab -d "$pastaScripts2" ; new-tab -d "$pastaScripts3"'
-Start-Process wt.exe -ArgumentList `$argWt -Verb RunAs
+# # 1. A MÁGICA DO ARQUIVO TEMPORÁRIO AVANÇADO:
+# # Usamos o 'Here-String' (@" "@) para montar o código com perfeição.
+# # A crase (`) antes do $ impede o PowerShell atual de ler a variável, forçando a leitura apenas no Admin!
+# $conteudoTemp = @"
+# `$pastaRaiz = `$env:USERPROFILE
+# `$argWt = '-w new -d "' + `$pastaRaiz + '" ; new-tab -d "$pastaScripts1" ; new-tab -d "$pastaScripts2" ; new-tab -d "$pastaScripts3"'
+# Start-Process wt.exe -ArgumentList `$argWt -Verb RunAs
 
-# A SUA IDEIA AQUI: O script mata o próprio processo (PID) instantaneamente!
-Stop-Process -Id `$PID -Force
-"@
+# # A SUA IDEIA AQUI: O script mata o próprio processo (PID) instantaneamente!
+# # Stop-Process -Id `$PID -Force
+# "@
 
-Set-Content -Path $caminhoScriptTemp -Value $conteudoTemp -Encoding UTF8
+# Set-Content -Path $caminhoScriptTemp -Value $conteudoTemp -Encoding UTF8
 
-# 2. O TIRO FINAL (AGORA COM -NoProfile PARA MATAR A JANELA FANTASMA)
-runas.exe /user:$($usuarioAdminComum) /savecred "pwsh.exe -WindowStyle Hidden -NoProfile -NonInteractive -WindowStyle Hidden -File `"$caminhoScriptTemp`""
+# Write-Host "  -> Lendo credenciais de administrador do cofre..." -ForegroundColor DarkGray
+# $credencialAdmin = Import-Clixml -Path $cofreAdminComum
 
-Start-Sleep -Seconds 2
+# # Inicia o Terminal Elevado de forma nativa. Tiramos o "-WindowStyle Hidden" para o Antivírus não surtar.
+# Start-Process -FilePath "pwsh.exe" -ArgumentList "-NoProfile -File `"$caminhoScriptTemp`"" -Credential $credencialAdmin
+
+# #runas.exe /user:$($usuarioAdminComum) /savecred "pwsh.exe -WindowStyle Hidden -NoProfile -NonInteractive -WindowStyle Hidden -File `"$caminhoScriptTemp`""
+# Start-Sleep -Seconds 2
 
 Write-Host "Ambiente Chamados carregado com sucesso!" -ForegroundColor Green -BackgroundColor Black
 

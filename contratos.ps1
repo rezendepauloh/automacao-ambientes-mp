@@ -103,8 +103,8 @@ $wshell.SendKeys("{ENTER}")
 Write-Host "Ambiente Fiscal de Contratos carregado de forma 100% segura!" -ForegroundColor Green -BackgroundColor Black
 Start-Sleep -Seconds 2
 
-# Limpa a variável da senha da memória por garantia de segurança
-$senhaDescriptografada = $null
+# --- DESPISTANDO O ANTIVÍRUS ---
+Remover-CredenciaisMemoria
 
 # Carrega a biblioteca gráfica do Windows
 Add-Type -AssemblyName System.Windows.Forms

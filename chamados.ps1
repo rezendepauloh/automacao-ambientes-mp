@@ -244,7 +244,9 @@ Start-Sleep -Seconds 2
 # # A crase (`) antes do $ impede o PowerShell atual de ler a variável, forçando a leitura apenas no Admin!
 # $conteudoTemp = @"
 # `$pastaRaiz = `$env:USERPROFILE
+# `$argWt = '-w new -d "' + $env:USERPROFILE + '" ; new-tab -d "$env:USERPROFILE\OneDrive - Ministerio Público do Estado de Mato Grosso do Sul\Documents\Coisas do MP\STI\03 - Automation Scripts\03 - Devices analysis" ; new-tab -d "$env:USERPROFILE\OneDrive - Ministerio Público do Estado de Mato Grosso do Sul\Documents\Coisas do MP\STI\03 - Automation Scripts\04 - Remote cleanup" ; new-tab -d "$env:USERPROFILE\OneDrive - Ministerio Público do Estado de Mato Grosso do Sul\Documents\Coisas do MP\STI\03 - Automation Scripts\18 - Remote Remove Users from Hosts"'
 # `$argWt = '-w new -d "' + `$pastaRaiz + '" ; new-tab -d "$pastaScripts1" ; new-tab -d "$pastaScripts2" ; new-tab -d "$pastaScripts3"'
+# Start-Process wt.exe -ArgumentList -w new -d "' + $env:USERPROFILE + '" ; new-tab -d "$env:USERPROFILE\OneDrive - Ministerio Público do Estado de Mato Grosso do Sul\Documents\Coisas do MP\STI\03 - Automation Scripts\03 - Devices analysis" ; new-tab -d "$env:USERPROFILE\OneDrive - Ministerio Público do Estado de Mato Grosso do Sul\Documents\Coisas do MP\STI\03 - Automation Scripts\04 - Remote cleanup" ; new-tab -d "$env:USERPROFILE\OneDrive - Ministerio Público do Estado de Mato Grosso do Sul\Documents\Coisas do MP\STI\03 - Automation Scripts\18 - Remote Remove Users from Hosts" -Verb RunAs
 # Start-Process wt.exe -ArgumentList `$argWt -Verb RunAs
 
 # # A SUA IDEIA AQUI: O script mata o próprio processo (PID) instantaneamente!

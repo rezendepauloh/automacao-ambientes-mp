@@ -80,7 +80,7 @@ function Limpar-Ambiente {
     # Executa o bloco acima usando o PowerShell nativo do Windows
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $codigoSalvarOffice
 
-# --- 2. FECHAR PROCESSOS (ALIASES E ESCUDO FAMILIAR) ---
+    # --- 2. FECHAR PROCESSOS (ALIASES E ESCUDO FAMILIAR) ---
     $processos = [ordered]@{
         "msedge" = "Microsoft Edge"
         "msedgewebview2" = "Edge WebView2"
@@ -99,7 +99,7 @@ function Limpar-Ambiente {
         "Time" = "Relógio do Windows"
         "RemoteDesktopManager" = "Remote Desktop Manager"
         "WindowsTerminal" = "Windows Terminal"
-        "pwsh" = "PowerShell 7"
+        #"pwsh" = "PowerShell 7"
     }
 
     Write-Host "Gerando escudo de proteção (Script e Janela Pai)..." -ForegroundColor Cyan -BackgroundColor Black

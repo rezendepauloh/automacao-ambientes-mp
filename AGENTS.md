@@ -6,11 +6,12 @@ Guia e diretrizes para agentes de IA e desenvolvedores que operam ou modificam e
 
 ## 1. Visão Geral do Projeto
 
-Este repositório contém rotinas de automação voltadas para preparar, limpar e configurar ambientes de trabalho no Windows (incluindo rotinas de encerramento seguro do Microsoft Office, fechamento seletivo de processos, controle do Explorer, configuração do Edge e gerenciamento de memória).
+Este repositório contém o ecossistema de produtividade e saneamento de ambientes de trabalho no Windows, unificando a aplicação desktop nativa Fluent (**AmbientesHub**) e a biblioteca legado de scripts PowerShell.
 
 ### Componentes Atuais
-- [biblioteca.ps1](file:///c:/AmbientesVirtuais/biblioteca.ps1): Módulo central de funções PowerShell.
-- [Docs/](file:///c:/AmbientesVirtuais/Docs/README.md): Documentação técnica completa organizada nos moldes corporativos (guias operacionais e decisões arquiteturais).
+- [AmbientesHub/](file:///c:/AmbientesVirtuais/AmbientesHub): Aplicação Desktop nativa C# (.NET 8 com WPF-UI) para troca de ambientes, acesso remoto e limpeza.
+- [Scripts/](file:///c:/AmbientesVirtuais/Scripts): Pasta que concentra os scripts PowerShell legados (`biblioteca.ps1`, rotinas de login, etc.).
+- [Docs/](file:///c:/AmbientesVirtuais/Docs/README.md): Documentação técnica completa e decisões arquiteturais.
 
 ---
 
@@ -22,9 +23,8 @@ Este repositório contém rotinas de automação voltadas para preparar, limpar 
 
 ---
 
-## 3. Diretrizes de Manutenção dos Scripts
+## 3. Diretrizes de Manutenção
 
-1. **Interoperabilidade Windows / COM**: Qualquer modificação que interaja com Word/Excel deve liberar objetos COM (`[System.Runtime.InteropServices.Marshal]::ReleaseComObject`) e tratar exceções silenciosamente quando apropriado.
-2. **Proteção de Janelas / Processos**: Preservar a lógica do escudo de proteção baseada em PID pai (`$meuPaiPid`), PID atual (`$PID`) e títulos de janela protegidos (`"🛠️ Modo"`).
-3. **Compatibilidade PowerShell**: Manter compatibilidade entre Windows PowerShell 5.1 e PowerShell 7+ (`pwsh`), atentando para comandos COM e manipulação de processos.
-
+1. **Prioridade C# Nativo**: Qualquer nova funcionalidade ou automação deve ser preferencialmente implementada dentro do `AmbientesHub` em código C# nativo e autônomo.
+2. **Interoperabilidade Windows / COM**: Qualquer modificação que interaja com Word/Excel deve liberar objetos COM (`Marshal.ReleaseComObject`) e tratar exceções silenciosamente quando apropriado.
+3. **Escudo de Proteção**: Preservar a lógica do escudo baseada em PID atual, PID pai e títulos protegidos contendo `"🛠️ Modo"`.

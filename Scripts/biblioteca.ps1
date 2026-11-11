@@ -1,4 +1,4 @@
-﻿# ==========================================
+# ==========================================
 # BIBLIOTECA DE FUNÇÕES - AUTOMAÇÃO MP
 # ==========================================
 
@@ -276,7 +276,7 @@ function Abrir-PastasEmAbas {
     Start-Sleep -Seconds 4
 }
 
-function Abrir-SitesEdgeLeve {
+function Abrir-SitesFirefoxLeve {
     param (
         # Aceita um dicionário (chave = Nome pro Log, valor = URL do site)
         [Parameter(Mandatory=$true)]
@@ -285,43 +285,37 @@ function Abrir-SitesEdgeLeve {
 
     if ($Sites.Count -eq 0) { return }
 
-    Write-Host "Preparando o Edge leve..." -ForegroundColor Cyan -BackgroundColor Black
+    Write-Host "Iniciando o Mozilla Firefox com as abas do ambiente..." -ForegroundColor Cyan -BackgroundColor Black
 
-    # --- O ANTÍDOTO ANTI-CRASH NATIVO ---
-    # Vamos direto no arquivo de preferências do seu perfil padrão do Edge
-    $caminhoPrefs = "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Preferences"
-    
-    if (Test-Path $caminhoPrefs) {
-        Write-Host "  -> Aplicando vacina anti-crash no perfil do Edge..." -ForegroundColor Gray
-        
-        # Lê o arquivo inteiro como um blocão de texto
-        $textoPrefs = Get-Content -Path $caminhoPrefs -Raw
-        
-        # Se ele achar a marcação de 'Crashed', ele troca para 'Normal'
-        if ($textoPrefs -match '"exit_type":"Crashed"') {
-            $textoPrefs = $textoPrefs -replace '"exit_type":"Crashed"', '"exit_type":"Normal"'
-            
-            # Salva de volta garantindo a codificação correta para não corromper o arquivo
-            [System.IO.File]::WriteAllText($caminhoPrefs, $textoPrefs, [System.Text.Encoding]::UTF8)
-        }
-    }
-
-    # --- MONTANDO O COMANDO ---
-    $flagsEdge = "--new-window --disable-extensions"
     $urlsParaAbrir = ""
-
     foreach ($chave in $Sites.Keys) {
         $url = $Sites[$chave]
-        # Adiciona a URL com aspas ao redor, separada por espaço
         $urlsParaAbrir += "`"$url`" "
         Write-Host "  -> Carregando: $chave" -ForegroundColor Cyan -BackgroundColor Black
     }
 
-    # --- O TIRO FINAL ---
-    $argumentosEdge = "$flagsEdge $urlsParaAbrir"
-    Start-Process "msedge.exe" -ArgumentList $argumentosEdge
+    $caminhosFirefox = @(
+        "C:\Program Files\Mozilla Firefox\firefox.exe",
+        "C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
+        "$env:LOCALAPPDATA\Mozilla Firefox\firefox.exe"
+    )
 
-    Write-Host "Edge iniciado limpo e sem balões!" -ForegroundColor Green -BackgroundColor Black
+    $exeFirefox = "firefox"
+    foreach ($caminho in $caminhosFirefox) {
+        if (Test-Path $caminho) {
+            $exeFirefox = $caminho
+            break
+        }
+    }
+
+    Start-Process $exeFirefox -ArgumentList "--new-window $urlsParaAbrir"
+    Write-Host "Firefox iniciado com sucesso!" -ForegroundColor Green -BackgroundColor Black
+}
+
+# Alias de retrocompatibilidade
+function Abrir-SitesEdgeLeve {
+    param ([System.Collections.IDictionary]$Sites)
+    Abrir-SitesFirefoxLeve -Sites $Sites
 }
 
 function Remover-CredenciaisMemoria {

@@ -13,11 +13,14 @@ Docs/
 │
 ├── 🏛️ arquitetura/                                   # Decisões fundamentais de engenharia e modelagem
 │   ├── analise_arquitetural_powershell_vs_csharp.md  # Comparativo técnico detalhado de performance e manutenção
-│   └── ciclo_de_vida_e_seguranca_processos.md        # Lógica de escudos de proteção (PID/Título) e COM Office
+│   ├── ciclo_de_vida_e_seguranca_processos.md        # Lógica de escudos de proteção (PID/Título) e COM Office
+│   └── hub_winui3_arquitetura.md                     # Arquitetura do Hub Desktop WinUI 3 + C# (Remoto, Ambientes e AD)
 │
 └── 📖 guias/                                         # Manuais práticos de operação e scripts
-    ├── guia_execucao_e_uso.md                        # Como carregar e executar as rotinas no PowerShell
-    └── catalogo_funcoes_biblioteca.md                # Referência técnica de cada função da biblioteca.ps1
+    ├── guia_ambientes_hub_desktop.md                 # Manual completo do aplicativo desktop AmbientesHub
+    ├── guia_execucao_e_uso.md                        # Como carregar e executar as rotinas legadas (Scripts/biblioteca.ps1)
+    ├── catalogo_funcoes_biblioteca.md                # Referência técnica de cada função da biblioteca.ps1
+    └── preparacao_ambiente_dotnet.md                 # Instalação do .NET 8/9 SDK para o Hub WinUI 3
 ```
 
 ---

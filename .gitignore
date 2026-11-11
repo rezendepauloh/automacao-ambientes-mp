@@ -1,11 +1,12 @@
 # ==========================================
 # IGNORAR ARQUIVOS DE SEGURANÇA E DADOS PESSOAIS
 # ==========================================
-# O nosso cofre de senhas jamais deve ir para a nuvem!
 Credenciais/
 credenciais.xml
 *.xml
 *.json
+.env
+AmbientesHub/.env
 
 # ==========================================
 # IGNORAR LOGS E ARQUIVOS TEMPORÁRIOS
@@ -13,16 +14,24 @@ credenciais.xml
 *.log
 *.tmp
 *.bak
+logs/
+AmbientesHub/logs/
 
 # Ignorar atalhos do Windows (Caminhos absolutos locais)
 Atalhos/
 *.lnk
 
 # ==========================================
-# IGNORAR BINÁRIOS (Opcional)
+# IGNORAR BINÁRIOS E BUILDS .NET / C#
 # ==========================================
-# Se você quiser subir o WebDriver.dll para facilitar a instalação em outro PC, 
-# deixe essa linha comentada com '#'. Se preferir não subir arquivos pesados, remova o '#'.
+bin/
+obj/
+AmbientesHub/bin/
+AmbientesHub/obj/
+*.user
+*.suo
+.vs/
+
 WebDriver.dll
 msedgedriver.exe
 *.exe

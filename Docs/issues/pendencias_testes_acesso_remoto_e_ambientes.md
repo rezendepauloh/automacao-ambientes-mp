@@ -39,3 +39,4 @@ Este documento registra os itens desenvolvidos no **Ambientes Hub** que necessit
 - [ ] **Exclusão de Máquina de Teste:**
   - **Cenário:** Testar o botão **"Excluir do AD & SCCM"** em uma máquina real de laboratório/teste.
   - **Resultado Esperado:** Diálogo de confirmação `Sim/Não` e exclusão efetiva da conta no AD e do ResourceID no SCCM, liberando reformatacão imediata via PXE.
+

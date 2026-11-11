@@ -21,6 +21,9 @@ Docs/
     ├── guia_execucao_e_uso.md                        # Como carregar e executar as rotinas legadas (Scripts/biblioteca.ps1)
     ├── catalogo_funcoes_biblioteca.md                # Referência técnica de cada função da biblioteca.ps1
     └── preparacao_ambiente_dotnet.md                 # Instalação do .NET 8/9 SDK para o Hub WinUI 3
+│
+└── 🚨 issues/                                        # Pendências e homologações
+    └── pendencias_testes_acesso_remoto_e_ambientes.md# Checklist de validação humana para Acesso Remoto e Modos
 ```
 
 ---

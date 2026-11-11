@@ -4,8 +4,8 @@
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Ambientes Hub — Central de Produtividade &amp; Performance"
         Icon="Assets/app.ico"
-        Height="800" Width="1100"
-        MinHeight="660" MinWidth="900"
+        Height="820" Width="1160"
+        MinHeight="680" MinWidth="940"
         WindowStartupLocation="CenterScreen"
         ExtendsContentIntoTitleBar="True"
         WindowBackdropType="Mica">
@@ -17,279 +17,445 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Barra de Título Customizada Fluent -->
-        <ui:TitleBar Grid.Row="0" Title="Ambientes Hub">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="Assets/app.ico" Width="18" Height="18" />
-            </ui:TitleBar.Icon>
-        </ui:TitleBar>
+        <!-- Barra de Título Customizada Fluent com Input de Pesquisa Centralizado -->
+        <Grid Grid.Row="0">
+            <ui:TitleBar Title="Ambientes Hub">
+                <ui:TitleBar.Icon>
+                    <ui:ImageIcon Source="Assets/app.ico" Width="18" Height="18" />
+                </ui:TitleBar.Icon>
+            </ui:TitleBar>
 
-        <!-- Conteúdo Principal -->
-        <TabControl Grid.Row="1" Margin="10,0,10,0">
-            
-            <!-- ABA 1: AMBIENTES VIRTUAIS -->
-            <TabItem Header="🛠️ Ambientes">
-                <Grid Margin="20">
+            <!-- Caixa de Pesquisa Centralizada (Estilo Task Manager / PowerToys) -->
+            <ui:TextBox x:Name="TxtGlobalSearch" 
+                        PlaceholderText="Pesquisar..." 
+                        Icon="{ui:SymbolIcon Symbol=Search24}"
+                        Width="360" Height="32" 
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Margin="0,0,100,0"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        TextChanged="TxtGlobalSearch_TextChanged"
+                        ToolTip="Filtrar recursos na aba ativa" />
+        </Grid>
+
+        <!-- Layout com Menu Lateral Vertical Responsivo (Expandido / Recolhido com Splitter) -->
+        <Grid Grid.Row="1" Margin="10,5,10,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ColNavPane" Width="240" MinWidth="60" MaxWidth="380" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Painel Lateral Esquerdo Estilo Task Manager & PowerToys -->
+            <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,2,0">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                        <TextBlock Text="Selecione o Ambiente de Trabalho" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Ao clicar em um ambiente, as aplicações anteriores são encerradas e o novo fluxo é carregado no Firefox." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                    </StackPanel>
+                    <!-- Cabeçalho com Botão Hambúrguer e Título Opcional -->
+                    <Grid Grid.Row="0" Margin="6,6,6,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="42" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <WrapPanel Orientation="Horizontal" ItemWidth="280" ItemHeight="130">
-                            
-                            <!-- Card Chamados -->
-                            <ui:CardAction Margin="8" Click="BtnModoChamados_Click">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🛠️ Modo Chamados" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Fecha tudo e abre WhatsApp PWA, CitSmart e OTRS no Firefox." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                </StackPanel>
-                            </ui:CardAction>
+                        <ui:Button x:Name="BtnToggleNav" Grid.Column="0" Appearance="Transparent" Click="BtnToggleNav_Click" Width="38" Height="36" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ToolTip="Expandir/Recolher menu lateral">
+                            <ui:SymbolIcon Symbol="Navigation24" FontSize="18" />
+                        </ui:Button>
 
-                            <!-- Card Contratos -->
-                            <ui:CardAction Margin="8" Click="BtnModoContratos_Click">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🛠️ Modo Contratos" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Gestão contratual, termos e pastas de documentação." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                </StackPanel>
-                            </ui:CardAction>
+                        <TextBlock x:Name="TxtNavTitle" Grid.Column="1" Text="MÓDULOS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </Grid>
 
-                            <!-- Card Impressoras -->
-                            <ui:CardAction Margin="8" Click="BtnModoImpressoras_Click">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🛠️ Modo Impressoras" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Servidores de impressão, filas e ferramentas de suporte." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                </StackPanel>
-                            </ui:CardAction>
+                    <!-- Lista com Itens com Ícone e Texto (Sem Scroll Horizontal) -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ListBox x:Name="NavListBox" SelectionChanged="NavListBox_SelectionChanged" SelectedIndex="0" Background="Transparent" BorderThickness="0" Margin="4,0,4,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="Margin" Value="0,2" />
+                                    <Setter Property="Cursor" Value="Hand" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <Border x:Name="ItemBorder" CornerRadius="6" Background="Transparent" Padding="8,8">
+                                                    <Grid>
+                                                        <!-- Indicador de Seleção Ativo (Pill Azul) -->
+                                                        <Rectangle x:Name="ActivePill" Width="3.5" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center" RadiusX="1.5" RadiusY="1.5" Fill="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" Margin="-4,0,0,0" />
 
-                            <!-- Card PXE -->
-                            <ui:CardAction Margin="8" Click="BtnModoPxe_Click">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🛠️ Modo PXE" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Bancada de formatação, deploys de imagem e boot de rede." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                </StackPanel>
-                            </ui:CardAction>
+                                                        <ContentPresenter />
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                                        <Setter TargetName="ActivePill" Property="Visibility" Value="Visible" />
+                                                    </Trigger>
+                                                    <MultiTrigger>
+                                                        <MultiTrigger.Conditions>
+                                                            <Condition Property="IsMouseOver" Value="True" />
+                                                            <Condition Property="IsSelected" Value="False" />
+                                                        </MultiTrigger.Conditions>
+                                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                                    </MultiTrigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
 
-                            <!-- Card Estudo -->
-                            <ui:CardAction Margin="8" Click="BtnModoEstudo_Click">
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="🛠️ Modo Estudo" FontSize="16" FontWeight="SemiBold" />
-                                    <TextBlock Text="Ambiente focado com ferramentas de leitura e documentação." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                </StackPanel>
-                            </ui:CardAction>
+                            <!-- Item 0: Ambientes Virtuais -->
+                            <ListBoxItem ToolTip="Ambientes Virtuais">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🛠️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl0" Grid.Column="1" Text="Ambientes Virtuais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
 
-                        </WrapPanel>
+                            <!-- Item 1: Acesso Remoto -->
+                            <ListBoxItem ToolTip="Acesso Remoto">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🖥️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl1" Grid.Column="1" Text="Acesso Remoto" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 2: Limpeza AD & SCCM -->
+                            <ListBoxItem ToolTip="Limpeza AD &amp; SCCM">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🗑️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl2" Grid.Column="1" Text="Limpeza AD &amp; SCCM" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 3: Saneamento de Recursos -->
+                            <ListBoxItem ToolTip="Saneamento de Recursos">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🧹" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl3" Grid.Column="1" Text="Saneamento de Recursos" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 4: Configurações & Credenciais -->
+                            <ListBoxItem ToolTip="Configurações &amp; Credenciais">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl4" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+                        </ListBox>
                     </ScrollViewer>
                 </Grid>
-            </TabItem>
+            </Border>
 
-            <!-- ABA 2: ACESSO REMOTO RÁPIDO -->
-            <TabItem Header="🖥️ Acesso Remoto">
+            <!-- Divisor Arrastável (GridSplitter para redimensionar o menu à vontade) -->
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" Cursor="SizeWE" />
+
+            <!-- Área de Conteúdo Principal Alternável -->
+            <Border Grid.Column="2" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
                 <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                    
+                    <!-- PAINEL 0: AMBIENTES VIRTUAIS -->
+                    <Grid x:Name="PanelAmbientes" Visibility="Visible">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Margin="0,0,0,20">
-                        <TextBlock Text="Lançador de Conexão Remota" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Acesso instantâneo sem abrir consoles pesados (SCCM Admin Console ou MMC)." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                    </StackPanel>
-
-                    <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
-                        <StackPanel>
-                            <TextBlock Text="Nome do Computador ou Endereço IP:" FontWeight="Medium" Margin="0,0,0,8" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <ui:TextBox x:Name="TxtComputerName" Grid.Column="0" PlaceholderText="Ex: MPE-80600 ou 10.10.x.x" Margin="0,0,10,0" KeyDown="TxtComputerName_KeyDown" />
-                                <ui:Button x:Name="BtnSccmRemote" Grid.Column="1" Appearance="Primary" Content="SCCM Remoto (CmRcViewer)" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnSccmRemote_Click" Margin="0,0,10,0" />
-                                <ui:Button x:Name="BtnRdpRemote" Grid.Column="2" Appearance="Secondary" Content="RDP Padrão (mstsc)" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnRdpRemote_Click" />
-                            </Grid>
+                        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="Selecione o Ambiente de Trabalho" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Fecha as tarefas anteriores e carrega o novo fluxo limpo no Firefox." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                         </StackPanel>
-                    </Border>
 
-                    <Border Grid.Row="2" Margin="0,20,0,0" Background="#0f172a" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="15">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <TextBlock x:Name="TxtRemoteStatus" Text="Pronto para conexões." FontSize="13" Foreground="#38bdf8" />
-                        </ScrollViewer>
-                    </Border>
-                </Grid>
-            </TabItem>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <WrapPanel Orientation="Horizontal" ItemWidth="280" ItemHeight="130">
+                                <ui:CardAction Margin="8" Click="BtnModoChamados_Click">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🛠️ Modo Chamados" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Fecha tudo e abre WhatsApp PWA, CitSmart e OTRS no Firefox." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ui:CardAction>
 
-            <!-- ABA 3: LIMPEZA AD & SCCM -->
-            <TabItem Header="🗑️ Limpeza AD &amp; SCCM">
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
+                                <ui:CardAction Margin="8" Click="BtnModoContratos_Click">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🛠️ Modo Contratos" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Gestão contratual, termos e pastas de documentação." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ui:CardAction>
 
-                    <StackPanel Grid.Row="0" Margin="0,0,0,20">
-                        <TextBlock Text="Consulta &amp; Desprovisionamento (AD &amp; SCCM)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Consulte se a máquina está cadastrada nas bases ou efetue a exclusão direta para permitir reformatacão via PXE." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                    </StackPanel>
+                                <ui:CardAction Margin="8" Click="BtnModoImpressoras_Click">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🛠️ Modo Impressoras" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Servidores de impressão, filas e ferramentas de suporte." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ui:CardAction>
 
-                    <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
-                        <StackPanel>
-                            <TextBlock Text="Máquina Alvo:" FontWeight="Medium" Margin="0,0,0,8" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                                <ui:CardAction Margin="8" Click="BtnModoPxe_Click">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🛠️ Modo PXE" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Bancada de formatação, deploys de imagem e boot de rede." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ui:CardAction>
 
-                                <ui:TextBox x:Name="TxtAdTargetComputer" Grid.Column="0" PlaceholderText="Ex: MPE-80600" Margin="0,0,10,0" KeyDown="TxtAdTargetComputer_KeyDown" />
-                                <ui:Button x:Name="BtnAdQuery" Grid.Column="1" Appearance="Secondary" Content="Consultar Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAdQuery_Click" Margin="0,0,10,0" />
-                                <ui:Button x:Name="BtnAdClean" Grid.Column="2" Appearance="Danger" Content="Excluir do AD &amp; SCCM" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnAdClean_Click" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Terminal Estilizado Dark com Monospace Estrita -->
-                    <Border Grid.Row="2" Margin="0,20,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
-                        <RichTextBox x:Name="RichAdLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="13" VerticalScrollBarVisibility="Auto">
-                            <FlowDocument />
-                        </RichTextBox>
-                    </Border>
-                </Grid>
-            </TabItem>
-
-            <!-- ABA 4: SANEAMENTO & LIMPEZA -->
-            <TabItem Header="🧹 Saneamento de Recursos">
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                        <TextBlock Text="Selecione o que Fechar e Otimizar" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Defina exatamente o que deve ser encerrado ou mantido durante o saneamento." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                    </StackPanel>
-
-                    <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <WrapPanel Grid.Row="0" Orientation="Horizontal">
-                                <CheckBox x:Name="ChkOffice" Content="Salvar e Fechar Office (Word/Excel)" IsChecked="True" Margin="0,0,24,12" />
-                                <CheckBox x:Name="ChkBrowsers" Content="Fechar Chrome &amp; Edge" IsChecked="True" Margin="0,0,24,12" />
-                                <CheckBox x:Name="ChkFirefox" Content="Fechar Firefox Atual" IsChecked="False" Margin="0,0,24,12" />
-                                <CheckBox x:Name="ChkTeams" Content="Fechar Microsoft Teams" IsChecked="True" Margin="0,0,24,12" />
-                                <CheckBox x:Name="ChkAdminTools" Content="Fechar Consoles AD, SCCM e SAJMP" IsChecked="True" Margin="0,0,24,12" />
-                                <CheckBox x:Name="ChkUtilities" Content="Fechar FoxitPDF, Bloco de Notas e Relógio" IsChecked="True" Margin="0,0,24,12" />
-                                <CheckBox x:Name="ChkTelemetry" Content="Parar Telemetria (CompatTelRunner)" IsChecked="True" Margin="0,0,24,12" />
+                                <ui:CardAction Margin="8" Click="BtnModoEstudo_Click">
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="🛠️ Modo Estudo" FontSize="16" FontWeight="SemiBold" />
+                                        <TextBlock Text="Ambiente focado com ferramentas de leitura e documentação." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                    </StackPanel>
+                                </ui:CardAction>
                             </WrapPanel>
+                        </ScrollViewer>
+                    </Grid>
 
-                            <Separator Grid.Row="1" Margin="0,5,0,15" />
+                    <!-- PAINEL 1: ACESSO REMOTO -->
+                    <Grid x:Name="PanelRemoto" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                            <ui:Button x:Name="BtnLimparAmbiente" Grid.Row="2" Appearance="Primary" Content="Executar Limpeza com Itens Selecionados" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnLimparAmbiente_Click" Padding="18,10" HorizontalAlignment="Left" />
-                        </Grid>
-                    </Border>
+                        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                            <TextBlock Text="Lançador de Conexão Remota" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Acesso instantâneo sem abrir consoles pesados (SCCM Admin Console ou MMC)." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
 
-                    <Border Grid.Row="2" Margin="0,15,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
-                        <RichTextBox x:Name="RichCleanLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="13" VerticalScrollBarVisibility="Auto">
-                            <FlowDocument />
-                        </RichTextBox>
-                    </Border>
-                </Grid>
-            </TabItem>
-
-            <!-- ABA 5: CONFIGURAÇÕES GERAIS -->
-            <TabItem Header="⚙️ Configurações">
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                        <TextBlock Text="Parâmetros do Sistema &amp; Servidores" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Altere as URLs corporativas, servidores do SCCM e a fonte dos terminais." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                    </StackPanel>
-
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
                             <StackPanel>
-                                
-                                <!-- Seção Tipografia & Interface -->
-                                <TextBlock Text="Aparência do Terminal" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
-                                
-                                <Grid Margin="0,0,0,14">
+                                <TextBlock Text="Nome do Computador ou Endereço IP:" FontWeight="Medium" Margin="0,0,0,8" />
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                        <TextBlock Text="Selecione a Fonte do Console/Terminal:" FontWeight="Medium" Margin="0,0,0,4" />
-                                        <ComboBox x:Name="CmbFonts" SelectionChanged="CmbFonts_SelectionChanged" Height="38" />
-                                    </StackPanel>
-                                    <ui:Button x:Name="BtnSalvarFonte" Grid.Column="1" VerticalAlignment="Bottom" Content="Salvar como Padrão" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarFonte_Click" />
+
+                                    <ui:TextBox x:Name="TxtComputerName" Grid.Column="0" PlaceholderText="Ex: MPE-80600 ou 10.10.x.x" Margin="0,0,10,0" KeyDown="TxtComputerName_KeyDown" />
+                                    <ui:Button x:Name="BtnSccmRemote" Grid.Column="1" Appearance="Primary" Content="SCCM Remoto (CmRcViewer)" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnSccmRemote_Click" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnRdpRemote" Grid.Column="2" Appearance="Secondary" Content="RDP Padrão (mstsc)" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnRdpRemote_Click" />
                                 </Grid>
-
-                                <Separator Margin="0,5,0,15" />
-
-                                <!-- SCCM Configs -->
-                                <TextBlock Text="SCCM / MECM" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
-                                
-                                <Grid Margin="0,0,0,12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="150" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                        <TextBlock Text="Servidor SCCM (Site Server):" FontWeight="Medium" Margin="0,0,0,4" />
-                                        <ui:TextBox x:Name="TxtCfgSccmServer" PlaceholderText="Ex: srv-1046.in.mpe.ms.gov.br" />
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="Site Code:" FontWeight="Medium" Margin="0,0,0,4" />
-                                        <ui:TextBox x:Name="TxtCfgSccmCode" PlaceholderText="Ex: PGJ" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <Separator Margin="0,10,0,15" />
-
-                                <!-- Portais Web Configs -->
-                                <TextBlock Text="Portais &amp; Navegação" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
-
-                                <TextBlock Text="URL do OTRS (Central):" FontWeight="Medium" Margin="0,0,0,4" />
-                                <ui:TextBox x:Name="TxtCfgOtrs" PlaceholderText="https://central.mpms.mp.br/" Margin="0,0,0,12" />
-
-                                <TextBlock Text="URL do CitSmart (Suporte):" FontWeight="Medium" Margin="0,0,0,4" />
-                                <ui:TextBox x:Name="TxtCfgCitsmart" PlaceholderText="https://suporte.mpms.mp.br/inbox/..." Margin="0,0,0,12" />
-
-                                <TextBlock Text="URL Bancada Local (WSL / Docker):" FontWeight="Medium" Margin="0,0,0,4" />
-                                <ui:TextBox x:Name="TxtCfgBancada" PlaceholderText="http://localhost:8501/" Margin="0,0,0,12" />
-
-                                <TextBlock Text="Argumentos PWA do WhatsApp Firefox:" FontWeight="Medium" Margin="0,0,0,4" />
-                                <ui:TextBox x:Name="TxtCfgWhatsapp" PlaceholderText="-taskbar-tab ... -profile ..." Margin="0,0,0,20" />
-
-                                <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
                             </StackPanel>
                         </Border>
-                    </ScrollViewer>
-                </Grid>
-            </TabItem>
 
-        </TabControl>
+                        <Border Grid.Row="2" Margin="0,20,0,0" Background="#0f172a" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="15">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="TxtRemoteStatus" Text="Pronto para conexões." FontSize="13" Foreground="#38bdf8" />
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 2: LIMPEZA AD & SCCM -->
+                    <Grid x:Name="PanelAdSccm" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+                            <TextBlock Text="Consulta &amp; Desprovisionamento (AD &amp; SCCM)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Consulte se a máquina está cadastrada nas bases ou efetue a exclusão direta para permitir reformatacão via PXE." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                            <StackPanel>
+                                <TextBlock Text="Máquina Alvo:" FontWeight="Medium" Margin="0,0,0,8" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ui:TextBox x:Name="TxtAdTargetComputer" Grid.Column="0" PlaceholderText="Ex: MPE-80600" Margin="0,0,10,0" KeyDown="TxtAdTargetComputer_KeyDown" />
+                                    <ui:Button x:Name="BtnAdQuery" Grid.Column="1" Appearance="Secondary" Content="Consultar Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAdQuery_Click" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnAdClean" Grid.Column="2" Appearance="Danger" Content="Excluir do AD &amp; SCCM" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnAdClean_Click" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Row="2" Margin="0,20,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <RichTextBox x:Name="RichAdLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="13" VerticalScrollBarVisibility="Auto">
+                                <FlowDocument />
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 3: SANEAMENTO -->
+                    <Grid x:Name="PanelSaneamento" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="Selecione o que Fechar e Otimizar" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Defina exatamente o que deve ser encerrado ou mantido durante o saneamento." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <WrapPanel Grid.Row="0" Orientation="Horizontal">
+                                    <CheckBox x:Name="ChkOffice" Content="Salvar e Fechar Office (Word/Excel)" IsChecked="True" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkBrowsers" Content="Fechar Chrome &amp; Edge" IsChecked="True" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkFirefox" Content="Fechar Firefox Atual" IsChecked="False" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkTeams" Content="Fechar Microsoft Teams" IsChecked="True" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkAdminTools" Content="Fechar Consoles AD, SCCM e SAJMP" IsChecked="True" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkUtilities" Content="Fechar FoxitPDF, Bloco de Notas e Relógio" IsChecked="True" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkTelemetry" Content="Parar Telemetria (CompatTelRunner)" IsChecked="True" Margin="0,0,24,12" />
+                                </WrapPanel>
+
+                                <Separator Grid.Row="1" Margin="0,5,0,15" />
+
+                                <ui:Button x:Name="BtnLimparAmbiente" Grid.Row="2" Appearance="Primary" Content="Executar Limpeza com Itens Selecionados" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnLimparAmbiente_Click" Padding="18,10" HorizontalAlignment="Left" />
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="2" Margin="0,15,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <RichTextBox x:Name="RichCleanLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="13" VerticalScrollBarVisibility="Auto">
+                                <FlowDocument />
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 4: CONFIGURAÇÕES & COFRE -->
+                    <Grid x:Name="PanelConfig" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="Parâmetros do Sistema &amp; Credenciais" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Gerencie cofres DPAPI seguros, URLs corporativas, servidores do SCCM e tipografia." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                                <StackPanel>
+                                    <!-- Seção de Cofres e Credenciais XML -->
+                                    <TextBlock Text="Cofre de Credenciais (DPAPI .xml)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,6" />
+                                    <TextBlock Text="Geração e teste das credenciais seguras usadas nos scripts e rotinas administrativas." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,12" />
+
+                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <ui:Button x:Name="BtnCheckAdminXml" Appearance="Secondary" Content="Verificar Credencial Local (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminXml_Click" Margin="0,0,12,0" Padding="14,10" />
+                                        <ui:Button x:Name="BtnCriarAdminAdXml" Appearance="Primary" Content="Criar/Atualizar Cofre AD (XML)" Icon="{ui:SymbolIcon Symbol=Key24}" Click="BtnCriarAdminAdXml_Click" Padding="14,10" />
+                                    </WrapPanel>
+
+                                    <!-- Console de Log para operações com o cofre -->
+                                    <Border Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,15" MinHeight="90" MaxHeight="130">
+                                        <RichTextBox x:Name="RichScriptsLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                            <FlowDocument />
+                                        </RichTextBox>
+                                    </Border>
+
+                                    <Separator Margin="0,5,0,15" />
+
+                                    <!-- Seção de Tipografia -->
+                                    <TextBlock Text="Aparência do Terminal" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                                    
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Selecione a Fonte do Console/Terminal:" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ComboBox x:Name="CmbFonts" SelectionChanged="CmbFonts_SelectionChanged" Height="38" />
+                                        </StackPanel>
+                                        <ui:Button x:Name="BtnSalvarFonte" Grid.Column="1" VerticalAlignment="Bottom" Content="Salvar como Padrão" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarFonte_Click" />
+                                    </Grid>
+
+                                    <Separator Margin="0,5,0,15" />
+
+                                    <TextBlock Text="Contas Administrativas" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Usuário Admin Local:" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgAdminUser" PlaceholderText="admin" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Usuário Admin AD (Domínio):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgAdminAdUser" PlaceholderText="admin_ad" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Separator Margin="0,5,0,15" />
+
+                                    <TextBlock Text="SCCM / MECM" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Servidor SCCM (Site Server):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgSccmServer" PlaceholderText="srv-1046.in.mpe.ms.gov.br" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Site Code:" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgSccmCode" PlaceholderText="PGJ" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Separator Margin="0,10,0,15" />
+
+                                    <TextBlock Text="Portais &amp; Navegação" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                    <TextBlock Text="URL do OTRS (Central):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgOtrs" PlaceholderText="https://central.mpms.mp.br/" Margin="0,0,0,12" />
+
+                                    <TextBlock Text="URL do CitSmart (Suporte):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgCitsmart" PlaceholderText="https://suporte.mpms.mp.br/inbox/..." Margin="0,0,0,12" />
+
+                                    <TextBlock Text="URL Bancada Local (WSL / Docker):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgBancada" PlaceholderText="http://localhost:8501/" Margin="0,0,0,12" />
+
+                                    <TextBlock Text="Argumentos PWA do WhatsApp Firefox:" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgWhatsapp" PlaceholderText="-taskbar-tab ... -profile ..." Margin="0,0,0,20" />
+
+                                    <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Border>
+                        </ScrollViewer>
+                    </Grid>
+
+                </Grid>
+            </Border>
+        </Grid>
 
         <!-- Barra de Status Rodapé -->
         <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" Padding="15,6">

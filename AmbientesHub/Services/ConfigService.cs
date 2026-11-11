@@ -78,6 +78,8 @@ public static class ConfigService
         return Configs.TryGetValue(key, out var val) ? val : defaultValue;
     }
 
+    public static string AdminUser => Get("ADMIN_USER", "admin_local");
+    public static string AdminAdUser => Get("ADMIN_AD_USER", "admin_dominio");
     public static string UrlOtrs => Get("URL_OTRS", "");
     public static string UrlCitsmart => Get("URL_CITSMART", "");
     public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "http://localhost:8501/");

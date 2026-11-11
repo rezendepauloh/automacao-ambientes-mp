@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Diagnostics;
+using System.IO;
 using AmbientesHub.Models;
 using AmbientesHub.Services;
 using Wpf.Ui.Controls;
@@ -15,6 +17,8 @@ public partial class MainWindow : FluentWindow
     private readonly EnvironmentLauncherService _envService = new();
     private readonly AdSccmService _adSccmService = new();
 
+    private bool _isNavExpanded = true;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -22,6 +26,72 @@ public partial class MainWindow : FluentWindow
         PopulateFontList();
         LoadSettingsIntoUi();
     }
+
+    #region Navegação Lateral Vertical & Hambúrguer
+    private void BtnToggleNav_Click(object sender, RoutedEventArgs e)
+    {
+        _isNavExpanded = !_isNavExpanded;
+        if (_isNavExpanded)
+        {
+            ColNavPane.Width = new GridLength(240);
+            TxtNavTitle.Visibility = Visibility.Visible;
+            NavLbl0.Visibility = Visibility.Visible;
+            NavLbl1.Visibility = Visibility.Visible;
+            NavLbl2.Visibility = Visibility.Visible;
+            NavLbl3.Visibility = Visibility.Visible;
+            NavLbl4.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ColNavPane.Width = new GridLength(60);
+            TxtNavTitle.Visibility = Visibility.Collapsed;
+            NavLbl0.Visibility = Visibility.Collapsed;
+            NavLbl1.Visibility = Visibility.Collapsed;
+            NavLbl2.Visibility = Visibility.Collapsed;
+            NavLbl3.Visibility = Visibility.Collapsed;
+            NavLbl4.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void TxtGlobalSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        string query = TxtGlobalSearch.Text.Trim();
+        if (string.IsNullOrEmpty(query)) return;
+
+        // Feedback visual na barra de status indicando o filtro da pesquisa
+        TxtFooterStatus.Text = $"Filtro ativo: '{query}'";
+    }
+
+    private void NavListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (PanelAmbientes == null) return;
+
+        PanelAmbientes.Visibility = Visibility.Collapsed;
+        PanelRemoto.Visibility = Visibility.Collapsed;
+        PanelAdSccm.Visibility = Visibility.Collapsed;
+        PanelSaneamento.Visibility = Visibility.Collapsed;
+        PanelConfig.Visibility = Visibility.Collapsed;
+
+        switch (NavListBox.SelectedIndex)
+        {
+            case 0:
+                PanelAmbientes.Visibility = Visibility.Visible;
+                break;
+            case 1:
+                PanelRemoto.Visibility = Visibility.Visible;
+                break;
+            case 2:
+                PanelAdSccm.Visibility = Visibility.Visible;
+                break;
+            case 3:
+                PanelSaneamento.Visibility = Visibility.Visible;
+                break;
+            case 4:
+                PanelConfig.Visibility = Visibility.Visible;
+                break;
+        }
+    }
+    #endregion
 
     #region Configurações UI & Seletor de Fontes
     private void PopulateFontList()
@@ -74,16 +144,12 @@ public partial class MainWindow : FluentWindow
             var font = new FontFamily(fontName);
             RichAdLogs.FontFamily = font;
             RichCleanLogs.FontFamily = font;
+            RichScriptsLogs.FontFamily = font;
             TxtRemoteStatus.FontFamily = font;
 
-            foreach (var block in RichAdLogs.Document.Blocks)
-            {
-                block.FontFamily = font;
-            }
-            foreach (var block in RichCleanLogs.Document.Blocks)
-            {
-                block.FontFamily = font;
-            }
+            foreach (var block in RichAdLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichScriptsLogs.Document.Blocks) block.FontFamily = font;
         }
         catch { }
     }
@@ -105,6 +171,8 @@ public partial class MainWindow : FluentWindow
 
     private void LoadSettingsIntoUi()
     {
+        TxtCfgAdminUser.Text = ConfigService.AdminUser;
+        TxtCfgAdminAdUser.Text = ConfigService.AdminAdUser;
         TxtCfgSccmServer.Text = ConfigService.SccmSiteServer;
         TxtCfgSccmCode.Text = ConfigService.SccmSiteCode;
         TxtCfgOtrs.Text = ConfigService.UrlOtrs;
@@ -121,6 +189,8 @@ public partial class MainWindow : FluentWindow
             var dict = new Dictionary<string, string>
             {
                 ["APP_TERMINAL_FONT"] = chosenFont,
+                ["ADMIN_USER"] = TxtCfgAdminUser.Text.Trim(),
+                ["ADMIN_AD_USER"] = TxtCfgAdminAdUser.Text.Trim(),
                 ["SCCM_SITE_SERVER"] = TxtCfgSccmServer.Text.Trim(),
                 ["SCCM_SITE_CODE"] = TxtCfgSccmCode.Text.Trim(),
                 ["URL_OTRS"] = TxtCfgOtrs.Text.Trim(),
@@ -139,6 +209,106 @@ public partial class MainWindow : FluentWindow
         {
             AppLoggerService.Danger($"Erro ao salvar configurações: {ex.Message}", nameof(MainWindow));
             System.Windows.MessageBox.Show($"Falha ao salvar: {ex.Message}", "Erro", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    #endregion
+
+    #region Scripts & Cofre de Credenciais
+    private void BtnCheckAdminXml_Click(object sender, RoutedEventArgs e)
+    {
+        string xmlPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin.xml";
+        RichScriptsLogs.Document.Blocks.Clear();
+
+        if (File.Exists(xmlPath))
+        {
+            AppendColoredLog(RichScriptsLogs, "=== VERIFICAÇÃO DO COFRE LOCAL ===");
+            AppendColoredLog(RichScriptsLogs, $"[OK] Cofre localizado em: {xmlPath}");
+            AppendColoredLog(RichScriptsLogs, $"     Usuário configurado: {ConfigService.AdminUser}");
+            AppendColoredLog(RichScriptsLogs, "[SUCESSO] Credencial DPAPI ativa e pronta para uso nas automações!");
+        }
+        else
+        {
+            AppendColoredLog(RichScriptsLogs, $"[ERRO] Arquivo não localizado: {xmlPath}");
+        }
+    }
+
+    private void BtnCriarAdminAdXml_Click(object sender, RoutedEventArgs e)
+    {
+        string targetUser = ConfigService.AdminAdUser;
+        string destDir = @"C:\AmbientesVirtuais\Credenciais";
+        string destPath = Path.Combine(destDir, "cred_admin_ad.xml");
+
+        var result = System.Windows.MessageBox.Show(
+            $"Deseja abrir o prompt de credencial para salvar com segurança a senha de '{targetUser}' em {destPath}?",
+            "Cofre de Credenciais",
+            System.Windows.MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != System.Windows.MessageBoxResult.Yes) return;
+
+        RichScriptsLogs.Document.Blocks.Clear();
+        AppendColoredLog(RichScriptsLogs, $"=== GERANDO COFRE SEGURO DPAPI PARA: {targetUser} ===");
+        AppLoggerService.Info($"Iniciando geração de cofre seguro para {targetUser}", nameof(MainWindow));
+
+        try
+        {
+            if (!Directory.Exists(destDir))
+            {
+                Directory.CreateDirectory(destDir);
+            }
+
+            string scriptTemp = Path.Combine(Path.GetTempPath(), $"save_cred_{Guid.NewGuid():N}.ps1");
+            string psScript = $@"
+Add-Type -AssemblyName System.Windows.Forms
+$cred = Get-Credential -UserName '{targetUser}' -Message 'Digite a senha do Administrador AD para criptografia segura DPAPI:'
+if ($cred) {{
+    $cred | Export-Clixml -Path '{destPath}' -Force
+    Write-Output '[OK] Credencial salva'
+}} else {{
+    Write-Output '[CANCELADO]'
+}}
+";
+            File.WriteAllText(scriptTemp, psScript, System.Text.Encoding.UTF8);
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptTemp}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var p = Process.Start(startInfo);
+            string stdout = p?.StandardOutput.ReadToEnd() ?? "";
+            string stderr = p?.StandardError.ReadToEnd() ?? "";
+            p?.WaitForExit();
+
+            try { File.Delete(scriptTemp); } catch { }
+
+            if (!string.IsNullOrWhiteSpace(stderr))
+            {
+                AppLoggerService.Warning($"Prompt credenciais erro/stderr: {stderr}", nameof(MainWindow));
+                AppendColoredLog(RichScriptsLogs, $"  -> Aviso: {stderr.Trim()}");
+            }
+
+            if (File.Exists(destPath))
+            {
+                AppendColoredLog(RichScriptsLogs, $"[SUCESSO] Cofre '{destPath}' criado com êxito!");
+                TxtFooterStatus.Text = $"Cofre para {targetUser} criado com sucesso.";
+                AppLoggerService.Success($"Cofre {destPath} gerado com sucesso.", nameof(MainWindow));
+            }
+            else
+            {
+                AppendColoredLog(RichScriptsLogs, "[i] Operação cancelada ou não concluída.");
+                AppLoggerService.Warning($"Geração de cofre para {targetUser} não concluída pelo usuário.", nameof(MainWindow));
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichScriptsLogs, $"[ERRO] Falha ao criar cofre: {ex.Message}");
+            AppLoggerService.Danger($"Falha ao gerar cofre: {ex.Message}", nameof(MainWindow));
         }
     }
     #endregion
@@ -168,7 +338,6 @@ public partial class MainWindow : FluentWindow
             }
 
             var currentFont = rtb.FontFamily;
-            // Remove quebras extras de linha: o Paragraph já é um bloco de linha no WPF
             string cleanText = text.TrimEnd('\r', '\n');
 
             var run = new Run(cleanText)

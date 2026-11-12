@@ -86,4 +86,5 @@ public static class ConfigService
     public static string WhatsappPwaArgs => Get("WHATSAPP_PWA_ARGS", "");
     public static string SccmSiteServer => Get("SCCM_SITE_SERVER", "");
     public static string SccmSiteCode => Get("SCCM_SITE_CODE", "PGJ");
+    public static string RsatMsuNetworkPath => Get("RSAT_MSU_NETWORK_PATH", @"\\manutencao\Manutencao\Dados\_UTILITARIOS\AD Interface\WIN 11\WindowsTH-RSAT_WS2016-x64 - funciona.msu");
 }

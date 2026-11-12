@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -17,15 +18,22 @@ public partial class MainWindow : FluentWindow
     private readonly CleanupService _cleanupService = new();
     private readonly EnvironmentLauncherService _envService = new();
     private readonly AdSccmService _adSccmService = new();
+    private readonly SystemPerformanceService _perfService = new();
+    private readonly SoftwareProvisioningService _softwareService = new();
+    private readonly ObservableCollection<SoftwarePackageItem> _softwareCatalog = new(SoftwareProvisioningService.CreateDefaultCatalog());
 
     private bool _isNavExpanded = true;
+    private bool _appsCatalogLoadedOnce;
 
     public MainWindow()
     {
         InitializeComponent();
         AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
+        LstSoftwareCatalog.ItemsSource = _softwareCatalog;
         PopulateFontList();
         LoadSettingsIntoUi();
+        RefreshPerformanceAdminStatus();
+        RefreshAppsAdminStatus();
     }
 
     #region Navegação Lateral Vertical & Hambúrguer
@@ -41,6 +49,8 @@ public partial class MainWindow : FluentWindow
             NavLbl2.Visibility = Visibility.Visible;
             NavLbl3.Visibility = Visibility.Visible;
             NavLbl4.Visibility = Visibility.Visible;
+            NavLbl5.Visibility = Visibility.Visible;
+            NavLbl6.Visibility = Visibility.Visible;
         }
         else
         {
@@ -51,6 +61,8 @@ public partial class MainWindow : FluentWindow
             NavLbl2.Visibility = Visibility.Collapsed;
             NavLbl3.Visibility = Visibility.Collapsed;
             NavLbl4.Visibility = Visibility.Collapsed;
+            NavLbl5.Visibility = Visibility.Collapsed;
+            NavLbl6.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -93,9 +105,27 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        if (lower is "performance" or "auditoria" or "debloat" or "otimizar" or "otimização" or "otimizacao" or "lentidão" or "lentidao" or "lento" or "wsl" or "trim" or "hibernação" or "hibernacao" or "bloat" or "checkup")
         {
             NavListBox.SelectedIndex = 4;
+            TxtFooterStatus.Text = "Navegado para: Performance & Auditoria";
+            if (lower is "auditoria" or "checkup")
+            {
+                BtnExecutarAuditoria_Click(this, new RoutedEventArgs());
+            }
+            return;
+        }
+
+        if (lower is "apps" or "programas" or "instalar" or "instalador" or "rsat" or "dsa" or "console" or "winget" or "provisionamento")
+        {
+            NavListBox.SelectedIndex = 5;
+            TxtFooterStatus.Text = "Navegado para: Apps & Provisionamento";
+            return;
+        }
+
+        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        {
+            NavListBox.SelectedIndex = 6;
             TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
             return;
         }
@@ -144,6 +174,8 @@ public partial class MainWindow : FluentWindow
         PanelRemoto.Visibility = Visibility.Collapsed;
         PanelAdSccm.Visibility = Visibility.Collapsed;
         PanelSaneamento.Visibility = Visibility.Collapsed;
+        PanelPerformance.Visibility = Visibility.Collapsed;
+        PanelApps.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
@@ -161,6 +193,19 @@ public partial class MainWindow : FluentWindow
                 PanelSaneamento.Visibility = Visibility.Visible;
                 break;
             case 4:
+                PanelPerformance.Visibility = Visibility.Visible;
+                RefreshPerformanceAdminStatus();
+                break;
+            case 5:
+                PanelApps.Visibility = Visibility.Visible;
+                RefreshAppsAdminStatus();
+                if (!_appsCatalogLoadedOnce)
+                {
+                    _appsCatalogLoadedOnce = true;
+                    _ = RefreshAppsCatalogAsync();
+                }
+                break;
+            case 6:
                 PanelConfig.Visibility = Visibility.Visible;
                 break;
         }
@@ -218,11 +263,15 @@ public partial class MainWindow : FluentWindow
             var font = new FontFamily(fontName);
             RichAdLogs.FontFamily = font;
             RichCleanLogs.FontFamily = font;
+            RichPerformanceLogs.FontFamily = font;
+            RichAppsLogs.FontFamily = font;
             RichScriptsLogs.FontFamily = font;
             RichRemoteLogs.FontFamily = font;
 
             foreach (var block in RichAdLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichPerformanceLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichAppsLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichScriptsLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRemoteLogs.Document.Blocks) block.FontFamily = font;
         }
@@ -400,11 +449,11 @@ public partial class MainWindow : FluentWindow
         {
             brush = new SolidColorBrush(Color.FromRgb(248, 113, 113)); // Red 400
         }
-        else if (text.Contains("[i]") || text.Contains("Aviso") || text.Contains("não localizado") || text.Contains("Dica:"))
+        else if (text.Contains("[i]") || text.Contains("Aviso", StringComparison.OrdinalIgnoreCase) || text.Contains("não localizado") || text.Contains("Dica:"))
         {
             brush = new SolidColorBrush(Color.FromRgb(251, 191, 36)); // Amber 400
         }
-        else if (text.StartsWith("===") || text.StartsWith("[1/") || text.StartsWith("[2/"))
+        else if (text.StartsWith("===") || (text.StartsWith("[") && text.Contains("/")))
         {
             brush = new SolidColorBrush(Color.FromRgb(56, 189, 248)); // Sky 400
         }
@@ -722,6 +771,336 @@ public partial class MainWindow : FluentWindow
         BtnLimparAmbiente.IsEnabled = true;
         TxtFooterStatus.Text = "Limpeza seletiva concluída com sucesso!";
         AppLoggerService.Success("Limpeza seletiva concluída com sucesso.", nameof(MainWindow));
+    }
+    #endregion
+
+    #region Performance & Auditoria (ArrumarPC Nativo)
+    private void RefreshPerformanceAdminStatus()
+    {
+        if (TxtPerfAdminStatus == null || BadgeAdminStatus == null || BtnReiniciarComoAdmin == null)
+            return;
+
+        bool isAdmin = SystemPerformanceService.IsUserAdministrator();
+        if (isAdmin)
+        {
+            TxtPerfAdminStatus.Text = "Modo Administrador";
+            TxtPerfAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+            BadgeAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
+            BadgeAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 16, 185, 129));
+            BtnReiniciarComoAdmin.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            TxtPerfAdminStatus.Text = "Modo Usuário Padrão";
+            TxtPerfAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+            BadgeAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
+            BadgeAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 245, 158, 11));
+            BtnReiniciarComoAdmin.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void BtnReiniciarComoAdmin_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string? exePath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(exePath))
+                return;
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = exePath,
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichPerformanceLogs, $"[AVISO] Elevação UAC cancelada ou indisponível: {ex.Message}");
+        }
+    }
+
+    private async void BtnExecutarAuditoria_Click(object sender, RoutedEventArgs e)
+    {
+        BtnExecutarAuditoria.IsEnabled = false;
+        BtnAplicarOtimizacao.IsEnabled = false;
+        BtnReverterServicos.IsEnabled = false;
+        RichPerformanceLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = "Executando auditoria completa de performance...";
+
+        try
+        {
+            var report = await _perfService.RunFullAuditAsync(msg => AppendColoredLog(RichPerformanceLogs, msg));
+            UpdatePerformanceKpis(report);
+            TxtFooterStatus.Text = "Auditoria de performance concluída com sucesso!";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichPerformanceLogs, $"[ERRO] Falha durante a auditoria: {ex.Message}");
+            TxtFooterStatus.Text = "Falha durante a auditoria de performance.";
+        }
+        finally
+        {
+            BtnExecutarAuditoria.IsEnabled = true;
+            BtnAplicarOtimizacao.IsEnabled = true;
+            BtnReverterServicos.IsEnabled = true;
+        }
+    }
+
+    private async void BtnAplicarOtimizacao_Click(object sender, RoutedEventArgs e)
+    {
+        string selectedWslMem = (CmbWslMemory.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "3GB";
+
+        var options = new OptimizationOptions
+        {
+            DisableTelemetryServices = ChkOptTelemetryServices.IsChecked == true,
+            ApplyRegistryTelemetryTweaks = ChkOptTelemetryReg.IsChecked == true,
+            RemoveBloatwareApps = ChkOptBloatApps.IsChecked == true,
+            DisableHibernation = ChkOptHibernation.IsChecked == true,
+            EnableSsdTrim = ChkOptTrim.IsChecked == true,
+            DisableBingSearch = ChkOptBingSearch.IsChecked == true,
+            AccelerateUiMenus = ChkOptUiSpeed.IsChecked == true,
+            ConfigureWslLimit = ChkOptWslConfig.IsChecked == true,
+            WslMemoryLimit = selectedWslMem,
+            CleanDockerBuilderCache = ChkOptDockerCache.IsChecked == true
+        };
+
+        var confirm = System.Windows.MessageBox.Show(
+            "Deseja aplicar as otimizações selecionadas nesta estação de trabalho?",
+            "Aplicar Otimizações de Performance",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes)
+            return;
+
+        BtnExecutarAuditoria.IsEnabled = false;
+        BtnAplicarOtimizacao.IsEnabled = false;
+        BtnReverterServicos.IsEnabled = false;
+        RichPerformanceLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = "Aplicando otimizações e debloat no sistema...";
+
+        try
+        {
+            await _perfService.ApplyOptimizationsAsync(options, msg => AppendColoredLog(RichPerformanceLogs, msg));
+            AppendColoredLog(RichPerformanceLogs, "\n[i] Executando check-up e atualização dos KPIs...");
+            var postAudit = await _perfService.RunFullAuditAsync(msg => { });
+            UpdatePerformanceKpis(postAudit);
+            TxtFooterStatus.Text = "Otimizações aplicadas com sucesso!";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichPerformanceLogs, $"[ERRO] Falha ao aplicar otimizações: {ex.Message}");
+            TxtFooterStatus.Text = "Erro ao aplicar otimizações.";
+        }
+        finally
+        {
+            BtnExecutarAuditoria.IsEnabled = true;
+            BtnAplicarOtimizacao.IsEnabled = true;
+            BtnReverterServicos.IsEnabled = true;
+        }
+    }
+
+    private async void BtnReverterServicos_Click(object sender, RoutedEventArgs e)
+    {
+        var confirm = System.Windows.MessageBox.Show(
+            "Deseja restaurar os serviços de telemetria/diagnóstico para o padrão de inicialização do Windows?",
+            "Rollback de Serviços",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes)
+            return;
+
+        BtnExecutarAuditoria.IsEnabled = false;
+        BtnAplicarOtimizacao.IsEnabled = false;
+        BtnReverterServicos.IsEnabled = false;
+        RichPerformanceLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = "Revertendo serviços do Windows...";
+
+        try
+        {
+            await _perfService.RollbackTelemetryServicesAsync(msg => AppendColoredLog(RichPerformanceLogs, msg));
+            TxtFooterStatus.Text = "Rollback de serviços concluído.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichPerformanceLogs, $"[ERRO] Falha no rollback: {ex.Message}");
+        }
+        finally
+        {
+            BtnExecutarAuditoria.IsEnabled = true;
+            BtnAplicarOtimizacao.IsEnabled = true;
+            BtnReverterServicos.IsEnabled = true;
+        }
+    }
+
+    private void UpdatePerformanceKpis(SystemAuditReport report)
+    {
+        RefreshPerformanceAdminStatus();
+
+        TxtPerfRamKpi.Text = report.TotalRamGb > 0
+            ? $"{report.FreeRamGb:F2} / {report.TotalRamGb:F2} GB ({report.FreeRamPercent:F0}%)"
+            : "Indisponível";
+
+        var cDrive = report.Disks.FirstOrDefault(d => d.DriveName.StartsWith("C", StringComparison.OrdinalIgnoreCase));
+        string hiberTxt = report.HiberfilExists ? $"hiberfil {report.HiberfilSizeGb:F1}GB" : "sem hibernação";
+        TxtPerfDiskKpi.Text = cDrive != null
+            ? $"C: {cDrive.FreeGb:F1} GB livres ({hiberTxt})"
+            : hiberTxt;
+
+        TxtPerfTrimKpi.Text = report.IsTrimEnabled switch
+        {
+            true => "Ativo (SSD otimizado)",
+            false => "Desativado (atenção)",
+            null => "Não verificado"
+        };
+
+        TxtPerfBloatKpi.Text = report.DetectedBloatApps.Count == 0
+            ? "Nenhum detectado"
+            : $"{report.DetectedBloatApps.Count} app(s) encontrado(s)";
+    }
+    #endregion
+
+    #region Apps Instalados & Provisionamento
+    private void RefreshAppsAdminStatus()
+    {
+        if (TxtAppsAdminStatus == null || BadgeAppsAdminStatus == null || BtnAppsReiniciarAdmin == null)
+            return;
+
+        bool isAdmin = SystemPerformanceService.IsUserAdministrator();
+        if (isAdmin)
+        {
+            TxtAppsAdminStatus.Text = "Modo Administrador";
+            TxtAppsAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+            BadgeAppsAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
+            BadgeAppsAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 16, 185, 129));
+            BtnAppsReiniciarAdmin.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            TxtAppsAdminStatus.Text = "Modo Usuário Padrão";
+            TxtAppsAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+            BadgeAppsAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
+            BadgeAppsAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 245, 158, 11));
+            BtnAppsReiniciarAdmin.Visibility = Visibility.Visible;
+        }
+    }
+
+    private async Task RefreshAppsCatalogAsync()
+    {
+        if (BtnVerificarApps != null)
+            BtnVerificarApps.IsEnabled = false;
+
+        try
+        {
+            await _softwareService.RefreshStatusAsync(_softwareCatalog);
+            TxtFooterStatus.Text = "Status de aplicativos instalados atualizado.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAppsLogs, $"[ERRO] Falha ao verificar aplicativos: {ex.Message}");
+        }
+        finally
+        {
+            if (BtnVerificarApps != null)
+                BtnVerificarApps.IsEnabled = true;
+        }
+    }
+
+    private async void BtnVerificarApps_Click(object sender, RoutedEventArgs e)
+    {
+        RichAppsLogs.Document.Blocks.Clear();
+        AppendColoredLog(RichAppsLogs, "[i] Verificando presença dos softwares administrativos na estação...");
+        await RefreshAppsCatalogAsync();
+        foreach (var item in _softwareCatalog)
+        {
+            AppendColoredLog(RichAppsLogs, item.IsInstalled
+                ? $"  [OK] {item.Name} — {item.StatusDetail}"
+                : $"  [AVISO] {item.Name} — {item.StatusDetail}");
+        }
+    }
+
+    private async void BtnInstallSoftware_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not SoftwarePackageItem pkg)
+            return;
+
+        if (pkg.IsInstalling)
+            return;
+
+        bool silent = ChkInstallSilent.IsChecked == true;
+        pkg.IsInstalling = true;
+        if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = false;
+        RichAppsLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Instalando {pkg.Name}...";
+
+        try
+        {
+            bool success = await _softwareService.InstallSoftwareAsync(
+                pkg,
+                silent,
+                msg => AppendColoredLog(RichAppsLogs, msg));
+
+            TxtFooterStatus.Text = success
+                ? $"{pkg.Name} pronto para uso!"
+                : $"Instalação de {pkg.Name} finalizada com avisos.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAppsLogs, $"[ERRO] Exceção ao instalar {pkg.Name}: {ex.Message}");
+            TxtFooterStatus.Text = $"Erro ao instalar {pkg.Name}.";
+        }
+        finally
+        {
+            pkg.IsInstalling = false;
+            if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = true;
+        }
+    }
+
+    private async void BtnUninstallSoftware_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not SoftwarePackageItem pkg)
+            return;
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Deseja realmente desinstalar '{pkg.Name}' desta máquina?",
+            "Confirmar Desinstalação",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes)
+            return;
+
+        bool silent = ChkInstallSilent.IsChecked == true;
+        pkg.IsInstalling = true;
+        if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = false;
+        RichAppsLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Desinstalando {pkg.Name}...";
+
+        try
+        {
+            bool ok = await _softwareService.UninstallSoftwareAsync(
+                pkg,
+                silent,
+                msg => AppendColoredLog(RichAppsLogs, msg));
+
+            TxtFooterStatus.Text = ok
+                ? $"{pkg.Name} desinstalado com sucesso!"
+                : $"Desinstalação de {pkg.Name} concluída com avisos.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAppsLogs, $"[ERRO] Falha ao desinstalar {pkg.Name}: {ex.Message}");
+            TxtFooterStatus.Text = $"Erro ao desinstalar {pkg.Name}.";
+        }
+        finally
+        {
+            pkg.IsInstalling = false;
+            if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = true;
+        }
     }
     #endregion
 }

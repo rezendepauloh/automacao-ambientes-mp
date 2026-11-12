@@ -63,51 +63,51 @@ public class AdSccmService
         onLog($"=== INICIANDO {action}: {cleanName} ===");
         AppLoggerService.Info($"Iniciando {action} para {cleanName}", nameof(AdSccmService));
 
-        // 1. ACTIVE DIRECTORY VIA LDAP NATIVO
+        // 1. ACTIVE DIRECTORY VIA LDAP NATIVO (Busca Ampla com Wildcard / LIKE)
         onLog("[1/2] Consultando Active Directory (LDAP)...");
-        DirectoryEntry? adEntry = null;
         try
         {
             using var searcher = new DirectorySearcher();
-            searcher.Filter = $"(&(objectCategory=computer)(|(cn={cleanName})(sAMAccountName={cleanName}$)))";
+            searcher.Filter = $"(&(objectCategory=computer)(|(cn=*{cleanName}*)(sAMAccountName=*{cleanName}*)))";
             searcher.PropertiesToLoad.AddRange(["cn", "distinguishedName", "operatingSystem", "whenCreated"]);
+            searcher.SizeLimit = 15;
 
-            SearchResult? result = searcher.FindOne();
-            if (result != null)
+            var results = searcher.FindAll();
+            if (results.Count > 0)
             {
-                adEntry = result.GetDirectoryEntry();
-                string dn = adEntry.Properties["distinguishedName"].Value?.ToString() ?? "";
-                string os = adEntry.Properties["operatingSystem"].Value?.ToString() ?? "Não informado";
-                string created = adEntry.Properties["whenCreated"].Value?.ToString() ?? "";
-
-                onLog("  [OK] Registro encontrado no Active Directory!");
-                onLog($"       Nome      : {adEntry.Properties["cn"].Value}");
-                onLog($"       DN        : {dn}");
-                onLog($"       SO        : {os}");
-                onLog($"       Criado em : {created}");
-
-                if (isDelete)
+                onLog($"  [OK] {results.Count} registro(s) encontrado(s) no Active Directory!");
+                foreach (SearchResult result in results)
                 {
-                    onLog("  -> Removendo conta do Active Directory...");
-                    adEntry.DeleteTree();
-                    adEntry.CommitChanges();
-                    onLog("  -> [SUCESSO] Computador removido do Active Directory!");
-                    AppLoggerService.Success($"Conta {cleanName} removida do AD.", nameof(AdSccmService));
+                    using var adEntry = result.GetDirectoryEntry();
+                    string name = adEntry.Properties["cn"].Value?.ToString() ?? cleanName;
+                    string dn = adEntry.Properties["distinguishedName"].Value?.ToString() ?? "";
+                    string os = adEntry.Properties["operatingSystem"].Value?.ToString() ?? "Não informado";
+                    string created = adEntry.Properties["whenCreated"].Value?.ToString() ?? "";
+
+                    onLog($"       Nome      : {name}");
+                    onLog($"       DN        : {dn}");
+                    onLog($"       SO        : {os}");
+                    onLog($"       Criado em : {created}");
+
+                    if (isDelete)
+                    {
+                        onLog($"  -> Removendo conta '{name}' do Active Directory...");
+                        adEntry.DeleteTree();
+                        adEntry.CommitChanges();
+                        onLog($"  -> [SUCESSO] Computador '{name}' removido do Active Directory!");
+                        AppLoggerService.Success($"Conta {name} removida do AD.", nameof(AdSccmService));
+                    }
                 }
             }
             else
             {
-                onLog($"  [i] Computador '{cleanName}' não localizado no Active Directory.");
+                onLog($"  [i] Nenhum computador correspondente a '{cleanName}' localizado no Active Directory.");
             }
         }
         catch (Exception ex)
         {
             onLog($"  -> Falha no Active Directory: {ex.Message}");
             AppLoggerService.Warning($"Erro no AD para {cleanName}: {ex.Message}", nameof(AdSccmService));
-        }
-        finally
-        {
-            adEntry?.Dispose();
         }
 
         // 2. CONFIGURATION MANAGER (SCCM)
@@ -148,7 +148,7 @@ public class AdSccmService
             var scope = new ManagementScope(scopePath, options);
             scope.Connect();
 
-            string query = $"SELECT ResourceID, SMSID, ClientActiveStatus, OperatingSystemNameandVersion FROM SMS_R_System WHERE NetbiosName = '{cleanName}' OR Name = '{cleanName}'";
+            string query = $"SELECT ResourceID, SMSID, ClientActiveStatus, OperatingSystemNameandVersion, NetbiosName, Name FROM SMS_R_System WHERE NetbiosName LIKE '%{cleanName}%' OR Name LIKE '%{cleanName}%'";
             using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(query));
             using var results = searcher.Get();
 
@@ -158,11 +158,13 @@ public class AdSccmService
                 onLog($"  [OK] {list.Count} registro(s) encontrado(s) no SCCM (WMI C# Nativo)!");
                 foreach (var dev in list)
                 {
+                    string name = dev["NetbiosName"]?.ToString() ?? dev["Name"]?.ToString() ?? cleanName;
                     string resId = dev["ResourceID"]?.ToString() ?? "";
                     string smsId = dev["SMSID"]?.ToString() ?? "";
-                    string clientActive = dev["ClientActiveStatus"]?.ToString() ?? "";
+                    string clientActive = dev["ClientActiveStatus"]?.ToString() == "1" ? "Ativo" : "Inativo";
                     string os = dev["OperatingSystemNameandVersion"]?.ToString() ?? "";
 
+                    onLog($"       Nome        : {name}");
                     onLog($"       ResourceID  : {resId}");
                     onLog($"       SMSID       : {smsId}");
                     onLog($"       Cliente Atv : {clientActive}");
@@ -170,17 +172,17 @@ public class AdSccmService
 
                     if (isDelete)
                     {
-                        onLog($"  -> Excluindo ResourceID {resId} via WMI C# Nativo...");
+                        onLog($"  -> Excluindo ResourceID {resId} ({name}) via WMI C# Nativo...");
                         dev.Delete();
-                        onLog("  -> [SUCESSO] Registro removido do Configuration Manager!");
-                        AppLoggerService.Success($"ResourceID {resId} de {cleanName} excluído via WMI Nativo.", nameof(AdSccmService));
+                        onLog($"  -> [SUCESSO] Registro '{name}' removido do Configuration Manager!");
+                        AppLoggerService.Success($"ResourceID {resId} de {name} excluído via WMI Nativo.", nameof(AdSccmService));
                     }
                 }
                 return true;
             }
             else
             {
-                onLog($"  [i] Computador '{cleanName}' não localizado no SCCM (WMI C# Nativo).");
+                onLog($"  [i] Nenhum computador correspondente a '{cleanName}' localizado no SCCM (WMI C# Nativo).");
                 return true;
             }
         }
@@ -212,22 +214,23 @@ if (-not (Get-PSDrive -Name '{siteCode}' -ErrorAction SilentlyContinue)) {{
     New-PSDrive -Name '{siteCode}' -PSProvider 'CMSite' -Root '{siteServer}' -Description 'SCCM Drive' | Out-Null
 }}
 Set-Location '{siteCode}:'
-$devices = @(Get-CMDevice -Name '{cleanName}' -ErrorAction SilentlyContinue)
+$devices = @(Get-CMDevice | Where-Object {{ $_.Name -like '*{cleanName}*' }})
 if ($devices.Count -gt 0) {{
-    Write-Output ""[OK] $($devices.Count) registro(s) encontrado(s) no SCCM!""
+    Write-Output ""[OK] $($devices.Count) registro(s) encontrado(s) no SCCM via CMSite!""
     foreach ($dev in $devices) {{
+        Write-Output ""       Nome        : $($dev.Name)""
         Write-Output ""       ResourceID  : $($dev.ResourceID)""
         Write-Output ""       SMSID       : $($dev.SMSID)""
         Write-Output ""       Cliente Atv : $($dev.ClientActiveStatus)""
         Write-Output ""       SO          : $($dev.DeviceOS)""
         {(isDelete ? @"
-        Write-Output ""  -> Excluindo ResourceID $($dev.ResourceID) do SCCM...""
+        Write-Output ""  -> Excluindo ResourceID $($dev.ResourceID) ($($dev.Name)) do SCCM...""
         Remove-CMResource -ResourceId $dev.ResourceID -Force
-        Write-Output ""  -> [SUCESSO] Registro removido do Configuration Manager!""
+        Write-Output ""  -> [SUCESSO] Registro '$($dev.Name)' removido do Configuration Manager!""
         " : "")}
     }}
 }} else {{
-    Write-Output ""[i] Computador '{cleanName}' não localizado no SCCM.""
+    Write-Output ""[i] Nenhum computador correspondente a '{cleanName}' localizado no SCCM.""
 }}
 ";
             File.WriteAllText(scriptTemp, psCode, System.Text.Encoding.UTF8);
@@ -268,7 +271,11 @@ if ($devices.Count -gt 0) {{
             proc.Start();
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
-            proc.WaitForExit();
+            if (!proc.WaitForExit(35000))
+            {
+                try { proc.Kill(); } catch { }
+                onLog("  [Aviso] Tempo limite de 35s excedido na consulta SCCM CMSite.");
+            }
 
             try { File.Delete(scriptTemp); } catch { }
 
@@ -512,7 +519,6 @@ if ($devices.Count -gt 0) {{
             Log($"Pesquisa concluída: {list.Count} máquina(s) encontrada(s).");
             return list;
         });
-    }
     }
 
     private void TrySearchSccmViaProvider(string cleanQuery, Dictionary<string, MachineDetails> resultsDict, string siteServer, string siteCode, Action<string>? onLog)

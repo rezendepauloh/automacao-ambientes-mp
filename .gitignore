@@ -7,6 +7,7 @@ credenciais.xml
 *.json
 .env
 AmbientesHub/.env
+temp/
 
 # ==========================================
 # IGNORAR LOGS E ARQUIVOS TEMPORÁRIOS

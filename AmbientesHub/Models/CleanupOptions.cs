@@ -9,5 +9,6 @@ public class CleanupOptions
     public bool CloseAdministrativeTools { get; set; } = true; // MMC, SCCM, SAJMP
     public bool CloseUtilities { get; set; } = true; // Notepad, FoxitPDF, Calculadora
     public bool StopTelemetry { get; set; } = true;
+    public bool RestartExplorer { get; set; } = false; // Modo Nuclear do Explorador de Arquivos
 }
 

@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using AmbientesHub.Models;
 using AmbientesHub.Services;
+using AmbientesHub.Views;
 using Wpf.Ui.Controls;
 
 namespace AmbientesHub;
@@ -53,13 +54,86 @@ public partial class MainWindow : FluentWindow
         }
     }
 
+    private void TxtGlobalSearch_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            ExecutarPesquisaGlobal();
+        }
+        else if (e.Key == Key.Escape)
+        {
+            TxtGlobalSearch.Clear();
+            TxtFooterStatus.Text = "Ambientes Hub ativo e pronto.";
+        }
+    }
+
+    private void ExecutarPesquisaGlobal()
+    {
+        string query = TxtGlobalSearch.Text.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            TxtFooterStatus.Text = "Digite um termo para pesquisar (máquina, usuário ou módulo).";
+            return;
+        }
+
+        string lower = query.ToLowerInvariant();
+
+        // 1. Navegação rápida para abas/módulos
+        if (lower is "ambientes" or "ambiente" or "virtual" or "virtuais" or "chamados" or "contratos" or "pastas")
+        {
+            NavListBox.SelectedIndex = 0;
+            TxtFooterStatus.Text = "Navegado para: Ambientes Virtuais";
+            return;
+        }
+
+        if (lower is "saneamento" or "limpar cache" or "teams" or "recursos" or "cache" or "explorer")
+        {
+            NavListBox.SelectedIndex = 3;
+            TxtFooterStatus.Text = "Navegado para: Saneamento de Recursos";
+            return;
+        }
+
+        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        {
+            NavListBox.SelectedIndex = 4;
+            TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
+            return;
+        }
+
+        if (lower.StartsWith("limpar ") || lower.StartsWith("desprovisionar ") || lower.StartsWith("ad "))
+        {
+            string target = query.Substring(query.IndexOf(' ') + 1).Trim();
+            NavListBox.SelectedIndex = 2;
+            if (!string.IsNullOrEmpty(target))
+            {
+                TxtAdTargetComputer.Text = target;
+                BtnAdQuery_Click(this, new RoutedEventArgs());
+            }
+            TxtFooterStatus.Text = $"Navegado para Limpeza AD/SCCM: {target}";
+            return;
+        }
+
+        if (lower is "limpeza" or "desprovisionar" or "ad" or "sccm")
+        {
+            NavListBox.SelectedIndex = 2;
+            TxtFooterStatus.Text = "Navegado para: Limpeza AD & SCCM";
+            return;
+        }
+
+        // 2. Consulta Global no Acesso Remoto & Diagnóstico (Máquinas e Usuários)
+        NavListBox.SelectedIndex = 1;
+        TxtComputerName.Text = query;
+        TxtFooterStatus.Text = $"Pesquisa global acionada para: '{query}'...";
+        BtnConsultarRemoto_Click(this, new RoutedEventArgs());
+    }
+
     private void TxtGlobalSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
         string query = TxtGlobalSearch.Text.Trim();
         if (string.IsNullOrEmpty(query)) return;
 
         // Feedback visual na barra de status indicando o filtro da pesquisa
-        TxtFooterStatus.Text = $"Filtro ativo: '{query}'";
+        TxtFooterStatus.Text = $"Filtro ativo: '{query}' (Pressione Enter para executar)";
     }
 
     private void NavListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -145,11 +219,12 @@ public partial class MainWindow : FluentWindow
             RichAdLogs.FontFamily = font;
             RichCleanLogs.FontFamily = font;
             RichScriptsLogs.FontFamily = font;
-            TxtRemoteStatus.FontFamily = font;
+            RichRemoteLogs.FontFamily = font;
 
             foreach (var block in RichAdLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichScriptsLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichRemoteLogs.Document.Blocks) block.FontFamily = font;
         }
         catch { }
     }
@@ -218,97 +293,81 @@ public partial class MainWindow : FluentWindow
     {
         string xmlPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin.xml";
         RichScriptsLogs.Document.Blocks.Clear();
+        AppendColoredLog(RichScriptsLogs, "=== VERIFICAÇÃO DO COFRE LOCAL ===");
 
-        if (File.Exists(xmlPath))
+        var (success, msg, user) = CredentialService.VerifyCredential(xmlPath);
+        if (success)
         {
-            AppendColoredLog(RichScriptsLogs, "=== VERIFICAÇÃO DO COFRE LOCAL ===");
             AppendColoredLog(RichScriptsLogs, $"[OK] Cofre localizado em: {xmlPath}");
-            AppendColoredLog(RichScriptsLogs, $"     Usuário configurado: {ConfigService.AdminUser}");
-            AppendColoredLog(RichScriptsLogs, "[SUCESSO] Credencial DPAPI ativa e pronta para uso nas automações!");
+            AppendColoredLog(RichScriptsLogs, $"     Usuário no cofre: {user}");
+            AppendColoredLog(RichScriptsLogs, $"[SUCESSO] {msg}");
+            AppLoggerService.Success($"Cofre local {xmlPath} verificado com sucesso para {user}", nameof(MainWindow));
         }
         else
         {
-            AppendColoredLog(RichScriptsLogs, $"[ERRO] Arquivo não localizado: {xmlPath}");
+            AppendColoredLog(RichScriptsLogs, $"[ERRO] {msg}");
+            AppLoggerService.Warning($"Verificação do cofre local falhou: {msg}", nameof(MainWindow));
+        }
+    }
+
+    private void BtnCheckAdminAdXml_Click(object sender, RoutedEventArgs e)
+    {
+        string xmlPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin_ad.xml";
+        RichScriptsLogs.Document.Blocks.Clear();
+        AppendColoredLog(RichScriptsLogs, "=== VERIFICAÇÃO DO COFRE AD ===");
+
+        var (success, msg, user) = CredentialService.VerifyCredential(xmlPath);
+        if (success)
+        {
+            AppendColoredLog(RichScriptsLogs, $"[OK] Cofre localizado em: {xmlPath}");
+            AppendColoredLog(RichScriptsLogs, $"     Usuário no cofre: {user}");
+            AppendColoredLog(RichScriptsLogs, $"[SUCESSO] {msg}");
+            AppLoggerService.Success($"Cofre AD {xmlPath} verificado com sucesso para {user}", nameof(MainWindow));
+        }
+        else
+        {
+            AppendColoredLog(RichScriptsLogs, $"[ERRO] {msg}");
+            AppLoggerService.Warning($"Verificação do cofre AD falhou: {msg}", nameof(MainWindow));
         }
     }
 
     private void BtnCriarAdminAdXml_Click(object sender, RoutedEventArgs e)
     {
         string targetUser = ConfigService.AdminAdUser;
-        string destDir = @"C:\AmbientesVirtuais\Credenciais";
-        string destPath = Path.Combine(destDir, "cred_admin_ad.xml");
+        string destPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin_ad.xml";
 
-        var result = System.Windows.MessageBox.Show(
-            $"Deseja abrir o prompt de credencial para salvar com segurança a senha de '{targetUser}' em {destPath}?",
-            "Cofre de Credenciais",
-            System.Windows.MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-
-        if (result != System.Windows.MessageBoxResult.Yes) return;
-
-        RichScriptsLogs.Document.Blocks.Clear();
-        AppendColoredLog(RichScriptsLogs, $"=== GERANDO COFRE SEGURO DPAPI PARA: {targetUser} ===");
-        AppLoggerService.Info($"Iniciando geração de cofre seguro para {targetUser}", nameof(MainWindow));
-
-        try
+        var dialog = new CredentialDialog(targetUser)
         {
-            if (!Directory.Exists(destDir))
+            Owner = this
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            RichScriptsLogs.Document.Blocks.Clear();
+            AppendColoredLog(RichScriptsLogs, $"=== GERANDO COFRE SEGURO DPAPI PARA: {dialog.Username} ===");
+            AppLoggerService.Info($"Iniciando gravação de cofre seguro para {dialog.Username}", nameof(MainWindow));
+
+            var (success, msg) = CredentialService.SaveCredential(destPath, dialog.Username, dialog.Password);
+            if (success)
             {
-                Directory.CreateDirectory(destDir);
-            }
-
-            string scriptTemp = Path.Combine(Path.GetTempPath(), $"save_cred_{Guid.NewGuid():N}.ps1");
-            string psScript = $@"
-Add-Type -AssemblyName System.Windows.Forms
-$cred = Get-Credential -UserName '{targetUser}' -Message 'Digite a senha do Administrador AD para criptografia segura DPAPI:'
-if ($cred) {{
-    $cred | Export-Clixml -Path '{destPath}' -Force
-    Write-Output '[OK] Credencial salva'
-}} else {{
-    Write-Output '[CANCELADO]'
-}}
-";
-            File.WriteAllText(scriptTemp, psScript, System.Text.Encoding.UTF8);
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "powershell.exe",
-                Arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{scriptTemp}\"",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            using var p = Process.Start(startInfo);
-            string stdout = p?.StandardOutput.ReadToEnd() ?? "";
-            string stderr = p?.StandardError.ReadToEnd() ?? "";
-            p?.WaitForExit();
-
-            try { File.Delete(scriptTemp); } catch { }
-
-            if (!string.IsNullOrWhiteSpace(stderr))
-            {
-                AppLoggerService.Warning($"Prompt credenciais erro/stderr: {stderr}", nameof(MainWindow));
-                AppendColoredLog(RichScriptsLogs, $"  -> Aviso: {stderr.Trim()}");
-            }
-
-            if (File.Exists(destPath))
-            {
-                AppendColoredLog(RichScriptsLogs, $"[SUCESSO] Cofre '{destPath}' criado com êxito!");
-                TxtFooterStatus.Text = $"Cofre para {targetUser} criado com sucesso.";
-                AppLoggerService.Success($"Cofre {destPath} gerado com sucesso.", nameof(MainWindow));
+                AppendColoredLog(RichScriptsLogs, $"[OK] Credencial DPAPI gerada com sucesso!");
+                AppendColoredLog(RichScriptsLogs, $"     Arquivo : {destPath}");
+                AppendColoredLog(RichScriptsLogs, $"     Usuário : {dialog.Username}");
+                AppendColoredLog(RichScriptsLogs, $"[SUCESSO] {msg}");
+                TxtFooterStatus.Text = $"Cofre para {dialog.Username} criado com sucesso.";
+                AppLoggerService.Success($"Cofre {destPath} gerado e validado para {dialog.Username}.", nameof(MainWindow));
             }
             else
             {
-                AppendColoredLog(RichScriptsLogs, "[i] Operação cancelada ou não concluída.");
-                AppLoggerService.Warning($"Geração de cofre para {targetUser} não concluída pelo usuário.", nameof(MainWindow));
+                AppendColoredLog(RichScriptsLogs, $"[ERRO] {msg}");
+                AppLoggerService.Danger($"Falha ao gravar cofre: {msg}", nameof(MainWindow));
             }
         }
-        catch (Exception ex)
+        else
         {
-            AppendColoredLog(RichScriptsLogs, $"[ERRO] Falha ao criar cofre: {ex.Message}");
-            AppLoggerService.Danger($"Falha ao gerar cofre: {ex.Message}", nameof(MainWindow));
+            RichScriptsLogs.Document.Blocks.Clear();
+            AppendColoredLog(RichScriptsLogs, "[i] Operação cancelada pelo usuário.");
+            AppLoggerService.Info("Geração de cofre cancelada pelo usuário no diálogo.", nameof(MainWindow));
         }
     }
     #endregion
@@ -316,46 +375,58 @@ if ($cred) {{
     #region Color Terminal Helper
     private void AppendColoredLog(System.Windows.Controls.RichTextBox rtb, string text)
     {
-        Dispatcher.Invoke(() =>
+        if (Dispatcher.CheckAccess())
         {
-            var brush = new SolidColorBrush(Color.FromRgb(203, 213, 225)); // Slate 300 padrão
+            AddLogBlock(rtb, text);
+        }
+        else
+        {
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+            {
+                AddLogBlock(rtb, text);
+            }));
+        }
+    }
 
-            if (text.Contains("[OK]") || text.Contains("[SUCESSO]") || text.Contains("concluída"))
-            {
-                brush = new SolidColorBrush(Color.FromRgb(52, 211, 153)); // Emerald 400
-            }
-            else if (text.Contains("[ERRO]") || text.Contains("Falha") || text.Contains("Erro SCCM") || text.Contains("EXCLUSÃO"))
-            {
-                brush = new SolidColorBrush(Color.FromRgb(248, 113, 113)); // Red 400
-            }
-            else if (text.Contains("[i]") || text.Contains("Aviso") || text.Contains("não localizado") || text.Contains("Dica:"))
-            {
-                brush = new SolidColorBrush(Color.FromRgb(251, 191, 36)); // Amber 400
-            }
-            else if (text.StartsWith("===") || text.StartsWith("[1/") || text.StartsWith("[2/"))
-            {
-                brush = new SolidColorBrush(Color.FromRgb(56, 189, 248)); // Sky 400
-            }
+    private void AddLogBlock(System.Windows.Controls.RichTextBox rtb, string text)
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(203, 213, 225)); // Slate 300 padrão
 
-            var currentFont = rtb.FontFamily;
-            string cleanText = text.TrimEnd('\r', '\n');
+        if (text.Contains("[OK]") || text.Contains("[SUCESSO]") || text.Contains("concluída"))
+        {
+            brush = new SolidColorBrush(Color.FromRgb(52, 211, 153)); // Emerald 400
+        }
+        else if (text.Contains("[ERRO]") || text.Contains("Falha") || text.Contains("Erro SCCM") || text.Contains("EXCLUSÃO"))
+        {
+            brush = new SolidColorBrush(Color.FromRgb(248, 113, 113)); // Red 400
+        }
+        else if (text.Contains("[i]") || text.Contains("Aviso") || text.Contains("não localizado") || text.Contains("Dica:"))
+        {
+            brush = new SolidColorBrush(Color.FromRgb(251, 191, 36)); // Amber 400
+        }
+        else if (text.StartsWith("===") || text.StartsWith("[1/") || text.StartsWith("[2/"))
+        {
+            brush = new SolidColorBrush(Color.FromRgb(56, 189, 248)); // Sky 400
+        }
 
-            var run = new Run(cleanText)
-            {
-                Foreground = brush,
-                FontFamily = currentFont
-            };
+        var currentFont = rtb.FontFamily;
+        string cleanText = text.TrimEnd('\r', '\n');
 
-            var para = new Paragraph(run)
-            {
-                Margin = new Thickness(0, 0, 0, 0),
-                LineHeight = 18,
-                FontFamily = currentFont
-            };
+        var run = new Run(cleanText)
+        {
+            Foreground = brush,
+            FontFamily = currentFont
+        };
 
-            rtb.Document.Blocks.Add(para);
-            rtb.ScrollToEnd();
-        });
+        var para = new Paragraph(run)
+        {
+            Margin = new Thickness(0, 0, 0, 0),
+            LineHeight = 18,
+            FontFamily = currentFont
+        };
+
+        rtb.Document.Blocks.Add(para);
+        rtb.ScrollToEnd();
     }
     #endregion
 
@@ -388,54 +459,152 @@ if ($cred) {{
     }
     #endregion
 
-    #region Acesso Remoto
-    private void BtnSccmRemote_Click(object sender, RoutedEventArgs e)
+    #region Acesso Remoto & Diagnóstico
+    private async void BtnConsultarRemoto_Click(object sender, RoutedEventArgs e)
     {
-        string host = TxtComputerName.Text;
-        if (string.IsNullOrWhiteSpace(host))
+        string query = TxtComputerName.Text.Trim();
+        if (string.IsNullOrWhiteSpace(query))
         {
-            AppLoggerService.Warning("Tentativa de conexão SCCM com campo vazio.", nameof(MainWindow));
-            TxtRemoteStatus.Text = "Aviso: Digite o nome do computador ou IP.";
+            AppendColoredLog(RichRemoteLogs, "[Aviso] Informe parte do nome da máquina (ex: 80600) ou usuário para pesquisar.");
             return;
         }
 
+        BtnConsultarRemoto.IsEnabled = false;
+        PlaceholderRemoteCard.Visibility = Visibility.Collapsed;
+        ItemsMachineResults.ItemsSource = null;
+        LoadingRemoteCard.Visibility = Visibility.Visible;
+        RichRemoteLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Pesquisando máquinas e usuários para '{query}'...";
+
+        try
+        {
+            var results = await _adSccmService.SearchMachinesAsync(query, msg =>
+            {
+                AppendColoredLog(RichRemoteLogs, msg);
+            });
+
+            if (results.Count > 0)
+            {
+                ItemsMachineResults.ItemsSource = results;
+                PlaceholderRemoteCard.Visibility = Visibility.Collapsed;
+                TxtFooterStatus.Text = $"{results.Count} máquina(s) encontrada(s) para '{query}'.";
+            }
+            else
+            {
+                PlaceholderRemoteCard.Visibility = Visibility.Visible;
+                AppendColoredLog(RichRemoteLogs, $"[i] Nenhum registro encontrado para '{query}' no AD ou SCCM.");
+                TxtFooterStatus.Text = $"Nenhum resultado para '{query}'.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRemoteLogs, $"[ERRO] Falha na pesquisa: {ex.Message}");
+            AppLoggerService.Danger($"Erro na pesquisa de '{query}': {ex.Message}", nameof(MainWindow));
+            PlaceholderRemoteCard.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            LoadingRemoteCard.Visibility = Visibility.Collapsed;
+            BtnConsultarRemoto.IsEnabled = true;
+        }
+    }
+
+    private void BtnCardConnectSccm_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.ComputerName))
+        {
+            ConectarSccm(details.ComputerName);
+        }
+    }
+
+    private void BtnCardConnectRdp_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.ComputerName))
+        {
+            ConectarRdp(details.ComputerName);
+        }
+    }
+
+    private void BtnCardCopyMachine_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.ComputerName))
+        {
+            if (ClipboardHelper.Copy(details.ComputerName))
+            {
+                TxtFooterStatus.Text = $"Nome da máquina '{details.ComputerName}' copiado!";
+            }
+        }
+    }
+
+    private void BtnCardCopyUser_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details)
+        {
+            string user = !string.IsNullOrWhiteSpace(details.CurrentLogonUser) ? details.CurrentLogonUser : details.PrimaryUser;
+            if (!string.IsNullOrWhiteSpace(user) && ClipboardHelper.Copy(user))
+            {
+                TxtFooterStatus.Text = $"Usuário '{user}' copiado!";
+            }
+            else
+            {
+                TxtFooterStatus.Text = "Nenhum usuário disponível para cópia nesta máquina.";
+            }
+        }
+    }
+
+    private void BtnCardCopyMac_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.MacAddress))
+        {
+            if (ClipboardHelper.Copy(details.MacAddress))
+            {
+                TxtFooterStatus.Text = $"MAC '{details.MacAddress}' copiado!";
+            }
+        }
+    }
+
+    private void BtnCardCopyIp_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.IpAddress))
+        {
+            if (ClipboardHelper.Copy(details.IpAddress))
+            {
+                TxtFooterStatus.Text = $"IP '{details.IpAddress}' copiado!";
+            }
+        }
+    }
+
+    private void ConectarSccm(string host)
+    {
         try
         {
             AppLoggerService.Info($"Iniciando SCCM Remote para {host}", nameof(MainWindow));
             _remoteToolsService.OpenSccmRemoteControl(host);
-            TxtRemoteStatus.Text = $"Conexão SCCM disparada para: {host}";
+            AppendColoredLog(RichRemoteLogs, $"[SUCESSO] Conexão SCCM disparada para: {host}");
             TxtFooterStatus.Text = $"Conexão SCCM: {host}";
             AppLoggerService.Success($"SCCM Remote disparado para {host}", nameof(MainWindow));
         }
         catch (Exception ex)
         {
             AppLoggerService.Danger($"Erro ao abrir SCCM Remote para {host}: {ex.Message}", nameof(MainWindow));
-            TxtRemoteStatus.Text = $"Erro ao abrir SCCM: {ex.Message}";
+            AppendColoredLog(RichRemoteLogs, $"[ERRO] Falha ao abrir SCCM: {ex.Message}");
         }
     }
 
-    private void BtnRdpRemote_Click(object sender, RoutedEventArgs e)
+    private void ConectarRdp(string host)
     {
-        string host = TxtComputerName.Text;
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            AppLoggerService.Warning("Tentativa de conexão RDP com campo vazio.", nameof(MainWindow));
-            TxtRemoteStatus.Text = "Aviso: Digite o nome do computador ou IP.";
-            return;
-        }
-
         try
         {
             AppLoggerService.Info($"Iniciando RDP para {host}", nameof(MainWindow));
             _remoteToolsService.OpenRdp(host);
-            TxtRemoteStatus.Text = $"Conexão RDP (mstsc) disparada para: {host}";
+            AppendColoredLog(RichRemoteLogs, $"[SUCESSO] Conexão RDP (mstsc) disparada para: {host}");
             TxtFooterStatus.Text = $"Conexão RDP: {host}";
             AppLoggerService.Success($"RDP disparado para {host}", nameof(MainWindow));
         }
         catch (Exception ex)
         {
             AppLoggerService.Danger($"Erro ao abrir RDP para {host}: {ex.Message}", nameof(MainWindow));
-            TxtRemoteStatus.Text = $"Erro ao abrir RDP: {ex.Message}";
+            AppendColoredLog(RichRemoteLogs, $"[ERRO] Falha ao abrir RDP: {ex.Message}");
         }
     }
 
@@ -443,7 +612,7 @@ if ($cred) {{
     {
         if (e.Key == Key.Enter)
         {
-            BtnSccmRemote_Click(sender, e);
+            BtnConsultarRemoto_Click(sender, e);
         }
     }
     #endregion
@@ -534,7 +703,8 @@ if ($cred) {{
             CloseTeams = ChkTeams.IsChecked ?? true,
             CloseAdministrativeTools = ChkAdminTools.IsChecked ?? true,
             CloseUtilities = ChkUtilities.IsChecked ?? true,
-            StopTelemetry = ChkTelemetry.IsChecked ?? true
+            StopTelemetry = ChkTelemetry.IsChecked ?? true,
+            RestartExplorer = ChkRestartExplorer.IsChecked ?? false
         };
 
         AppLoggerService.Info("Limpeza manual com opções personalizadas iniciada.", nameof(MainWindow));

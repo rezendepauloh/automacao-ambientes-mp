@@ -18,6 +18,7 @@ Docs/
 │
 └── 📖 guias/                                         # Manuais práticos de operação e scripts
     ├── guia_ambientes_hub_desktop.md                 # Manual completo do aplicativo desktop AmbientesHub
+    ├── suite_testes_automatizados.md                 # Manual da suíte de testes automatizados xUnit e runner
     ├── guia_execucao_e_uso.md                        # Como carregar e executar as rotinas legadas (Scripts/biblioteca.ps1)
     ├── catalogo_funcoes_biblioteca.md                # Referência técnica de cada função da biblioteca.ps1
     └── preparacao_ambiente_dotnet.md                 # Instalação do .NET 8/9 SDK para o Hub WinUI 3
@@ -30,7 +31,9 @@ Docs/
 
 ## 🚀 Acessos Rápidos Mais Utilizados
 
-### 1. Operação Técnica Diária
+### 1. Operação Técnica Diária & Testes
+- **Suíte de Testes Automatizados (xUnit):** [Guia da Suíte de Testes](guias/suite_testes_automatizados.md)
+- **Manual do Ambientes Hub Desktop:** [Guia do Aplicativo](guias/guia_ambientes_hub_desktop.md)
 - **Como executar e carregar as funções:** [Guia de Execução e Uso](guias/guia_execucao_e_uso.md)
 - **Referência completa das funções:** [Catálogo de Funções da Biblioteca](guias/catalogo_funcoes_biblioteca.md)
 

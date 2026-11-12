@@ -17,26 +17,23 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Barra de Título Customizada Fluent com Input de Pesquisa Centralizado -->
-        <Grid Grid.Row="0">
-            <ui:TitleBar Title="Ambientes Hub">
-                <ui:TitleBar.Icon>
-                    <ui:ImageIcon Source="Assets/app.ico" Width="18" Height="18" />
-                </ui:TitleBar.Icon>
-            </ui:TitleBar>
-
-            <!-- Caixa de Pesquisa Centralizada (Estilo Task Manager / PowerToys) -->
-            <ui:TextBox x:Name="TxtGlobalSearch" 
-                        PlaceholderText="Pesquisar..." 
-                        Icon="{ui:SymbolIcon Symbol=Search24}"
-                        Width="360" Height="32" 
-                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Margin="0,0,100,0"
-                        Background="{DynamicResource ControlFillColorDefaultBrush}"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                        TextChanged="TxtGlobalSearch_TextChanged"
-                        ToolTip="Filtrar recursos na aba ativa" />
-        </Grid>
+        <!-- Barra de Título Customizada Fluent com Input de Pesquisa Centralizado Integrado no Header -->
+        <ui:TitleBar Grid.Row="0" Title="Ambientes Hub">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="Assets/app.ico" Width="18" Height="18" />
+            </ui:TitleBar.Icon>
+            <ui:TitleBar.Header>
+                <ui:TextBox x:Name="TxtGlobalSearch" 
+                            PlaceholderText="Pesquisar (máquinas, usuários, módulos)..." 
+                            Icon="{ui:SymbolIcon Symbol=Search24}"
+                            Width="380" Height="32" 
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            KeyDown="TxtGlobalSearch_KeyDown"
+                            ToolTip="Pesquisa global: digite máquina, usuário ou módulo e pressione Enter" />
+            </ui:TitleBar.Header>
+        </ui:TitleBar>
 
         <!-- Layout com Menu Lateral Vertical Responsivo (Expandido / Recolhido com Splitter) -->
         <Grid Grid.Row="1" Margin="10,5,10,0">
@@ -237,33 +234,179 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-                            <TextBlock Text="Lançador de Conexão Remota" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Acesso instantâneo sem abrir consoles pesados (SCCM Admin Console ou MMC)." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                            <TextBlock Text="Central de Acesso Remoto &amp; Diagnóstico" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Pesquise por nome da máquina (ex: 80600) ou usuário logado (ex: usuario.sobrenome) com correspondência ampla." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
                         </StackPanel>
 
-                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
+                        <!-- Barra de Consulta Ampla -->
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <ui:TextBox x:Name="TxtComputerName" Grid.Column="0" PlaceholderText="Pesquise por máquina (ex: 80600 ou MPE-80600) ou usuário conectado (ex: usuario.sobrenome)..." Margin="0,0,10,0" KeyDown="TxtComputerName_KeyDown" Height="38" />
+                                <ui:Button x:Name="BtnConsultarRemoto" Grid.Column="1" Appearance="Primary" Content="Pesquisar" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnConsultarRemoto_Click" Padding="18,9" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Conteúdo Scrollável: Lista de Resultados + Console de Diagnóstico -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,15,0,0">
                             <StackPanel>
-                                <TextBlock Text="Nome do Computador ou Endereço IP:" FontWeight="Medium" Margin="0,0,0,8" />
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
 
-                                    <ui:TextBox x:Name="TxtComputerName" Grid.Column="0" PlaceholderText="Ex: MPE-80600 ou 10.10.x.x" Margin="0,0,10,0" KeyDown="TxtComputerName_KeyDown" />
-                                    <ui:Button x:Name="BtnSccmRemote" Grid.Column="1" Appearance="Primary" Content="SCCM Remoto (CmRcViewer)" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnSccmRemote_Click" Margin="0,0,10,0" />
-                                    <ui:Button x:Name="BtnRdpRemote" Grid.Column="2" Appearance="Secondary" Content="RDP Padrão (mstsc)" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnRdpRemote_Click" />
-                                </Grid>
+                                <!-- Card de Placeholder (Antes da consulta) -->
+                                <Border x:Name="PlaceholderRemoteCard" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="30" Margin="0,0,0,12" Visibility="Visible">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="🔍" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                        <TextBlock Text="Pesquisa Ampla de Máquinas &amp; Usuários" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="Digite parte do nome da máquina (ex: 80600), o nome completo (MPE-80600) ou o usuário conectado (ex: usuario.sobrenome) para localizar dispositivos, status de rede e registros do AD &amp; SCCM." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextAlignment="Center" Margin="0,6,0,0" MaxWidth="620" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Card de Carregamento (Durante a consulta) -->
+                                <Border x:Name="LoadingRemoteCard" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="25" Margin="0,0,0,12" Visibility="Collapsed">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="⏳" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                                        <TextBlock Text="Pesquisando no Active Directory, Configuration Manager e diagnosticando rede..." FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="Aguarde enquanto verificamos os dispositivos correspondentes e seus usuários." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Lista de Resultados Dinâmicos (ItemsControl) -->
+                                <ItemsControl x:Name="ItemsMachineResults">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <!-- Cabeçalho do Card: Badge, Nome, Ações Rápidas -->
+                                                    <Grid Grid.Row="0" Margin="0,0,0,14">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0">
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border CornerRadius="4" Padding="8,3" Margin="0,0,10,0" Background="#064e3b">
+                                                                    <TextBlock Text="{Binding OnlineBadgeText}" FontSize="11" FontWeight="Bold" Foreground="#34d399" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding ComputerName}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                                                <ui:Button Appearance="Transparent" ToolTip="Copiar Nome da Máquina" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyMachine_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" />
+                                                            </StackPanel>
+                                                            <TextBlock Text="{Binding DnsHostName}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <ui:Button Appearance="Primary" Content="Acessar CmRcViewer" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnCardConnectSccm_Click" Margin="0,0,8,0" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Acessar RDP" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnCardConnectRdp_Click" Padding="14,8" />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <Separator Grid.Row="1" Margin="0,0,0,14" />
+
+                                                    <!-- Corpo: 3 Colunas de Dados -->
+                                                    <Grid Grid.Row="2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- Bloco 1: Sessão & Usuários -->
+                                                        <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14" Margin="0,0,8,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="👤 SESSÃO &amp; USUÁRIO" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                                                <TextBlock Text="Usuário Conectado Atualmente:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <Grid Margin="0,2,0,10">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding CurrentLogonUserDisplay}" FontSize="14" FontWeight="Bold" Foreground="#38bdf8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar Usuário Conectado" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyUser_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                </Grid>
+
+                                                                <TextBlock Text="Usuário Primário (Dono):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding PrimaryUserDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,10" TextTrimming="CharacterEllipsis" />
+
+                                                                <TextBlock Text="Endereço IP &amp; Latência:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <Grid Margin="0,2,0,0">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding IpWithLatency}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar Endereço IP" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyIp_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                </Grid>
+                                                            </StackPanel>
+                                                        </Border>
+
+                                                        <!-- Bloco 2: Active Directory -->
+                                                        <Border Grid.Column="1" Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14" Margin="0,0,8,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="🏛️ ACTIVE DIRECTORY" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                                                <TextBlock Text="Sistema Operacional:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding OperatingSystem}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,10" TextTrimming="CharacterEllipsis" />
+
+                                                                <TextBlock Text="Criado em:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding WhenCreated}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,10" />
+
+                                                                <TextBlock Text="Unidade Organizacional (OU):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding DistinguishedName}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DistinguishedName}" />
+                                                            </StackPanel>
+                                                        </Border>
+
+                                                        <!-- Bloco 3: Configuration Manager (SCCM) -->
+                                                        <Border Grid.Column="2" Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14">
+                                                            <StackPanel>
+                                                                <TextBlock Text="📡 CONFIGURATION MANAGER" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                                                <TextBlock Text="Atividade do Agente SCCM:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding ClientStatus}" FontSize="13" FontWeight="SemiBold" Foreground="#34d399" Margin="0,2,0,10" />
+
+                                                                <TextBlock Text="MAC Address:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <Grid Margin="0,2,0,10">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding MacAddressDisplay}" FontSize="12" FontWeight="SemiBold" Foreground="#f59e0b" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar MAC Address" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyMac_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                </Grid>
+
+                                                                <TextBlock Text="ResourceID:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding ResourceId}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,10" />
+
+                                                                <TextBlock Text="SMSID (GUID):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding SmsId}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding SmsId}" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Console de Log para Diagnóstico de Conexão -->
+                                <Border Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="12" MinHeight="80" MaxHeight="130">
+                                    <RichTextBox x:Name="RichRemoteLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                        <FlowDocument />
+                                    </RichTextBox>
+                                </Border>
+
                             </StackPanel>
-                        </Border>
-
-                        <Border Grid.Row="2" Margin="0,20,0,0" Background="#0f172a" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="15">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <TextBlock x:Name="TxtRemoteStatus" Text="Pronto para conexões." FontSize="13" Foreground="#38bdf8" />
-                            </ScrollViewer>
-                        </Border>
+                        </ScrollViewer>
                     </Grid>
 
                     <!-- PAINEL 2: LIMPEZA AD & SCCM -->
@@ -332,6 +475,7 @@
                                     <CheckBox x:Name="ChkAdminTools" Content="Fechar Consoles AD, SCCM e SAJMP" IsChecked="True" Margin="0,0,24,12" />
                                     <CheckBox x:Name="ChkUtilities" Content="Fechar FoxitPDF, Bloco de Notas e Relógio" IsChecked="True" Margin="0,0,24,12" />
                                     <CheckBox x:Name="ChkTelemetry" Content="Parar Telemetria (CompatTelRunner)" IsChecked="True" Margin="0,0,24,12" />
+                                    <CheckBox x:Name="ChkRestartExplorer" Content="Reiniciar Explorador de Arquivos (Modo Nuclear)" IsChecked="False" Margin="0,0,24,12" />
                                 </WrapPanel>
 
                                 <Separator Grid.Row="1" Margin="0,5,0,15" />
@@ -368,6 +512,7 @@
 
                                     <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
                                         <ui:Button x:Name="BtnCheckAdminXml" Appearance="Secondary" Content="Verificar Credencial Local (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminXml_Click" Margin="0,0,12,0" Padding="14,10" />
+                                        <ui:Button x:Name="BtnCheckAdminAdXml" Appearance="Secondary" Content="Verificar Credencial AD (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminAdXml_Click" Margin="0,0,12,0" Padding="14,10" />
                                         <ui:Button x:Name="BtnCriarAdminAdXml" Appearance="Primary" Content="Criar/Atualizar Cofre AD (XML)" Icon="{ui:SymbolIcon Symbol=Key24}" Click="BtnCriarAdminAdXml_Click" Padding="14,10" />
                                     </WrapPanel>
 

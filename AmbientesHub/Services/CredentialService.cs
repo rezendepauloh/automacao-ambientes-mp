@@ -1,0 +1,102 @@
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Xml.Linq;
+
+namespace AmbientesHub.Services;
+
+public static class CredentialService
+{
+    private static readonly XNamespace Ns = "http://schemas.microsoft.com/powershell/2004/04";
+
+    public static (bool Success, string Message, string? Username) VerifyCredential(string xmlPath)
+    {
+        if (!File.Exists(xmlPath))
+        {
+            return (false, $"Arquivo de credencial não encontrado: {xmlPath}", null);
+        }
+
+        try
+        {
+            var doc = XDocument.Load(xmlPath);
+            var userEl = doc.Descendants(Ns + "S").FirstOrDefault(e => (string?)e.Attribute("N") == "UserName");
+            var passEl = doc.Descendants(Ns + "SS").FirstOrDefault(e => (string?)e.Attribute("N") == "Password");
+
+            if (userEl == null || passEl == null)
+            {
+                return (false, "Formato Clixml inválido: elementos de usuário ou senha ausentes.", null);
+            }
+
+            string username = userEl.Value.Trim();
+            string hexPassword = passEl.Value.Trim();
+
+            byte[] encryptedBytes = Convert.FromHexString(hexPassword);
+            byte[] decryptedBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
+            string _ = Encoding.Unicode.GetString(decryptedBytes);
+
+            return (true, "Credencial DPAPI ativa e pronta para uso nas automações!", username);
+        }
+        catch (CryptographicException)
+        {
+            return (false, "Falha na descriptografia DPAPI: a credencial pertence a outro usuário ou máquina.", null);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Erro ao verificar cofre: {ex.Message}", null);
+        }
+    }
+
+    public static (bool Success, string Message) SaveCredential(string xmlPath, string username, string plainPassword)
+    {
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return (false, "O nome de usuário não pode estar em branco.");
+        }
+
+        try
+        {
+            string? dir = Path.GetDirectoryName(xmlPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            byte[] plainBytes = Encoding.Unicode.GetBytes(plainPassword);
+            byte[] encryptedBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
+            string hexEncrypted = Convert.ToHexString(encryptedBytes).ToLowerInvariant();
+
+            string cleanUser = System.Security.SecurityElement.Escape(username.Trim());
+
+            string clixml =
+$@"<Objs Version=""1.1.0.1"" xmlns=""http://schemas.microsoft.com/powershell/2004/04"">
+  <Obj RefId=""0"">
+    <TN RefId=""0"">
+      <T>System.Management.Automation.PSCredential</T>
+      <T>System.Object</T>
+    </TN>
+    <ToString>System.Management.Automation.PSCredential</ToString>
+    <Props>
+      <S N=""UserName"">{cleanUser}</S>
+      <SS N=""Password"">{hexEncrypted}</SS>
+    </Props>
+  </Obj>
+</Objs>";
+
+            File.WriteAllText(xmlPath, clixml, new UTF8Encoding(false));
+
+            // Teste imediato de validação
+            var test = VerifyCredential(xmlPath);
+            if (!test.Success)
+            {
+                return (false, $"O arquivo foi gravado, mas a validação falhou: {test.Message}");
+            }
+
+            return (true, $"Cofre seguro gravado e validado em: {xmlPath}");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Erro ao gravar credencial no cofre: {ex.Message}");
+        }
+    }
+}
+

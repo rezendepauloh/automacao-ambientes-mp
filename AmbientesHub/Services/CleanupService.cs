@@ -86,7 +86,13 @@ public class CleanupService
             StopTelemetryNative(Log);
         }
 
-        // 4. Garbage Collection
+        // 4. Reinício opcional do Explorer (Modo Nuclear nativo C#)
+        if (options.RestartExplorer)
+        {
+            RestartExplorerNative(Log);
+        }
+
+        // 5. Garbage Collection
         GC.Collect();
         GC.WaitForPendingFinalizers();
 
@@ -220,6 +226,34 @@ public class CleanupService
             log("Telemetria CompatTelRunner finalizada.");
         }
         catch { }
+    }
+
+    private void RestartExplorerNative(Action<string> log)
+    {
+        try
+        {
+            log("Reiniciando o Explorador de Arquivos (Modo Nuclear nativo C#)...");
+            foreach (var p in Process.GetProcessesByName("explorer"))
+            {
+                try { p.Kill(); } catch { }
+                finally { p.Dispose(); }
+            }
+            Thread.Sleep(2500);
+
+            if (Process.GetProcessesByName("explorer").Length == 0)
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    UseShellExecute = true
+                });
+            }
+            log("Explorador de Arquivos reiniciado e memória do shell reciclada com sucesso.");
+        }
+        catch (Exception ex)
+        {
+            log($"Aviso ao reiniciar Explorer: {ex.Message}");
+        }
     }
 
     private int GetParentProcessId(int pid)

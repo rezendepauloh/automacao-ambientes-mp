@@ -30,9 +30,10 @@
   - [3.3 Barra de Título com Pesquisa Global Inteligente (PowerToys Style)](#33-barra-de-título-com-pesquisa-global-inteligente-powertoys-style)
   - [3.4 Desprovisionamento & Limpeza de Ativos (AD & SCCM)](#34-desprovisionamento--limpeza-de-ativos-ad--sccm)
   - [3.5 Saneamento de Recursos & Limpeza de Memória (Teams, Navegadores & Explorer Nuclear)](#35-saneamento-de-recursos--limpeza-de-memória-teams-navegadores--explorer-nuclear)
-  - [3.6 Cofre Seguro de Credenciais DPAPI & Configurações (.env)](#36-cofre-seguro-de-credenciais-dpapi--configurações-env)
-  - [3.7 Terminal de Logs em Cores e Monitoramento em Tempo Real](#37-terminal-de-logs-em-cores-e-monitoramento-em-tempo-real)
-  - [3.8 Escudo de Processos & Proteção de Segurança](#38-escudo-de-processos--proteção-de-segurança)
+  - [3.6 Inicialização com Windows & Bandeja do Sistema (Tray Icon)](#36-inicialização-com-windows--bandeja-do-sistema-tray-icon)
+  - [3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)](#37-cofre-seguro-de-credenciais-dpapi--configurações-env)
+  - [3.8 Terminal de Logs em Cores e Monitoramento em Tempo Real](#38-terminal-de-logs-em-cores-e-monitoramento-em-tempo-real)
+  - [3.9 Escudo de Processos & Proteção de Segurança](#39-escudo-de-processos--proteção-de-segurança)
 - [4. Estrutura de Diretórios](#-4-estrutura-de-diretórios)
 - [5. Como Executar & Compilar](#-5-como-executar--compilar)
 - [6. Suíte de Testes Automatizados (xUnit + Runner ANSI)](#-6-suíte-de-testes-automatizados-xunit--runner-ansi)
@@ -130,7 +131,14 @@ graph TD
 - **Supressão de Telemetria:** Neutraliza processos de coleta de métricas em segundo plano (`CompatTelRunner`).
 - **Modo Nuclear do Explorer:** Encerramento seguro do `explorer.exe`, expurgo de cache de ícones/miniaturas bloqueados e reinício limpo do shell do Windows em C# nativo.
 
-### 3.6 Cofre Seguro de Credenciais DPAPI & Configurações (.env)
+### 3.6 Inicialização com Windows & Bandeja do Sistema (Tray Icon)
+
+- **Boot & Logon Automático:** Opção ativada diretamente no painel de configurações para iniciar o Ambientes Hub junto com o Windows via registro (`HKCU\...\Run`).
+- **Atalho no Menu Iniciar:** Criação/remoção com um clique do atalho `.lnk` com ícone oficial na lista de programas do usuário (`Environment.SpecialFolder.Programs`).
+- **Bandeja do Sistema (Tray):** Ícone oficial na área de notificação perto do relógio com suporte a balões informativos, duplo clique para restaurar a janela e menu de contexto com opções para abrir ou encerrar o aplicativo.
+- **Identidade Visual no Gerenciador de Tarefas:** Metadados e ícone integrados no binário com título oficial e identidade corporativa.
+
+### 3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)
 
 - **Criptografia DPAPI de Alta Segurança:** Senhas criptografadas usando a API de Proteção de Dados do Windows (`DataProtectionScope.CurrentUser`), garantindo que o cofre só possa ser lido na sessão do próprio operador.
 - **Zero Credenciais Hardcoded:** Todas as chaves e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência).
@@ -230,15 +238,35 @@ Copy-Item .env.example AmbientesHub\.env
 
 ### 2. Executar a Aplicação Desktop
 
+#### Via .NET CLI (Desenvolvimento / Debug):
 ```powershell
 dotnet run --project C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj
 ```
 
-### 3. Compilar em Modo Release (Build Otimizado)
+#### Via Executável Nativo Compilado (.exe):
+```powershell
+Start-Process "C:\AmbientesVirtuais\AmbientesHub\bin\Debug\net8.0-windows\AmbientesHub.exe"
+```
+
+### 3. Publicar Executável para Uso e Distribuição
+
+Existem duas formas de publicação dependendo do cenário de distribuição:
+
+#### Opção A: Executável Autocontido e Portátil (Roda em Qualquer PC sem .NET Instalado)
+Empacota o runtime do .NET 8 e todas as dependências em um executável autônomo. Ideal para rodar em qualquer máquina de suporte, máquinas de bancada ou direto de um pendrive:
 
 ```powershell
-dotnet build C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release
+dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o C:\AmbientesVirtuais\AmbientesHub\bin\Portatil
 ```
+*Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Portatil\AmbientesHub.exe`.*
+
+#### Opção B: Framework-Dependent (Executável Leve)
+Para máquinas corporativas que já possuem o *.NET Desktop Runtime 8.0* instalado (distribuído via SCCM/Intune):
+
+```powershell
+dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained false -o C:\AmbientesVirtuais\AmbientesHub\bin\Publish
+```
+*Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe`.*
 
 ---
 

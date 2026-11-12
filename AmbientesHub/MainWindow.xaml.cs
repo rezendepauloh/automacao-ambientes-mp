@@ -20,8 +20,17 @@ public partial class MainWindow : FluentWindow
     private readonly AdSccmService _adSccmService = new();
     private readonly SystemPerformanceService _perfService = new();
     private readonly SoftwareProvisioningService _softwareService = new();
+    private readonly DeviceAnalyzerService _deviceAnalyzerService = new();
+    private readonly RemoteMaintenanceService _remoteMaintenanceService = new();
+    private readonly RemoteUserProfileService _remoteUserProfileService = new();
     private readonly ObservableCollection<SoftwarePackageItem> _softwareCatalog = new(SoftwareProvisioningService.CreateDefaultCatalog());
+    private readonly ObservableCollection<RemoteUserProfileItem> _remoteProfilesList = [];
+    private readonly StartupService _startupService = new();
 
+    private TrayIconService? _trayIconService;
+    private bool _isRealExit = false;
+
+    private DeviceAnalysisResult? _lastAnalyzerResult;
     private bool _isNavExpanded = true;
     private bool _appsCatalogLoadedOnce;
 
@@ -30,8 +39,10 @@ public partial class MainWindow : FluentWindow
         InitializeComponent();
         AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;
+        ItemsRemoteProfiles.ItemsSource = _remoteProfilesList;
         PopulateFontList();
         LoadSettingsIntoUi();
+        InitializeSystemTray();
         RefreshPerformanceAdminStatus();
         RefreshAppsAdminStatus();
     }
@@ -51,6 +62,9 @@ public partial class MainWindow : FluentWindow
             NavLbl4.Visibility = Visibility.Visible;
             NavLbl5.Visibility = Visibility.Visible;
             NavLbl6.Visibility = Visibility.Visible;
+            NavLbl7.Visibility = Visibility.Visible;
+            NavLbl8.Visibility = Visibility.Visible;
+            NavLbl9.Visibility = Visibility.Visible;
         }
         else
         {
@@ -63,6 +77,9 @@ public partial class MainWindow : FluentWindow
             NavLbl4.Visibility = Visibility.Collapsed;
             NavLbl5.Visibility = Visibility.Collapsed;
             NavLbl6.Visibility = Visibility.Collapsed;
+            NavLbl7.Visibility = Visibility.Collapsed;
+            NavLbl8.Visibility = Visibility.Collapsed;
+            NavLbl9.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -123,9 +140,30 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        if (lower is "analisador" or "analisar" or "relatorio" or "relatório" or "inventario" or "inventário" or "html" or "pdf" or "excel")
         {
             NavListBox.SelectedIndex = 6;
+            TxtFooterStatus.Text = "Navegado para: Analisador de Máquina";
+            return;
+        }
+
+        if (lower is "manutencao" or "manutenção" or "limpeza remota" or "manutencao remota")
+        {
+            NavListBox.SelectedIndex = 7;
+            TxtFooterStatus.Text = "Navegado para: Manutenção & Limpeza Remota";
+            return;
+        }
+
+        if (lower is "perfis" or "perfil" or "usuarios remotos" or "usuários remotos" or "remover usuario" or "remover usuário")
+        {
+            NavListBox.SelectedIndex = 8;
+            TxtFooterStatus.Text = "Navegado para: Limpeza de Perfis de Usuários";
+            return;
+        }
+
+        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        {
+            NavListBox.SelectedIndex = 9;
             TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
             return;
         }
@@ -176,6 +214,9 @@ public partial class MainWindow : FluentWindow
         PanelSaneamento.Visibility = Visibility.Collapsed;
         PanelPerformance.Visibility = Visibility.Collapsed;
         PanelApps.Visibility = Visibility.Collapsed;
+        PanelAnalisador.Visibility = Visibility.Collapsed;
+        PanelLimpezaRemota.Visibility = Visibility.Collapsed;
+        PanelPerfisRemotos.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
@@ -206,6 +247,15 @@ public partial class MainWindow : FluentWindow
                 }
                 break;
             case 6:
+                PanelAnalisador.Visibility = Visibility.Visible;
+                break;
+            case 7:
+                PanelLimpezaRemota.Visibility = Visibility.Visible;
+                break;
+            case 8:
+                PanelPerfisRemotos.Visibility = Visibility.Visible;
+                break;
+            case 9:
                 PanelConfig.Visibility = Visibility.Visible;
                 break;
         }
@@ -265,6 +315,9 @@ public partial class MainWindow : FluentWindow
             RichCleanLogs.FontFamily = font;
             RichPerformanceLogs.FontFamily = font;
             RichAppsLogs.FontFamily = font;
+            RichAnalyzerLogs.FontFamily = font;
+            RichRemoteMaintLogs.FontFamily = font;
+            RichRemoteProfilesLogs.FontFamily = font;
             RichScriptsLogs.FontFamily = font;
             RichRemoteLogs.FontFamily = font;
 
@@ -272,6 +325,9 @@ public partial class MainWindow : FluentWindow
             foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichPerformanceLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichAppsLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichAnalyzerLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichRemoteMaintLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichRemoteProfilesLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichScriptsLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRemoteLogs.Document.Blocks) block.FontFamily = font;
         }
@@ -295,6 +351,10 @@ public partial class MainWindow : FluentWindow
 
     private void LoadSettingsIntoUi()
     {
+        ToggleStartWithWindows.IsChecked = _startupService.IsRunAtStartupEnabled();
+        ToggleMinimizeToTray.IsChecked = ConfigService.MinimizeToTray;
+        ToggleStartMenuShortcut.IsChecked = _startupService.IsStartMenuShortcutCreated();
+
         TxtCfgAdminUser.Text = ConfigService.AdminUser;
         TxtCfgAdminAdUser.Text = ConfigService.AdminAdUser;
         TxtCfgSccmServer.Text = ConfigService.SccmSiteServer;
@@ -303,7 +363,125 @@ public partial class MainWindow : FluentWindow
         TxtCfgCitsmart.Text = ConfigService.UrlCitsmart;
         TxtCfgBancada.Text = ConfigService.UrlBancadaLocal;
         TxtCfgWhatsapp.Text = ConfigService.WhatsappPwaArgs;
+        TxtCfgDeviceReportsDir.Text = ConfigService.DeviceReportsDir;
+        TxtCfgCmRcViewer.Text = ConfigService.CmRcViewerCustomPath;
+        TxtCfgFirefoxPath.Text = ConfigService.FirefoxBinaryPath;
+        TxtCfgProtectedProfiles.Text = ConfigService.ProtectedProfiles;
+        TxtCfgPingTimeout.Text = ConfigService.PingTimeoutMs.ToString();
     }
+
+    private void ToggleStartWithWindows_Click(object sender, RoutedEventArgs e)
+    {
+        bool enable = ToggleStartWithWindows.IsChecked == true;
+        bool ok = _startupService.SetRunAtStartup(enable);
+        if (ok)
+        {
+            TxtFooterStatus.Text = enable
+                ? "Inicialização com o Windows ATIVADA."
+                : "Inicialização com o Windows DESATIVADA.";
+        }
+        else
+        {
+            ToggleStartWithWindows.IsChecked = !enable;
+            TxtFooterStatus.Text = "Erro ao configurar inicialização no registro.";
+        }
+    }
+
+    private void ToggleMinimizeToTray_Click(object sender, RoutedEventArgs e)
+    {
+        bool min = ToggleMinimizeToTray.IsChecked == true;
+        ConfigService.SaveConfig(new Dictionary<string, string>
+        {
+            ["MINIMIZE_TO_TRAY"] = min ? "true" : "false"
+        });
+        TxtFooterStatus.Text = min
+            ? "Minimizar para bandeja ATIVADO."
+            : "Minimizar para bandeja DESATIVADO.";
+    }
+
+    private void ToggleStartMenuShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        bool enable = ToggleStartMenuShortcut.IsChecked == true;
+        bool ok = enable
+            ? _startupService.CreateStartMenuShortcut()
+            : _startupService.RemoveStartMenuShortcut();
+
+        if (ok)
+        {
+            TxtFooterStatus.Text = enable
+                ? "Atalho no Menu Iniciar CRIADO com sucesso."
+                : "Atalho no Menu Iniciar REMOVIDO com sucesso.";
+        }
+        else
+        {
+            ToggleStartMenuShortcut.IsChecked = !enable;
+            TxtFooterStatus.Text = "Falha ao atualizar atalho no Menu Iniciar.";
+        }
+    }
+
+    #region Bandeja do Sistema (Tray Icon)
+    private void InitializeSystemTray()
+    {
+        try
+        {
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "app.ico");
+            if (!File.Exists(iconPath))
+            {
+                iconPath = @"C:\AmbientesVirtuais\AmbientesHub\Assets\app.ico";
+            }
+
+            _trayIconService = new TrayIconService(this);
+            _trayIconService.OnOpenRequested += RestoreFromTray;
+            _trayIconService.OnExitRequested += ExitApplication;
+            _trayIconService.Initialize(iconPath, "Ambientes Hub — Produtividade & Performance");
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Não foi possível inicializar o ícone de bandeja: {ex.Message}", nameof(MainWindow));
+        }
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+        Focus();
+    }
+
+    private void ExitApplication()
+    {
+        _isRealExit = true;
+        _trayIconService?.Dispose();
+        _trayIconService = null;
+        System.Windows.Application.Current.Shutdown();
+    }
+
+    protected override void OnStateChanged(EventArgs e)
+    {
+        base.OnStateChanged(e);
+        if (WindowState == WindowState.Minimized && ConfigService.MinimizeToTray)
+        {
+            Hide();
+            _trayIconService?.ShowBalloon("Ambientes Hub", "O aplicativo continua ativo na bandeja do sistema.");
+        }
+    }
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_isRealExit && ConfigService.MinimizeToTray)
+        {
+            e.Cancel = true;
+            Hide();
+            _trayIconService?.ShowBalloon("Ambientes Hub", "Ambientes Hub foi minimizado para a área de notificação.");
+            return;
+        }
+
+        _trayIconService?.Dispose();
+        _trayIconService = null;
+        base.OnClosing(e);
+    }
+    #endregion
 
     private void BtnSalvarConfiguracoes_Click(object sender, RoutedEventArgs e)
     {
@@ -320,7 +498,12 @@ public partial class MainWindow : FluentWindow
                 ["URL_OTRS"] = TxtCfgOtrs.Text.Trim(),
                 ["URL_CITSMART"] = TxtCfgCitsmart.Text.Trim(),
                 ["URL_BANCADA_LOCAL"] = TxtCfgBancada.Text.Trim(),
-                ["WHATSAPP_PWA_ARGS"] = TxtCfgWhatsapp.Text.Trim()
+                ["WHATSAPP_PWA_ARGS"] = TxtCfgWhatsapp.Text.Trim(),
+                ["DEVICE_REPORTS_DIR"] = TxtCfgDeviceReportsDir.Text.Trim(),
+                ["CMRCVIEWER_PATH"] = TxtCfgCmRcViewer.Text.Trim(),
+                ["FIREFOX_PATH"] = TxtCfgFirefoxPath.Text.Trim(),
+                ["PROTECTED_PROFILES"] = TxtCfgProtectedProfiles.Text.Trim(),
+                ["PING_TIMEOUT_MS"] = TxtCfgPingTimeout.Text.Trim()
             };
 
             ConfigService.SaveConfig(dict);
@@ -571,6 +754,32 @@ public partial class MainWindow : FluentWindow
         if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.ComputerName))
         {
             ConectarRdp(details.ComputerName);
+        }
+    }
+
+    private void BtnCardOpenExplorer_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is MachineDetails details && !string.IsNullOrWhiteSpace(details.ComputerName))
+        {
+            AbrirExploradorRemoto(details.ComputerName);
+        }
+    }
+
+    private void AbrirExploradorRemoto(string host)
+    {
+        try
+        {
+            AppLoggerService.Info($"Abrindo Explorador de Arquivos para {host}", nameof(MainWindow));
+            _remoteToolsService.OpenRemoteExplorer(host);
+            AppendColoredLog(RichRemoteLogs, $"[SUCESSO] Explorador de arquivos aberto em \\\\{host}\\c$ (sessão autenticada)");
+            TxtFooterStatus.Text = $"Explorador de Arquivos aberto em \\\\{host}\\c$";
+            AppLoggerService.Success($"Explorador aberto para \\\\{host}\\c$", nameof(MainWindow));
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Danger($"Erro ao abrir Explorador para {host}: {ex.Message}", nameof(MainWindow));
+            AppendColoredLog(RichRemoteLogs, $"[ERRO] Falha ao abrir Explorador para {host}: {ex.Message}");
+            TxtFooterStatus.Text = $"Erro ao acessar \\\\{host}\\c$";
         }
     }
 
@@ -1100,6 +1309,406 @@ public partial class MainWindow : FluentWindow
         {
             pkg.IsInstalling = false;
             if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = true;
+        }
+    }
+    #endregion
+
+    #region Painel 6: Analisador de Dispositivos Remotos
+    private void TxtAnalyzerComputer_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            BtnRunAnalyzer_Click(this, new RoutedEventArgs());
+        }
+    }
+
+    private async void BtnRunAnalyzer_Click(object sender, RoutedEventArgs e)
+    {
+        string target = string.IsNullOrWhiteSpace(TxtAnalyzerComputer.Text) ? "." : TxtAnalyzerComputer.Text.Trim();
+        bool skipMajor = ChkAnalyzerSkipMajor.IsChecked == true;
+        bool openFirefox = ChkAnalyzerOpenFirefox.IsChecked == true;
+
+        BtnRunAnalyzer.IsEnabled = false;
+        BtnOpenReportHtml.IsEnabled = false;
+        BtnOpenReportPdf.IsEnabled = false;
+        BtnOpenReportExcel.IsEnabled = false;
+        RichAnalyzerLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Analisando dispositivo '{target}' e gerando relatórios HTML, PDF e Excel...";
+
+        try
+        {
+            var res = await Task.Run(() => _deviceAnalyzerService.AnalyzeDevice(
+                target,
+                skipMajorData: skipMajor,
+                autoOpenHtmlInFirefox: openFirefox,
+                outputFolder: null,
+                onLog: msg => Dispatcher.Invoke(() => AppendColoredLog(RichAnalyzerLogs, msg))));
+
+            _lastAnalyzerResult = res;
+
+            if (res.Data != null)
+            {
+                var d = res.Data;
+                TxtAnlKpiModel.Text = $"{d.HardwareInfo.Computador} ({d.OS.NomeMaquina})";
+                TxtAnlKpiUser.Text = string.IsNullOrWhiteSpace(d.CurrentUser)
+                    ? "Nenhum usuário interativo"
+                    : (string.IsNullOrWhiteSpace(d.CurrentUserDisplayName) ? d.CurrentUser : $"{d.CurrentUser} ({d.CurrentUserDisplayName})");
+                TxtAnlKpiOs.Text = $"{d.OS.VersaoWindowsHnH} | RAM: {d.HardwareInfo.MemoriaFisicaGb}";
+                var firstDisk = d.LogicalDisks.FirstOrDefault(ld => ld.DeviceId.StartsWith("C", StringComparison.OrdinalIgnoreCase)) ?? d.LogicalDisks.FirstOrDefault();
+                string diskSummary = firstDisk != null ? $"C: {firstDisk.EspacoLivre} livres" : "Disco N/D";
+                TxtAnlKpiDisk.Text = $"{diskSummary} | {d.Monitors.Count} monitor(es)";
+            }
+
+            BtnOpenReportHtml.IsEnabled = !string.IsNullOrWhiteSpace(res.HtmlPath) && File.Exists(res.HtmlPath);
+            BtnOpenReportPdf.IsEnabled = !string.IsNullOrWhiteSpace(res.PdfPath) && File.Exists(res.PdfPath);
+            BtnOpenReportExcel.IsEnabled = !string.IsNullOrWhiteSpace(res.ExcelPath) && File.Exists(res.ExcelPath);
+
+            TxtFooterStatus.Text = res.Success
+                ? $"Análise de '{target}' concluída! Relatórios salvos em {res.OutputFolder}"
+                : $"Análise de '{target}' finalizada com alertas.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Exceção no analisador: {ex.Message}");
+            TxtFooterStatus.Text = "Erro ao executar análise de dispositivo.";
+        }
+        finally
+        {
+            BtnRunAnalyzer.IsEnabled = true;
+        }
+    }
+
+    private void BtnOpenReportFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string folder = _lastAnalyzerResult?.OutputFolder ?? DeviceAnalyzerService.DefaultOutputFolder;
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{folder}\"",
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Não foi possível abrir a pasta: {ex.Message}");
+        }
+    }
+
+    private void BtnOpenReportHtml_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_lastAnalyzerResult?.HtmlPath) || !File.Exists(_lastAnalyzerResult.HtmlPath))
+            return;
+
+        try
+        {
+            var browser = new BrowserLauncherService();
+            browser.OpenUrlsInFirefox([_lastAnalyzerResult.HtmlPath]);
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Falha ao abrir HTML no Firefox: {ex.Message}");
+        }
+    }
+
+    private void BtnOpenReportPdf_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_lastAnalyzerResult?.PdfPath) || !File.Exists(_lastAnalyzerResult.PdfPath))
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _lastAnalyzerResult.PdfPath,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Falha ao abrir PDF: {ex.Message}");
+        }
+    }
+
+    private void BtnOpenReportExcel_Click(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(_lastAnalyzerResult?.ExcelPath) || !File.Exists(_lastAnalyzerResult.ExcelPath))
+            return;
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _lastAnalyzerResult.ExcelPath,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Falha ao abrir planilha Excel: {ex.Message}");
+        }
+    }
+    #endregion
+
+    #region Painel 7: Manutenção & Limpeza Remota
+    private void TxtRemoteMaintComputer_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            BtnAnalyzeRemoteMaint_Click(this, new RoutedEventArgs());
+        }
+    }
+
+    private RemoteMaintenanceOptions BuildRemoteMaintOptionsFromUi()
+    {
+        return new RemoteMaintenanceOptions
+        {
+            CleanTempFiles = ChkRmTemp.IsChecked == true,
+            CleanPrefetch = ChkRmPrefetch.IsChecked == true,
+            CleanRecycleBin = ChkRmRecycle.IsChecked == true,
+            CleanWindowsUpdateCache = ChkRmWuCache.IsChecked == true,
+            CleanCbsLogs = ChkRmCbs.IsChecked == true,
+            CleanThumbnailCache = ChkRmThumbnails.IsChecked == true,
+            CleanDeliveryOptimization = ChkRmDeliveryOpt.IsChecked == true,
+            CleanCrashDumps = ChkRmCrashDumps.IsChecked == true,
+            CleanStoreCache = ChkRmStore.IsChecked == true,
+            CleanEventLogs = ChkRmEventLogs.IsChecked == true,
+            FlushDnsCache = ChkRmDns.IsChecked == true,
+            CleanWinSxS = ChkRmWinSxS.IsChecked == true,
+            CleanWindowsOld = ChkRmWindowsOld.IsChecked == true,
+            RunRepairVolume = ChkRmRepairVol.IsChecked == true,
+            RunDefragIfHdd = ChkRmDefragHdd.IsChecked == true,
+            RunSfcIfCorrupted = ChkRmSfc.IsChecked == true
+        };
+    }
+
+    private async void BtnAnalyzeRemoteMaint_Click(object sender, RoutedEventArgs e)
+    {
+        string target = string.IsNullOrWhiteSpace(TxtRemoteMaintComputer.Text) ? "." : TxtRemoteMaintComputer.Text.Trim();
+        var options = BuildRemoteMaintOptionsFromUi();
+
+        BtnAnalyzeRemoteMaint.IsEnabled = false;
+        BtnExecuteRemoteMaint.IsEnabled = false;
+        RichRemoteMaintLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Inspecionando caches e espaço livre em '{target}'...";
+
+        try
+        {
+            var res = await Task.Run(() => _remoteMaintenanceService.AnalyzeRemoteCleanup(
+                target,
+                options,
+                msg => Dispatcher.Invoke(() => AppendColoredLog(RichRemoteMaintLogs, msg))));
+
+            if (res.Success)
+            {
+                TxtRmFreeBefore.Text = $"{res.FreeSpaceBeforeGb:N2} GB livres (de {res.TotalSpaceGb:N2} GB)";
+                TxtRmCleanableEstimate.Text = $"~{res.EstimatedCleanableGb:N2} GB em arquivos de cache";
+                TxtRmFreeAfter.Text = "Aguardando execução...";
+                TxtFooterStatus.Text = $"Análise de '{res.ComputerName}' concluída (~{res.EstimatedCleanableGb:N2} GB limpáveis).";
+            }
+            else
+            {
+                TxtFooterStatus.Text = $"Falha ao inspecionar '{target}'.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRemoteMaintLogs, $"[ERRO] Exceção na inspeção: {ex.Message}");
+            TxtFooterStatus.Text = "Erro durante análise de limpeza.";
+        }
+        finally
+        {
+            BtnAnalyzeRemoteMaint.IsEnabled = true;
+            BtnExecuteRemoteMaint.IsEnabled = true;
+        }
+    }
+
+    private async void BtnExecuteRemoteMaint_Click(object sender, RoutedEventArgs e)
+    {
+        string target = string.IsNullOrWhiteSpace(TxtRemoteMaintComputer.Text) ? "." : TxtRemoteMaintComputer.Text.Trim();
+        var options = BuildRemoteMaintOptionsFromUi();
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Deseja executar as rotinas de limpeza e manutenção selecionadas na máquina '{target}'?",
+            "Confirmar Limpeza & Manutenção",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes)
+            return;
+
+        BtnAnalyzeRemoteMaint.IsEnabled = false;
+        BtnExecuteRemoteMaint.IsEnabled = false;
+        RichRemoteMaintLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Executando limpeza e manutenção em '{target}'...";
+
+        try
+        {
+            var res = await Task.Run(() => _remoteMaintenanceService.ExecuteMaintenance(
+                target,
+                options,
+                msg => Dispatcher.Invoke(() => AppendColoredLog(RichRemoteMaintLogs, msg))));
+
+            if (res.Success)
+            {
+                TxtRmFreeBefore.Text = $"{res.FreeSpaceBeforeGb:N2} GB livres (de {res.TotalSpaceGb:N2} GB)";
+                TxtRmFreeAfter.Text = $"{res.FreeSpaceAfterGb:N2} GB livres (+{res.FreedGb:N2} GB recuperados)";
+                TxtFooterStatus.Text = $"Manutenção em '{res.ComputerName}' concluída! (+{res.FreedGb:N2} GB livres)";
+            }
+            else
+            {
+                TxtFooterStatus.Text = $"Manutenção em '{target}' encerrada com alertas.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRemoteMaintLogs, $"[ERRO] Exceção na manutenção: {ex.Message}");
+            TxtFooterStatus.Text = "Erro durante manutenção remota.";
+        }
+        finally
+        {
+            BtnAnalyzeRemoteMaint.IsEnabled = true;
+            BtnExecuteRemoteMaint.IsEnabled = true;
+        }
+    }
+    #endregion
+
+    #region Painel 8: Limpeza de Perfis de Usuários Remotos
+    private void TxtRemoteProfilesComputer_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            BtnQueryRemoteProfiles_Click(this, new RoutedEventArgs());
+        }
+    }
+
+    private async void BtnQueryRemoteProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        string target = string.IsNullOrWhiteSpace(TxtRemoteProfilesComputer.Text) ? "." : TxtRemoteProfilesComputer.Text.Trim();
+
+        BtnQueryRemoteProfiles.IsEnabled = false;
+        BtnPurgeRemoteProfiles.IsEnabled = false;
+        RichRemoteProfilesLogs.Document.Blocks.Clear();
+        _remoteProfilesList.Clear();
+        TxtFooterStatus.Text = $"Consultando perfis de usuários em '{target}'...";
+
+        try
+        {
+            var profiles = await Task.Run(() => _remoteUserProfileService.QueryUserProfiles(
+                target,
+                msg => Dispatcher.Invoke(() => AppendColoredLog(RichRemoteProfilesLogs, msg)),
+                calculateDiskSize: true));
+
+            foreach (var p in profiles)
+            {
+                _remoteProfilesList.Add(p);
+            }
+
+            double totalGb = profiles.Sum(p => p.EspacoDiscoGb);
+            int removable = profiles.Count(p => p.CanBeRemoved);
+            TxtProfilesListHeader.Text = $"Perfis em '{RemoteManagementHelper.NormalizeTargetHost(target)}': {profiles.Count} encontrado(s) ({removable} inativos removíveis | Total: {totalGb:N2} GB)";
+            TxtFooterStatus.Text = $"Consulta de perfis concluída ({profiles.Count} perfis encontrados).";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRemoteProfilesLogs, $"[ERRO] Exceção ao listar perfis: {ex.Message}");
+            TxtFooterStatus.Text = "Erro ao listar perfis de usuários.";
+        }
+        finally
+        {
+            BtnQueryRemoteProfiles.IsEnabled = true;
+            BtnPurgeRemoteProfiles.IsEnabled = true;
+        }
+    }
+
+    private void BtnSelectAllInactiveProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var p in _remoteProfilesList)
+        {
+            if (p.CanBeRemoved)
+                p.IsSelected = true;
+        }
+    }
+
+    private void BtnClearProfileSelection_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var p in _remoteProfilesList)
+        {
+            p.IsSelected = false;
+        }
+    }
+
+    private async void BtnPurgeRemoteProfiles_Click(object sender, RoutedEventArgs e)
+    {
+        string target = string.IsNullOrWhiteSpace(TxtRemoteProfilesComputer.Text) ? "." : TxtRemoteProfilesComputer.Text.Trim();
+
+        var selectedUsers = _remoteProfilesList
+            .Where(p => p.IsSelected && p.CanBeRemoved)
+            .Select(p => p.Usuario)
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(TxtManualProfilesToPurge.Text))
+        {
+            var manual = TxtManualProfilesToPurge.Text
+                .Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            selectedUsers.AddRange(manual);
+        }
+
+        selectedUsers = selectedUsers.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        if (selectedUsers.Count == 0)
+        {
+            System.Windows.MessageBox.Show(
+                "Marque pelo menos um perfil inativo na lista ou digite os nomes de usuários para remover.",
+                "Nenhum Perfil Selecionado",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Deseja realmente EXCLUIR {selectedUsers.Count} perfil(is) na máquina '{target}'?\n\nUsuários: {string.Join(", ", selectedUsers)}\n\n(Perfis logados no momento serão protegidos e ignorados automaticamente.)",
+            "Confirmar Exclusão de Perfis",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes)
+            return;
+
+        BtnQueryRemoteProfiles.IsEnabled = false;
+        BtnPurgeRemoteProfiles.IsEnabled = false;
+        RichRemoteProfilesLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Removendo {selectedUsers.Count} perfil(is) em '{target}'...";
+
+        try
+        {
+            var res = await Task.Run(() => _remoteUserProfileService.PurgeUserProfiles(
+                target,
+                selectedUsers,
+                msg => Dispatcher.Invoke(() => AppendColoredLog(RichRemoteProfilesLogs, msg))));
+
+            TxtManualProfilesToPurge.Clear();
+
+            // Atualiza a lista após remoção
+            var updated = await Task.Run(() => _remoteUserProfileService.QueryUserProfiles(target, onLog: null, calculateDiskSize: true));
+            _remoteProfilesList.Clear();
+            foreach (var p in updated)
+                _remoteProfilesList.Add(p);
+
+            TxtProfilesListHeader.Text = $"Perfis em '{res.ComputerName}': {updated.Count} restante(s) ({res.RemovedCount} removido(s), ~{res.FreedEstimateGb:N2} GB liberados)";
+            TxtFooterStatus.Text = $"Remoção concluída: {res.RemovedCount} perfil(is) excluído(s) (~{res.FreedEstimateGb:N2} GB liberados).";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRemoteProfilesLogs, $"[ERRO] Exceção ao remover perfis: {ex.Message}");
+            TxtFooterStatus.Text = "Erro ao remover perfis de usuários.";
+        }
+        finally
+        {
+            BtnQueryRemoteProfiles.IsEnabled = true;
+            BtnPurgeRemoteProfiles.IsEnabled = true;
         }
     }
     #endregion

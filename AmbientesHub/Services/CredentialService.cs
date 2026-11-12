@@ -7,13 +7,14 @@ namespace AmbientesHub.Services;
 
 public static class CredentialService
 {
+    public const string DefaultAdminCredPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin.xml";
     private static readonly XNamespace Ns = "http://schemas.microsoft.com/powershell/2004/04";
 
-    public static (bool Success, string Message, string? Username) VerifyCredential(string xmlPath)
+    public static (bool Success, string Message, string? Username, string? Password) ReadPlaintextCredential(string xmlPath = DefaultAdminCredPath)
     {
         if (!File.Exists(xmlPath))
         {
-            return (false, $"Arquivo de credencial não encontrado: {xmlPath}", null);
+            return (false, $"Arquivo de credencial não encontrado: {xmlPath}", null, null);
         }
 
         try
@@ -24,7 +25,7 @@ public static class CredentialService
 
             if (userEl == null || passEl == null)
             {
-                return (false, "Formato Clixml inválido: elementos de usuário ou senha ausentes.", null);
+                return (false, "Formato Clixml inválido: elementos de usuário ou senha ausentes.", null, null);
             }
 
             string username = userEl.Value.Trim();
@@ -32,18 +33,29 @@ public static class CredentialService
 
             byte[] encryptedBytes = Convert.FromHexString(hexPassword);
             byte[] decryptedBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
-            string _ = Encoding.Unicode.GetString(decryptedBytes);
+            string plainPassword = Encoding.Unicode.GetString(decryptedBytes);
 
-            return (true, "Credencial DPAPI ativa e pronta para uso nas automações!", username);
+            return (true, "Credencial DPAPI descriptografada com sucesso.", username, plainPassword);
         }
         catch (CryptographicException)
         {
-            return (false, "Falha na descriptografia DPAPI: a credencial pertence a outro usuário ou máquina.", null);
+            return (false, "Falha na descriptografia DPAPI: a credencial pertence a outro usuário ou máquina.", null, null);
         }
         catch (Exception ex)
         {
-            return (false, $"Erro ao verificar cofre: {ex.Message}", null);
+            return (false, $"Erro ao verificar cofre: {ex.Message}", null, null);
         }
+    }
+
+    public static (bool Success, string Message, string? Username) VerifyCredential(string xmlPath)
+    {
+        var res = ReadPlaintextCredential(xmlPath);
+        if (!res.Success)
+        {
+            return (false, res.Message, null);
+        }
+
+        return (true, "Credencial DPAPI ativa e pronta para uso nas automações!", res.Username);
     }
 
     public static (bool Success, string Message) SaveCredential(string xmlPath, string username, string plainPassword)

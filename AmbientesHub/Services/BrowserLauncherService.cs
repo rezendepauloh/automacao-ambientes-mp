@@ -14,6 +14,10 @@ public class BrowserLauncherService
 
     public string GetFirefoxPath()
     {
+        string custom = ConfigService.FirefoxBinaryPath;
+        if (!string.IsNullOrWhiteSpace(custom) && File.Exists(custom))
+            return custom;
+
         foreach (var path in FirefoxLocations)
         {
             if (File.Exists(path))
@@ -65,26 +69,28 @@ public class BrowserLauncherService
 
         string firefoxPath = GetFirefoxPath();
 
-        // 1. Abre a primeira URL forçando uma nova janela limpa
-        string firstUrl = urlList[0];
-        Process.Start(new ProcessStartInfo
+        // Abre cada URL como uma nova aba na janela já existente do Firefox (sem forçar nova janela isolada)
+        foreach (var url in urlList)
         {
-            FileName = firefoxPath,
-            Arguments = $"-new-window \"{firstUrl}\"",
-            UseShellExecute = true
-        });
-
-        // 2. Abre as URLs restantes como novas abas
-        for (int i = 1; i < urlList.Count; i++)
-        {
-            string url = urlList[i];
-            Thread.Sleep(350);
-            Process.Start(new ProcessStartInfo
+            try
             {
-                FileName = firefoxPath,
-                Arguments = $"-new-tab \"{url}\"",
-                UseShellExecute = true
-            });
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = firefoxPath,
+                    Arguments = $"\"{url}\"",
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"\"{url}\"",
+                    UseShellExecute = true
+                });
+            }
+            Thread.Sleep(200);
         }
     }
 

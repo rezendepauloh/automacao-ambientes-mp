@@ -166,6 +166,8 @@ public class SoftwareProvisioningServiceTests
         {
             _ = SoftwareProvisioningService.FindAdConsoleMscPath();
             _ = SoftwareProvisioningService.FindSccmConsoleExecutablePath();
+            _ = SoftwareProvisioningService.FindAltSnapInstalledPath();
+            _ = SoftwareProvisioningService.FindEverythingToolbarInstalledPath();
         });
 
         Assert.Null(ex);

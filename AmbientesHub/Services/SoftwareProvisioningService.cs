@@ -223,6 +223,13 @@ public class SoftwareProvisioningService
 
         string cleanId = wingetId.Trim();
         var args = new StringBuilder($"install --id \"{cleanId}\" --exact --source winget --accept-package-agreements --accept-source-agreements");
+        
+        // Se for AltSnap, força escopo de máquina (--scope machine) para instalar para todos os usuários do sistema
+        if (cleanId.Equals("AltSnap.AltSnap", StringComparison.OrdinalIgnoreCase))
+        {
+            args.Append(" --scope machine");
+        }
+
         if (silent)
             args.Append(" --silent");
 
@@ -315,6 +322,26 @@ public class SoftwareProvisioningService
             {
                 string wId = item.WingetId ?? string.Empty;
                 bool installed = !string.IsNullOrWhiteSpace(wId) && CheckWingetInstalled(wId);
+
+                // Fallbacks locais para pacotes instalados por usuário Admin ou executáveis diretos (ex: AltSnap, EverythingToolbar)
+                string? detectedCustomPath = null;
+                if (!installed && item.Id == "altsnap-window-manager")
+                {
+                    detectedCustomPath = FindAltSnapInstalledPath();
+                    if (detectedCustomPath != null)
+                    {
+                        installed = true;
+                    }
+                }
+                else if (!installed && item.Id == "everything-toolbar")
+                {
+                    detectedCustomPath = FindEverythingToolbarInstalledPath();
+                    if (detectedCustomPath != null)
+                    {
+                        installed = true;
+                    }
+                }
+
                 item.IsInstalled = installed;
 
                 bool hasUpdate = false;
@@ -334,6 +361,10 @@ public class SoftwareProvisioningService
                 if (!installed)
                 {
                     item.StatusDetail = $"Pacote {wId} não encontrado localmente.";
+                }
+                else if (detectedCustomPath != null)
+                {
+                    item.StatusDetail = $"Detectado em: {detectedCustomPath}";
                 }
                 else if (hasUpdate)
                 {
@@ -356,6 +387,83 @@ public class SoftwareProvisioningService
                 break;
             }
         }
+    }
+
+    public static string? FindAltSnapInstalledPath()
+    {
+        // 1. Usuário atual
+        string currentUserRoaming = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            @"AltSnap\AltSnap.exe");
+        if (File.Exists(currentUserRoaming)) return currentUserRoaming;
+
+        // 2. Program Files
+        string pf64 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"AltSnap\AltSnap.exe");
+        if (File.Exists(pf64)) return pf64;
+        string pf32 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"AltSnap\AltSnap.exe");
+        if (File.Exists(pf32)) return pf32;
+
+        // 3. Perfis em C:\Users (ex: paulo_admin ou outros perfis com privilégio elevado)
+        string usersRoot = Path.GetPathRoot(Environment.SystemDirectory) ?? @"C:\";
+        string usersDir = Path.Combine(usersRoot, "Users");
+        if (Directory.Exists(usersDir))
+        {
+            try
+            {
+                foreach (var userFolder in Directory.GetDirectories(usersDir))
+                {
+                    string candidate = Path.Combine(userFolder, @"AppData\Roaming\AltSnap\AltSnap.exe");
+                    if (File.Exists(candidate)) return candidate;
+                }
+            }
+            catch { }
+        }
+
+        return null;
+    }
+
+    public static string? FindEverythingToolbarInstalledPath()
+    {
+        // 1. Program Files / Program Files (x86)
+        string pf64 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"EverythingToolbar\EverythingToolbar.Launcher.exe");
+        if (File.Exists(pf64)) return pf64;
+        string pf32 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"EverythingToolbar\EverythingToolbar.Launcher.exe");
+        if (File.Exists(pf32)) return pf32;
+
+        // Variações com EverythingToolbar.exe
+        string pf64Alt = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), @"EverythingToolbar\EverythingToolbar.exe");
+        if (File.Exists(pf64Alt)) return pf64Alt;
+        string pf32Alt = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"EverythingToolbar\EverythingToolbar.exe");
+        if (File.Exists(pf32Alt)) return pf32Alt;
+
+        // 2. LocalAppData / AppData dos usuários
+        string localApp = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), @"Programs\EverythingToolbar\EverythingToolbar.Launcher.exe");
+        if (File.Exists(localApp)) return localApp;
+
+        string usersRoot = Path.GetPathRoot(Environment.SystemDirectory) ?? @"C:\";
+        string usersDir = Path.Combine(usersRoot, "Users");
+        if (Directory.Exists(usersDir))
+        {
+            try
+            {
+                foreach (var userFolder in Directory.GetDirectories(usersDir))
+                {
+                    string cand1 = Path.Combine(userFolder, @"AppData\Local\Programs\EverythingToolbar\EverythingToolbar.Launcher.exe");
+                    if (File.Exists(cand1)) return cand1;
+                    string cand2 = Path.Combine(userFolder, @"AppData\Roaming\EverythingToolbar\EverythingToolbar.Launcher.exe");
+                    if (File.Exists(cand2)) return cand2;
+                }
+            }
+            catch { }
+        }
+
+        // 3. Registro de Desinstalação do Windows
+        if (IsAppInUninstallRegistry("EverythingToolbar") || IsAppInUninstallRegistry("Everything Toolbar"))
+        {
+            return "Registro do Windows (EverythingToolbar)";
+        }
+
+        return null;
     }
 
     private static bool CheckDirectAppInstalled(SoftwarePackageItem item)

@@ -16,20 +16,40 @@ cd C:\AmbientesVirtuais\AmbientesHub
 dotnet run
 ```
 
+Também é possível disparar o binário executável gerado:
+
+```powershell
+Start-Process "C:\AmbientesVirtuais\AmbientesHub\bin\Debug\net8.0-windows\AmbientesHub.exe"
+```
+
 ---
 
 ## 2. Como Gerar o Executável Pronto para Uso (`.exe`)
 
-Para gerar uma versão final e otimizada que pode ser colocada na Área de Trabalho ou fixada na Barra de Tarefas:
+Dependendo do objetivo de distribuição no parque, você pode gerar a aplicação em dois formatos:
+
+### Opção A: Executável Autocontido Portátil (Roda em Qualquer PC sem .NET Instalado)
+Embute o runtime do .NET 8 e todas as dependências em um único executável portátil (`Single-File`). Não requer que o computador de destino tenha o SDK ou Runtime .NET instalados:
 
 ```powershell
 cd C:\AmbientesVirtuais\AmbientesHub
 
-# Gera a publicação autocontida para Windows x64
+# Gera o executável único autocontido
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\bin\Portatil
+```
+*Executável autônomo disponível em:*
+`C:\AmbientesVirtuais\AmbientesHub\bin\Portatil\AmbientesHub.exe`
+
+### Opção B: Framework-Dependent (Executável Leve)
+Para máquinas corporativas que já possuem o *.NET Desktop Runtime 8.0* instalado (geralmente distribuído via SCCM ou Windows Update):
+
+```powershell
+cd C:\AmbientesVirtuais\AmbientesHub
+
+# Gera a publicação enxuta
 dotnet publish -c Release -r win-x64 --self-contained false -o .\bin\Publish
 ```
-
-O executável estará pronto em:
+*Executável leve disponível em:*
 `C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe`
 
 ---
@@ -55,4 +75,10 @@ O executável estará pronto em:
 
 ### D. Aba "Performance & Limpeza"
 - Dispara o saneamento do Windows: salva documentos do Office com segurança, fecha processos pesados sem derrubar o próprio Hub e limpa histórico de abas travadas do Edge.
+
+### E. Inicialização com Windows & Bandeja do Sistema
+- **Iniciar com o Windows:** Alternador (ToggleSwitch) nas Configurações para habilitar ou desabilitar o arranque automático do aplicativo após login (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
+- **Atalho no Menu Iniciar:** Alternador nas Configurações que cria e remove o atalho `Ambientes Hub.lnk` na pasta de Programas do Menu Iniciar (`AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) com metadados e ícone corporativo.
+- **Minimizar para a Bandeja (Tray Icon):** Mantém o aplicativo acessível próximo ao relógio. Suporta duplo clique para restaurar a janela e menu de contexto com opções de exibição e encerramento seguro.
+- **Identidade Visual:** Exibe o ícone e a descrição oficiais no Gerenciador de Tarefas do Windows.
 

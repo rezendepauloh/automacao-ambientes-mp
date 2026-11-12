@@ -87,4 +87,11 @@ public static class ConfigService
     public static string SccmSiteServer => Get("SCCM_SITE_SERVER", "");
     public static string SccmSiteCode => Get("SCCM_SITE_CODE", "PGJ");
     public static string RsatMsuNetworkPath => Get("RSAT_MSU_NETWORK_PATH", @"\\manutencao\Manutencao\Dados\_UTILITARIOS\AD Interface\WIN 11\WindowsTH-RSAT_WS2016-x64 - funciona.msu");
+
+    public static string DeviceReportsDir => Get("DEVICE_REPORTS_DIR", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DeviceReports"));
+    public static string CmRcViewerCustomPath => Get("CMRCVIEWER_PATH", "");
+    public static string FirefoxBinaryPath => Get("FIREFOX_PATH", "");
+    public static string ProtectedProfiles => Get("PROTECTED_PROFILES", "Public, Default, Default User, All Users, Administrator, Administrador");
+    public static int PingTimeoutMs => int.TryParse(Get("PING_TIMEOUT_MS", "2500"), out int t) && t > 100 ? t : 2500;
+    public static bool MinimizeToTray => bool.TryParse(Get("MINIMIZE_TO_TRAY", "true"), out bool min) ? min : true;
 }

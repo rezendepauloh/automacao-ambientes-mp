@@ -175,7 +175,43 @@
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 6: Configurações & Credenciais -->
+                            <!-- Item 6: Analisador de Máquina -->
+                            <ListBoxItem ToolTip="Analisador de Dispositivos (HTML, PDF &amp; Excel)">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📊" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl6" Grid.Column="1" Text="Analisador de Máquina" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 7: Manutenção & Limpeza Remota -->
+                            <ListBoxItem ToolTip="Manutenção &amp; Limpeza Remota">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🧽" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl7" Grid.Column="1" Text="Manutenção Remota" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 8: Perfis de Usuários Remotos -->
+                            <ListBoxItem ToolTip="Limpeza de Perfis de Usuários Remotos">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="👥" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl8" Grid.Column="1" Text="Perfis de Usuários" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 9: Configurações & Credenciais -->
                             <ListBoxItem ToolTip="Configurações &amp; Credenciais">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -183,7 +219,7 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl6" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl9" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
                         </ListBox>
@@ -330,7 +366,8 @@
 
                                                         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                             <ui:Button Appearance="Primary" Content="Acessar CmRcViewer" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnCardConnectSccm_Click" Margin="0,0,8,0" Padding="14,8" />
-                                                            <ui:Button Appearance="Secondary" Content="Acessar RDP" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnCardConnectRdp_Click" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Acessar RDP" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnCardConnectRdp_Click" Margin="0,0,8,0" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Explorador (C$)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnCardOpenExplorer_Click" ToolTip="Abrir \\máquina\c$ diretamente com credencial Admin" Padding="14,8" />
                                                         </StackPanel>
                                                     </Grid>
 
@@ -721,7 +758,266 @@
                         </Border>
                     </Grid>
 
-                    <!-- PAINEL 6: CONFIGURAÇÕES & COFRE -->
+                    <!-- PAINEL 6: ANALISADOR DE DISPOSITIVOS REMOTOS -->
+                    <Grid x:Name="PanelAnalisador" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                            <TextBlock Text="Analisador Completo de Dispositivos (HTML, PDF &amp; Excel)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Coleta completa de Hardware, BIOS, RAM (JEDEC), Monitores (EDID), Discos, Impressoras, Perfis, Programas, Serviços, Processos e Drivers em C# nativo." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Máquina Alvo (use '.' para analisar a máquina local):" FontWeight="Medium" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ui:TextBox x:Name="TxtAnalyzerComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local), MPE-80600 ou 10.x.x.x" Margin="0,0,10,0" KeyDown="TxtAnalyzerComputer_KeyDown" />
+                                    <ui:Button x:Name="BtnRunAnalyzer" Grid.Column="1" Appearance="Primary" Content="Analisar &amp; Gerar Relatórios" Icon="{ui:SymbolIcon Symbol=DataHistogram24}" Click="BtnRunAnalyzer_Click" Margin="0,0,8,0" />
+                                    <ui:Button x:Name="BtnOpenReportFolder" Grid.Column="2" Appearance="Secondary" Content="Abrir Pasta DeviceReports" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenReportFolder_Click" />
+                                </Grid>
+
+                                <WrapPanel Orientation="Horizontal" Margin="0,2,0,8">
+                                    <CheckBox x:Name="ChkAnalyzerOpenFirefox" Content="Abrir relatório HTML automaticamente no Firefox" IsChecked="True" Margin="0,0,20,0" />
+                                    <CheckBox x:Name="ChkAnalyzerSkipMajor" Content="Modo Rápido (pular Programas, Serviços, Processos e Drivers)" IsChecked="False" />
+                                </WrapPanel>
+
+                                <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                    <ui:Button x:Name="BtnOpenReportHtml" Appearance="Secondary" Content="🌐 Abrir Último HTML no Firefox" Click="BtnOpenReportHtml_Click" IsEnabled="False" Margin="0,0,8,0" Padding="10,6" />
+                                    <ui:Button x:Name="BtnOpenReportPdf" Appearance="Secondary" Content="📄 Abrir Último PDF" Click="BtnOpenReportPdf_Click" IsEnabled="False" Margin="0,0,8,0" Padding="10,6" />
+                                    <ui:Button x:Name="BtnOpenReportExcel" Appearance="Secondary" Content="📊 Abrir Último Excel (.xlsx)" Click="BtnOpenReportExcel_Click" IsEnabled="False" Padding="10,6" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- KPIs Resumo da Máquina Analisada -->
+                        <UniformGrid Grid.Row="2" Columns="4" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <TextBlock Text="Computador / Modelo" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtAnlKpiModel" Text="Aguardando coleta..." FontSize="13" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="4,0,4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Usuário Logado (AD)" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtAnlKpiUser" Text="-" FontSize="13" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="4,0,4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Sistema &amp; Memória RAM" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtAnlKpiOs" Text="-" FontSize="13" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="8,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Armazenamento &amp; Monitores" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtAnlKpiDisk" Text="-" FontSize="13" FontWeight="SemiBold" Margin="0,3,0,0" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <Border Grid.Row="3" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <RichTextBox x:Name="RichAnalyzerLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                <FlowDocument />
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 7: MANUTENÇÃO & LIMPEZA REMOTA -->
+                    <Grid x:Name="PanelLimpezaRemota" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                            <TextBlock Text="Manutenção &amp; Limpeza de Caches (Local ou Remota)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Inspecione primeiro o espaço ocupado pelos caches na máquina alvo e execute a limpeza seletiva e reparo de sistema em C# nativo." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Máquina Alvo (use '.' para local ou informe o hostname/IP remoto):" FontWeight="Medium" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ui:TextBox x:Name="TxtRemoteMaintComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou MPE-80600" Margin="0,0,10,0" KeyDown="TxtRemoteMaintComputer_KeyDown" />
+                                    <ui:Button x:Name="BtnAnalyzeRemoteMaint" Grid.Column="1" Appearance="Secondary" Content="Analisar Espaço &amp; Caches" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAnalyzeRemoteMaint_Click" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnExecuteRemoteMaint" Grid.Column="2" Appearance="Primary" Content="Executar Limpeza &amp; Manutenção" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnExecuteRemoteMaint_Click" />
+                                </Grid>
+
+                                <UniformGrid Columns="3">
+                                    <CheckBox x:Name="ChkRmTemp" Content="Arquivos Temp (Usuários &amp; Windows)" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmPrefetch" Content="Cache Prefetch (C:\Windows\Prefetch)" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmRecycle" Content="Esvaziar Lixeira ($Recycle.Bin)" IsChecked="True" Margin="0,2,0,2" />
+                                    <CheckBox x:Name="ChkRmWuCache" Content="Cache Windows Update (Download)" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmCbs" Content="Truncar Logs CBS (C:\Windows\Logs\CBS)" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmThumbnails" Content="Cache de Miniaturas (thumbcache)" IsChecked="True" Margin="0,2,0,2" />
+                                    <CheckBox x:Name="ChkRmDeliveryOpt" Content="Cache Delivery Optimization" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmCrashDumps" Content="Relatórios WER &amp; CrashDumps" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmStore" Content="Cache Microsoft Store (LocalCache)" IsChecked="True" Margin="0,2,0,2" />
+                                    <CheckBox x:Name="ChkRmEventLogs" Content="Logs de Eventos (Admin/Operational)" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmDns" Content="Flush DNS (ipconfig /flushdns)" IsChecked="True" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmWinSxS" Content="Limpeza WinSxS (DISM Cleanup)" IsChecked="False" Margin="0,2,0,2" />
+                                    <CheckBox x:Name="ChkRmWindowsOld" Content="Remover Windows.old / $Windows.~BT" IsChecked="False" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmRepairVol" Content="Reparar Volume C: (Repair-Volume)" IsChecked="False" Margin="0,2,8,2" />
+                                    <CheckBox x:Name="ChkRmDefragHdd" Content="Desfragmentar C: (somente se HDD)" IsChecked="False" Margin="0,2,0,2" />
+                                </UniformGrid>
+                                <CheckBox x:Name="ChkRmSfc" Content="Verificar Corrupção de Imagem (DISM CheckHealth + SFC /scannow se necessário)" IsChecked="False" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- KPIs de Espaço em Disco -->
+                        <UniformGrid Grid.Row="2" Columns="3" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <TextBlock Text="Espaço Livre em C: (Antes)" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtRmFreeBefore" Text="-" FontSize="14" FontWeight="SemiBold" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="4,0,4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Potencial Estimado em Caches" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtRmCleanableEstimate" Text="-" FontSize="14" FontWeight="SemiBold" Foreground="#38bdf8" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="8,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Espaço Livre (Depois) &amp; Recuperado" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtRmFreeAfter" Text="-" FontSize="14" FontWeight="SemiBold" Foreground="#10b981" Margin="0,3,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <Border Grid.Row="3" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <RichTextBox x:Name="RichRemoteMaintLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                <FlowDocument />
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 8: LIMPEZA DE PERFIS DE USUÁRIOS REMOTOS -->
+                    <Grid x:Name="PanelPerfisRemotos" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="165" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                            <TextBlock Text="Análise &amp; Limpeza de Perfis de Usuários (Local ou Remota)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Analise os perfis gravados em C:\Users (com consulta AD, último uso e espaço em GB) e remova com segurança perfis inativos." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Máquina Alvo:" FontWeight="Medium" Margin="0,0,0,8" />
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ui:TextBox x:Name="TxtRemoteProfilesComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou MPE-80600" Margin="0,0,10,0" KeyDown="TxtRemoteProfilesComputer_KeyDown" />
+                                    <ui:Button x:Name="BtnQueryRemoteProfiles" Grid.Column="1" Appearance="Secondary" Content="Analisar Perfis na Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnQueryRemoteProfiles_Click" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnPurgeRemoteProfiles" Grid.Column="2" Appearance="Danger" Content="Remover Perfis Selecionados" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnPurgeRemoteProfiles_Click" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="TxtManualProfilesToPurge" Grid.Column="0" PlaceholderText="Opcional: digite usuários adicionais separados por vírgula (ex: usuario.sobrenome)" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnSelectAllInactiveProfiles" Grid.Column="1" Appearance="Secondary" Content="Marcar Inativos" Click="BtnSelectAllInactiveProfiles_Click" Margin="0,0,8,0" Padding="10,6" />
+                                    <ui:Button x:Name="BtnClearProfileSelection" Grid.Column="2" Appearance="Secondary" Content="Desmarcar Todos" Click="BtnClearProfileSelection_Click" Padding="10,6" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Lista Interativa de Perfis Encontrados -->
+                        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock x:Name="TxtProfilesListHeader" Grid.Row="0" Text="Perfis encontrados na máquina (clique em 'Analisar Perfis na Máquina' para listar):" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8" />
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ItemsRemoteProfiles">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Margin="0,0,0,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="170" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="150" />
+                                                            <ColumnDefinition Width="95" />
+                                                            <ColumnDefinition Width="130" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanBeRemoved}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Usuario}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding CaminhoPerfil}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0">
+                                                            <TextBlock Text="{Binding Nome}" FontSize="12" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Escritorio}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                                            <TextBlock Text="Último Uso:" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                            <TextBlock Text="{Binding UltimoUso}" FontSize="11" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="4" Text="{Binding EspacoDiscoTexto}" FontWeight="Bold" FontSize="13" Foreground="#38bdf8" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0" />
+                                                        <StackPanel Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                            <Border Visibility="{Binding ActiveBadgeVisibility}" Background="#1410b981" BorderBrush="#10b981" BorderThickness="1" CornerRadius="4" Padding="8,3">
+                                                                <TextBlock Text="🔒 Logado (Protegido)" FontSize="11" Foreground="#10b981" FontWeight="SemiBold" />
+                                                            </Border>
+                                                            <Border Visibility="{Binding RemovableBadgeVisibility}" Background="#1464748b" BorderBrush="#64748b" BorderThickness="1" CornerRadius="4" Padding="8,3">
+                                                                <TextBlock Text="Inativo (Removível)" FontSize="11" Foreground="#94a3b8" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <Border Grid.Row="3" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <RichTextBox x:Name="RichRemoteProfilesLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                <FlowDocument />
+                            </RichTextBox>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 9: CONFIGURAÇÕES & COFRE -->
                     <Grid x:Name="PanelConfig" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -751,6 +1047,53 @@
                                         <RichTextBox x:Name="RichScriptsLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
                                             <FlowDocument />
                                         </RichTextBox>
+                                    </Border>
+
+                                    <Separator Margin="0,5,0,15" />
+
+                                    <!-- Inicialização com o Windows & Bandeja -->
+                                    <TextBlock Text="Inicialização &amp; Sistema" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                                    
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,12" Margin="0,0,0,14">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="Iniciar junto com o Windows" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Text="Inicia automaticamente o Ambientes Hub após o boot e login do usuário." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                            <ui:ToggleSwitch x:Name="ToggleStartWithWindows" Grid.Column="1" VerticalAlignment="Center" Click="ToggleStartWithWindows_Click" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,12" Margin="0,0,0,14">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="Minimizar para a Bandeja do Sistema (Tray)" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Text="Ao fechar ou minimizar a janela principal, mantém o Hub acessível pelo ícone perto do relógio." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                            <ui:ToggleSwitch x:Name="ToggleMinimizeToTray" Grid.Column="1" VerticalAlignment="Center" Click="ToggleMinimizeToTray_Click" />
+                                        </Grid>
+                                    </Border>
+
+                                    <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,12" Margin="0,0,0,14">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="Atalho no Menu Iniciar" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                <TextBlock Text="Fixa o atalho do Ambientes Hub na lista de programas do Menu Iniciar do Windows." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                            <ui:ToggleSwitch x:Name="ToggleStartMenuShortcut" Grid.Column="1" VerticalAlignment="Center" Click="ToggleStartMenuShortcut_Click" />
+                                        </Grid>
                                     </Border>
 
                                     <Separator Margin="0,5,0,15" />
@@ -820,7 +1163,44 @@
                                     <ui:TextBox x:Name="TxtCfgBancada" PlaceholderText="http://localhost:8501/" Margin="0,0,0,12" />
 
                                     <TextBlock Text="Argumentos PWA do WhatsApp Firefox:" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgWhatsapp" PlaceholderText="-taskbar-tab ... -profile ..." Margin="0,0,0,20" />
+                                    <ui:TextBox x:Name="TxtCfgWhatsapp" PlaceholderText="-taskbar-tab ... -profile ..." Margin="0,0,0,16" />
+
+                                    <Separator Margin="0,5,0,15" />
+
+                                    <TextBlock Text="Caminhos &amp; Ferramentas Remotas (Avançado)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                    <TextBlock Text="Diretório de Saída dos Relatórios (DeviceReports):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgDeviceReportsDir" PlaceholderText="C:\Users\...\DeviceReports" Margin="0,0,0,12" />
+
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Caminho Executável CmRcViewer (Opcional):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgCmRcViewer" PlaceholderText="Caminho personalizado ou em branco para autodetectar" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Caminho Executável Firefox (Opcional):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgFirefoxPath" PlaceholderText="Caminho personalizado ou em branco para autodetectar" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,20">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Perfis Locais Protegidos (separados por vírgula):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgProtectedProfiles" PlaceholderText="Public, Default, Default User, Administrator, Administrador" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Timeout ICMP (ms):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgPingTimeout" PlaceholderText="2500" />
+                                        </StackPanel>
+                                    </Grid>
 
                                     <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
                                 </StackPanel>

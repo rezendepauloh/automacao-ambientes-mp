@@ -85,8 +85,8 @@ public static class ConfigService
     public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "http://localhost:8501/");
     public static string WhatsappPwaArgs => Get("WHATSAPP_PWA_ARGS", "");
     public static string SccmSiteServer => Get("SCCM_SITE_SERVER", "");
-    public static string SccmSiteCode => Get("SCCM_SITE_CODE", "PGJ");
-    public static string RsatMsuNetworkPath => Get("RSAT_MSU_NETWORK_PATH", @"\\manutencao\Manutencao\Dados\_UTILITARIOS\AD Interface\WIN 11\WindowsTH-RSAT_WS2016-x64 - funciona.msu");
+    public static string SccmSiteCode => Get("SCCM_SITE_CODE", "");
+    public static string RsatMsuNetworkPath => Get("RSAT_MSU_NETWORK_PATH", "");
 
     public static string DeviceReportsDir => Get("DEVICE_REPORTS_DIR", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DeviceReports"));
     public static string CmRcViewerCustomPath => Get("CMRCVIEWER_PATH", "");

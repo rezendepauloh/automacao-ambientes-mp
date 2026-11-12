@@ -74,8 +74,8 @@ graph TD
     end
 
     subgraph External_Systems["Infraestrutura & Domínio Corporativo"]
-        AD["Active Directory (LDAP)<br/>(srv-2019.in.mpe.ms.gov.br)"]
-        SCCM["Microsoft Configuration Manager (MECM)<br/>(srv-1046.in.mpe.ms.gov.br / Site: PGJ)"]
+        AD["Active Directory (LDAP)<br/>(servidor.dominio)"]
+        SCCM["Microsoft Configuration Manager (MECM)<br/>(servidor.dominio)"]
         HOSTS["Estações de Trabalho & Servidores<br/>(Ping ICMP / Porta 3389 RDP / CmRcViewer)"]
         WIN_SEC["Windows Data Protection API (DPAPI)<br/>(Chaves atreladas à sessão do usuário)"]
     end
@@ -239,11 +239,13 @@ Copy-Item .env.example AmbientesHub\.env
 ### 2. Executar a Aplicação Desktop
 
 #### Via .NET CLI (Desenvolvimento / Debug):
+
 ```powershell
 dotnet run --project C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj
 ```
 
 #### Via Executável Nativo Compilado (.exe):
+
 ```powershell
 Start-Process "C:\AmbientesVirtuais\AmbientesHub\bin\Debug\net8.0-windows\AmbientesHub.exe"
 ```
@@ -253,20 +255,24 @@ Start-Process "C:\AmbientesVirtuais\AmbientesHub\bin\Debug\net8.0-windows\Ambien
 Existem duas formas de publicação dependendo do cenário de distribuição:
 
 #### Opção A: Executável Autocontido e Portátil (Roda em Qualquer PC sem .NET Instalado)
+
 Empacota o runtime do .NET 8 e todas as dependências em um executável autônomo. Ideal para rodar em qualquer máquina de suporte, máquinas de bancada ou direto de um pendrive:
 
 ```powershell
 dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o C:\AmbientesVirtuais\AmbientesHub\bin\Portatil
 ```
-*Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Portatil\AmbientesHub.exe`.*
+
+_Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Portatil\AmbientesHub.exe`._
 
 #### Opção B: Framework-Dependent (Executável Leve)
-Para máquinas corporativas que já possuem o *.NET Desktop Runtime 8.0* instalado (distribuído via SCCM/Intune):
+
+Para máquinas corporativas que já possuem o _.NET Desktop Runtime 8.0_ instalado (distribuído via SCCM/Intune):
 
 ```powershell
 dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained false -o C:\AmbientesVirtuais\AmbientesHub\bin\Publish
 ```
-*Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe`.*
+
+_Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe`._
 
 ---
 

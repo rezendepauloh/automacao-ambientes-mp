@@ -626,8 +626,16 @@ public class SoftwareProvisioningService
             case SoftwareInstallMethod.SccmConsole:
             {
                 Log("-> Desinstalando Configuration Manager Console via consolesetup /uninstall...");
-                string siteServer = string.IsNullOrWhiteSpace(ConfigService.SccmSiteServer) ? "srv-1046.in.mpe.ms.gov.br" : ConfigService.SccmSiteServer;
-                string siteCode = string.IsNullOrWhiteSpace(ConfigService.SccmSiteCode) ? "PGJ" : ConfigService.SccmSiteCode;
+                string siteServer = ConfigService.SccmSiteServer.Trim();
+                string siteCode = ConfigService.SccmSiteCode.Trim();
+
+                if (string.IsNullOrWhiteSpace(siteServer) || string.IsNullOrWhiteSpace(siteCode))
+                {
+                    Log("[ERRO] SCCM_SITE_SERVER ou SCCM_SITE_CODE não configurados no .env.");
+                    ok = false;
+                    break;
+                }
+
                 string installer = $@"\\{siteServer}\SMS_{siteCode}\bin\i386\consolesetup.exe";
                 if (File.Exists(installer))
                 {
@@ -858,12 +866,14 @@ public class SoftwareProvisioningService
             return true;
         }
 
-        string siteServer = string.IsNullOrWhiteSpace(ConfigService.SccmSiteServer)
-            ? "srv-1046.in.mpe.ms.gov.br"
-            : ConfigService.SccmSiteServer.Trim();
-        string siteCode = string.IsNullOrWhiteSpace(ConfigService.SccmSiteCode)
-            ? "PGJ"
-            : ConfigService.SccmSiteCode.Trim();
+        string siteServer = ConfigService.SccmSiteServer.Trim();
+        string siteCode = ConfigService.SccmSiteCode.Trim();
+
+        if (string.IsNullOrWhiteSpace(siteServer) || string.IsNullOrWhiteSpace(siteCode))
+        {
+            log("[ERRO] Servidor ou Site Code do SCCM não configurados no arquivo .env (SCCM_SITE_SERVER / SCCM_SITE_CODE).");
+            return false;
+        }
 
         string installerPath = $@"\\{siteServer}\SMS_{siteCode}\bin\i386\consolesetup.exe";
         log($"[1/2] Verificando instalador corporativo em: {installerPath}");

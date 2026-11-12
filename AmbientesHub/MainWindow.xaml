@@ -307,7 +307,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <ui:TextBox x:Name="TxtComputerName" Grid.Column="0" PlaceholderText="Pesquise por máquina (ex: 80600 ou MPE-80600) ou usuário conectado (ex: usuario.sobrenome)..." Margin="0,0,10,0" KeyDown="TxtComputerName_KeyDown" Height="38" />
+                                <ui:TextBox x:Name="TxtComputerName" Grid.Column="0" PlaceholderText="Pesquise por máquina (ex: 80600 ou DOMINIO-80600) ou usuário conectado (ex: usuario.sobrenome)..." Margin="0,0,10,0" KeyDown="TxtComputerName_KeyDown" Height="38" />
                                 <ui:Button x:Name="BtnConsultarRemoto" Grid.Column="1" Appearance="Primary" Content="Pesquisar" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnConsultarRemoto_Click" Padding="18,9" />
                             </Grid>
                         </Border>
@@ -321,7 +321,7 @@
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <TextBlock Text="🔍" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
                                         <TextBlock Text="Pesquisa Ampla de Máquinas &amp; Usuários" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" HorizontalAlignment="Center" />
-                                        <TextBlock Text="Digite parte do nome da máquina (ex: 80600), o nome completo (MPE-80600) ou o usuário conectado (ex: usuario.sobrenome) para localizar dispositivos, status de rede e registros do AD &amp; SCCM." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextAlignment="Center" Margin="0,6,0,0" MaxWidth="620" TextWrapping="Wrap" />
+                                        <TextBlock Text="Digite parte do nome da máquina (ex: 80600), o nome completo (DOMINIO-80600) ou o usuário conectado (ex: usuario.sobrenome) para localizar dispositivos, status de rede e registros do AD &amp; SCCM." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextAlignment="Center" Margin="0,6,0,0" MaxWidth="620" TextWrapping="Wrap" />
                                     </StackPanel>
                                 </Border>
 
@@ -493,7 +493,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <ui:TextBox x:Name="TxtAdTargetComputer" Grid.Column="0" PlaceholderText="Ex: 80600 ou MPE-80600" Margin="0,0,10,0" KeyDown="TxtAdTargetComputer_KeyDown" />
+                                    <ui:TextBox x:Name="TxtAdTargetComputer" Grid.Column="0" PlaceholderText="Ex: 80600 ou DOMINIO-80600" Margin="0,0,10,0" KeyDown="TxtAdTargetComputer_KeyDown" />
                                     <ui:Button x:Name="BtnAdQuery" Grid.Column="1" Appearance="Secondary" Content="Consultar Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAdQuery_Click" Margin="0,0,10,0" />
                                     <ui:Button x:Name="BtnAdClean" Grid.Column="2" Appearance="Danger" Content="Excluir do AD &amp; SCCM" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnAdClean_Click" />
                                 </Grid>
@@ -782,7 +782,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <ui:TextBox x:Name="TxtAnalyzerComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local), MPE-80600 ou 10.x.x.x" Margin="0,0,10,0" KeyDown="TxtAnalyzerComputer_KeyDown" />
+                                    <ui:TextBox x:Name="TxtAnalyzerComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local), DOMINIO-80600 ou 10.x.x.x" Margin="0,0,10,0" KeyDown="TxtAnalyzerComputer_KeyDown" />
                                     <ui:Button x:Name="BtnRunAnalyzer" Grid.Column="1" Appearance="Primary" Content="Analisar &amp; Gerar Relatórios" Icon="{ui:SymbolIcon Symbol=DataHistogram24}" Click="BtnRunAnalyzer_Click" Margin="0,0,8,0" />
                                     <ui:Button x:Name="BtnOpenReportFolder" Grid.Column="2" Appearance="Secondary" Content="Abrir Pasta DeviceReports" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenReportFolder_Click" />
                                 </Grid>
@@ -938,7 +938,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <ui:TextBox x:Name="TxtRemoteProfilesComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou MPE-80600" Margin="0,0,10,0" KeyDown="TxtRemoteProfilesComputer_KeyDown" />
+                                    <ui:TextBox x:Name="TxtRemoteProfilesComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou DOMINIO-80600" Margin="0,0,10,0" KeyDown="TxtRemoteProfilesComputer_KeyDown" />
                                     <ui:Button x:Name="BtnQueryRemoteProfiles" Grid.Column="1" Appearance="Secondary" Content="Analisar Perfis na Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnQueryRemoteProfiles_Click" Margin="0,0,10,0" />
                                     <ui:Button x:Name="BtnPurgeRemoteProfiles" Grid.Column="2" Appearance="Danger" Content="Remover Perfis Selecionados" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnPurgeRemoteProfiles_Click" />
                                 </Grid>
@@ -1141,11 +1141,11 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                             <TextBlock Text="Servidor SCCM (Site Server):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgSccmServer" PlaceholderText="srv-1046.in.mpe.ms.gov.br" />
+                                            <ui:TextBox x:Name="TxtCfgSccmServer" PlaceholderText="srv-sccm.dominio.local" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="Site Code:" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgSccmCode" PlaceholderText="PGJ" />
+                                            <ui:TextBox x:Name="TxtCfgSccmCode" PlaceholderText="SITE" />
                                         </StackPanel>
                                     </Grid>
 
@@ -1154,10 +1154,10 @@
                                     <TextBlock Text="Portais &amp; Navegação" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
 
                                     <TextBlock Text="URL do OTRS (Central):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgOtrs" PlaceholderText="https://central.mpms.mp.br/" Margin="0,0,0,12" />
+                                    <ui:TextBox x:Name="TxtCfgOtrs" PlaceholderText="https://central.empresa.gov.br/" Margin="0,0,0,12" />
 
                                     <TextBlock Text="URL do CitSmart (Suporte):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgCitsmart" PlaceholderText="https://suporte.mpms.mp.br/inbox/..." Margin="0,0,0,12" />
+                                    <ui:TextBox x:Name="TxtCfgCitsmart" PlaceholderText="https://suporte.empresa.gov.br/" Margin="0,0,0,12" />
 
                                     <TextBlock Text="URL Bancada Local (WSL / Docker):" FontWeight="Medium" Margin="0,0,0,4" />
                                     <ui:TextBox x:Name="TxtCfgBancada" PlaceholderText="http://localhost:8501/" Margin="0,0,0,12" />

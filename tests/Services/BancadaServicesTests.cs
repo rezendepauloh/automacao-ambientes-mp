@@ -77,8 +77,8 @@ public class BancadaServicesTests
     [Fact]
     public void RemoteManagementHelper_ConvertLocalPathToTargetPath_ShouldBuildAdminShareUnc()
     {
-        string unc = RemoteManagementHelper.ConvertLocalPathToTargetPath("MPE-80600", @"C:\Users\usuario.sobrenome");
-        Assert.Equal(@"\\MPE-80600\C$\Users\usuario.sobrenome", unc);
+        string unc = RemoteManagementHelper.ConvertLocalPathToTargetPath("DOMINIO-80600", @"C:\Users\usuario.sobrenome");
+        Assert.Equal(@"\\DOMINIO-80600\C$\Users\usuario.sobrenome", unc);
 
         string local = RemoteManagementHelper.ConvertLocalPathToTargetPath(".", @"C:\Users\usuario.sobrenome");
         Assert.Equal(@"C:\Users\usuario.sobrenome", local);
@@ -89,7 +89,7 @@ public class BancadaServicesTests
     {
         var sample = new DeviceReportData
         {
-            ComputerName = "MPE-80600",
+            ComputerName = "DOMINIO-80600",
             CurrentUser = "usuario.sobrenome",
             CurrentUserDisplayName = "Usuario Sobrenome Teste",
             CurrentUserDomain = "DOMINIO",
@@ -106,7 +106,7 @@ public class BancadaServicesTests
             OS = new OsSummaryItem
             {
                 SO = "Microsoft Windows 11 Pro",
-                NomeMaquina = "MPE-80600",
+                NomeMaquina = "DOMINIO-80600",
                 VersaoWindowsHnH = "24H2",
                 NumeroBuild = "26100"
             }

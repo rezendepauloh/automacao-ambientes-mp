@@ -11,7 +11,7 @@ $caminhoRDM = "C:\Caminho\RemoteDesktopManager.exe"
 
 # Credenciais de Administrador (Para o PXE)
 $usuarioAdminAD = "dominio\usuario"
-$usuarioAdminComum = "mpe\usuario"
+$usuarioAdminComum = "dominio\usuario"
 
 # Driver Selenium
 $driverSelenium = "C:\Caminho\WebDriver.dll"

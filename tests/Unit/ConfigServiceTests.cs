@@ -10,7 +10,6 @@ public class ConfigServiceTests
     {
         Assert.False(string.IsNullOrWhiteSpace(ConfigService.AdminUser));
         Assert.False(string.IsNullOrWhiteSpace(ConfigService.AdminAdUser));
-        Assert.False(string.IsNullOrWhiteSpace(ConfigService.SccmSiteCode));
     }
 
     [Fact]

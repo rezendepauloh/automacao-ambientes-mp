@@ -7,9 +7,10 @@ Este documento registra os itens desenvolvidos no **Ambientes Hub** que necessit
 ## 📋 Lista de Verificação (Checklist)
 
 ### 1. 🖥️ Módulo de Acesso Remoto
+
 - [ ] **Teste SCCM Remote (`CmRcViewer.exe`):**
-  - **Cenário:** Digitar o nome de uma estação ligada na rede (ex: `MPE-80600`) e clicar em **SCCM Remoto (CmRcViewer)**.
-  - **Resultado Esperado:** Disparo imediato do visualizador leve do SCCM conectando no host via `\\srv-1046.in.mpe.ms.gov.br`, sem abrir o Console MECM.
+  - **Cenário:** Digitar o nome de uma estação ligada na rede (ex: `DOMINIO-00000`) e clicar em **SCCM Remoto (CmRcViewer)**.
+  - **Resultado Esperado:** Disparo imediato do visualizador leve do SCCM conectando no host via `\\server.dominio`, sem abrir o Console MECM.
 - [ ] **Teste RDP Padrão (`mstsc.exe`):**
   - **Cenário:** Digitar o IP ou nome da máquina e clicar em **RDP Padrão (mstsc)**.
   - **Resultado Esperado:** Abertura da janela de Conexão de Área de Trabalho Remota com o campo `/v:<host>` preenchido.
@@ -20,6 +21,7 @@ Este documento registra os itens desenvolvidos no **Ambientes Hub** que necessit
 ---
 
 ### 2. 🛠️ Validação dos Demais Ambientes de Trabalho
+
 - [ ] **Modo Contratos:**
   - **Ação:** Clicar no card `🛠️ Modo Contratos`.
   - **Resultado Esperado:** Saneamento prévio das tarefas pesadas e abertura dos portais de contratos no Firefox.
@@ -36,7 +38,7 @@ Este documento registra os itens desenvolvidos no **Ambientes Hub** que necessit
 ---
 
 ### 3. 🗑️ Desprovisionamento e Exclusão Real (AD & SCCM)
+
 - [ ] **Exclusão de Máquina de Teste:**
   - **Cenário:** Testar o botão **"Excluir do AD & SCCM"** em uma máquina real de laboratório/teste.
   - **Resultado Esperado:** Diálogo de confirmação `Sim/Não` e exclusão efetiva da conta no AD e do ResourceID no SCCM, liberando reformatacão imediata via PXE.
-

@@ -34,7 +34,7 @@ public class DeviceAnalyzerService
         try
         {
             Directory.CreateDirectory(outDir);
-            RemoteManagementHelper.EnableWinRmAndFirewallViaDcom(target, onLog);
+            // Inventário é estritamente somente-leitura: não habilita WinRM nem altera Firewall/TrustedHosts no host remoto.
             RemoteManagementHelper.EnsureAdminShareConnected(target);
 
             var cimScope = RemoteManagementHelper.CreateScope(target, @"root\cimv2");
@@ -894,12 +894,34 @@ public class DeviceAnalyzerService
                         Threads = p["ThreadCount"] != null ? Convert.ToUInt32(p["ThreadCount"]) : 0,
                         Handles = p["HandleCount"] != null ? Convert.ToUInt32(p["HandleCount"]) : 0,
                         CaminhoArquivo = p["ExecutablePath"]?.ToString() ?? string.Empty,
-                        LinhaComando = p["CommandLine"]?.ToString() ?? string.Empty
+                        LinhaComando = RedactSensitiveCommandLine(p["CommandLine"]?.ToString() ?? string.Empty)
                     });
                 }
             }
         }
         catch { }
+    }
+
+    private static readonly Regex SensitiveCmdArgRegex = new(
+        @"(?i)(?:(?:/|--|-)(?:p|pass|password|pwd|secret|token|apikey|api[_-]?key|key|authorization|bearer|cred|credential)\s*(?:=|:|\s+)\s*)(?:""[^""]*""|'[^']*'|\S+)",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(250));
+
+    /// <summary>Mascaramento de senhas, tokens e chaves passados em linha de comando de processos coletados no inventário.</summary>
+    public static string RedactSensitiveCommandLine(string? commandLine)
+    {
+        if (string.IsNullOrEmpty(commandLine)) return string.Empty;
+        try
+        {
+            return SensitiveCmdArgRegex.Replace(commandLine, m =>
+            {
+                int sep = m.Value.IndexOfAny(['=', ':', ' ']);
+                return sep > 0 ? m.Value[..(sep + 1)] + "***REDACTED***" : "***REDACTED***";
+            });
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return "[REDACTED-TIMEOUT]";
+        }
     }
 
     private static void CollectDrivers(ManagementScope cimScope, DeviceReportData data)

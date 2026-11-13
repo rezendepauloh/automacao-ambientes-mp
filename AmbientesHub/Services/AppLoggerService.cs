@@ -54,7 +54,7 @@ public class AppLoggerService
 
                 // Formato exigido: [2026-11-11 16:26:06] [INFO]
                 string prefix = caller != null ? $" [{caller}]" : "";
-                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}]{prefix} {message}";
+                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}]{prefix} {InputValidator.SanitizeLogText(message)}";
 
                 File.AppendAllText(currentLogPath, line + Environment.NewLine);
             }

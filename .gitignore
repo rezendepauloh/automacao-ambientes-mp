@@ -2,12 +2,40 @@
 # IGNORAR ARQUIVOS DE SEGURANÇA E DADOS PESSOAIS
 # ==========================================
 Credenciais/
+credenciais/
 credenciais.xml
+cred_*.xml
 *.xml
 *.json
 .env
+.env.*
+!.env.example
 AmbientesHub/.env
 temp/
+
+# Chaves, certificados, cofres e conexões remotas
+*.pfx
+*.pem
+*.key
+*.p12
+*.cer
+*.crt
+*.kdbx
+*.rdp
+*.rdg
+secrets/
+*.secret
+*.secrets
+.wslconfig
+
+# Relatórios de inventário (contêm hostnames/usuários/linhas de comando) e artefatos baixados
+DeviceReports/
+Report_*.html
+*.xlsx
+*.pdf
+*.dmp
+*.msu
+*.msi
 
 # ==========================================
 # IGNORAR LOGS E ARQUIVOS TEMPORÁRIOS
@@ -17,6 +45,9 @@ temp/
 *.bak
 logs/
 AmbientesHub/logs/
+TestResults/
+*.trx
+coverage*/
 
 # Ignorar atalhos do Windows (Caminhos absolutos locais)
 Atalhos/
@@ -32,11 +63,17 @@ AmbientesHub/obj/
 *.user
 *.suo
 .vs/
+.idea/
+.vscode/
 
 WebDriver.dll
 msedgedriver.exe
 *.exe
+chamados.exe
 
-# Arquivo de configuração (vai subir apenas o exemplo)
+# Arquivos de configuração locais (vai subir apenas o exemplo)
 config.ps1
+Scripts/config.*.ps1
+!Scripts/config.exemplo.ps1
 login.ps1
+cred*.ps1

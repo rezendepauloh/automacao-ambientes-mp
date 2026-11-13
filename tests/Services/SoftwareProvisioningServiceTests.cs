@@ -109,6 +109,16 @@ public class SoftwareProvisioningServiceTests
         }
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("srv\" /evil")]
+    [InlineData("srv & calc")]
+    public void BuildSccmSetupArguments_Throws_WhenSiteServerInvalid(string badServer)
+    {
+        Assert.Throws<ArgumentException>(() => SoftwareProvisioningService.BuildSccmSetupArguments(badServer));
+    }
+
     [Fact]
     public void ParseRsatCapabilityFromDism_DetectsInstalledAndNotPresentStates()
     {

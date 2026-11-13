@@ -59,6 +59,18 @@ public class AdSccmService
         }
 
         string cleanName = computerName.Trim();
+
+        // Fail-closed: exclusão exige hostname exato (sem curingas); consulta aceita termo whitelisted.
+        bool inputOk = isDelete ? InputValidator.IsValidHostName(cleanName) : InputValidator.IsValidSearchTerm(cleanName);
+        if (!inputOk)
+        {
+            onLog(isDelete
+                ? "[ERRO] Nome inválido. A exclusão exige um hostname exato (letras, números e hífen)."
+                : "[ERRO] Termo inválido. Use apenas letras, números, espaço e . _ - @ :");
+            AppLoggerService.Warning("Entrada rejeitada pela validação (AdSccmService.Execute).", nameof(AdSccmService));
+            return;
+        }
+
         string action = isDelete ? "EXCLUSÃO DIRETA" : "CONSULTA (-WhatIf)";
         onLog($"=== INICIANDO {action}: {cleanName} ===");
         AppLoggerService.Info($"Iniciando {action} para {cleanName}", nameof(AdSccmService));
@@ -68,7 +80,10 @@ public class AdSccmService
         try
         {
             using var searcher = new DirectorySearcher();
-            searcher.Filter = $"(&(objectCategory=computer)(|(cn=*{cleanName}*)(sAMAccountName=*{cleanName}*)))";
+            string ldapName = InputValidator.EscapeLdap(cleanName);
+            searcher.Filter = isDelete
+                ? $"(&(objectCategory=computer)(|(cn={ldapName})(sAMAccountName={ldapName}$)))"
+                : $"(&(objectCategory=computer)(|(cn=*{ldapName}*)(sAMAccountName=*{ldapName}*)))";
             searcher.PropertiesToLoad.AddRange(["cn", "distinguishedName", "operatingSystem", "whenCreated"]);
             searcher.SizeLimit = 15;
 
@@ -121,6 +136,13 @@ public class AdSccmService
             return;
         }
 
+        if (!InputValidator.IsValidHostName(siteServer) || !InputValidator.IsValidSiteCode(siteCode))
+        {
+            onLog("  [ERRO] SCCM_SITE_SERVER/SCCM_SITE_CODE com formato inválido. Operação SCCM abortada.");
+            AppLoggerService.Warning("Configuração SCCM rejeitada pela validação.", nameof(AdSccmService));
+            return;
+        }
+
         // Tentativa 1: WMI C# Nativo com PacketPrivacy (Zero processos externos)
         bool nativeSuccess = TryExecuteSccmNative(siteServer, siteCode, cleanName, isDelete, onLog);
         if (!nativeSuccess)
@@ -148,7 +170,10 @@ public class AdSccmService
             var scope = new ManagementScope(scopePath, options);
             scope.Connect();
 
-            string query = $"SELECT ResourceID, SMSID, ClientActiveStatus, OperatingSystemNameandVersion, NetbiosName, Name FROM SMS_R_System WHERE NetbiosName LIKE '%{cleanName}%' OR Name LIKE '%{cleanName}%'";
+            string wqlName = InputValidator.EscapeWql(cleanName);
+            string query = isDelete
+                ? $"SELECT ResourceID, SMSID, ClientActiveStatus, OperatingSystemNameandVersion, NetbiosName, Name FROM SMS_R_System WHERE NetbiosName = '{wqlName}' OR Name = '{wqlName}'"
+                : $"SELECT ResourceID, SMSID, ClientActiveStatus, OperatingSystemNameandVersion, NetbiosName, Name FROM SMS_R_System WHERE NetbiosName LIKE '%{wqlName}%' OR Name LIKE '%{wqlName}%'";
             using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(query));
             using var results = searcher.Get();
 
@@ -207,14 +232,21 @@ public class AdSccmService
         {
             string scriptTemp = Path.Combine(Path.GetTempPath(), $"sccm_action_{Guid.NewGuid():N}.ps1");
 
+            string psModule = InputValidator.EscapePowerShellSingleQuoted(modulePath);
+            string psSiteCode = InputValidator.EscapePowerShellSingleQuoted(siteCode);
+            string psSiteServer = InputValidator.EscapePowerShellSingleQuoted(siteServer);
+            string psName = InputValidator.EscapePowerShellSingleQuoted(cleanName);
+            // Exclusão: igualdade exata (-eq). Consulta: -like com curingas controlados.
+            string psFilter = isDelete ? "$_.Name -eq '" + psName + "'" : "$_.Name -like '*" + psName + "*'";
+
             string psCode = $@"
 $ErrorActionPreference = 'Stop'
-Import-Module '{modulePath}'
-if (-not (Get-PSDrive -Name '{siteCode}' -ErrorAction SilentlyContinue)) {{
-    New-PSDrive -Name '{siteCode}' -PSProvider 'CMSite' -Root '{siteServer}' -Description 'SCCM Drive' | Out-Null
+Import-Module '{psModule}'
+if (-not (Get-PSDrive -Name '{psSiteCode}' -ErrorAction SilentlyContinue)) {{
+    New-PSDrive -Name '{psSiteCode}' -PSProvider 'CMSite' -Root '{psSiteServer}' -Description 'SCCM Drive' | Out-Null
 }}
-Set-Location '{siteCode}:'
-$devices = @(Get-CMDevice | Where-Object {{ $_.Name -like '*{cleanName}*' }})
+Set-Location '{psSiteCode}:'
+$devices = @(Get-CMDevice | Where-Object {{ {psFilter} }})
 if ($devices.Count -gt 0) {{
     Write-Output ""[OK] $($devices.Count) registro(s) encontrado(s) no SCCM via CMSite!""
     foreach ($dev in $devices) {{
@@ -230,7 +262,7 @@ if ($devices.Count -gt 0) {{
         " : "")}
     }}
 }} else {{
-    Write-Output ""[i] Nenhum computador correspondente a '{cleanName}' localizado no SCCM.""
+    Write-Output ""[i] Nenhum computador correspondente a '{psName}' localizado no SCCM.""
 }}
 ";
             File.WriteAllText(scriptTemp, psCode, System.Text.Encoding.UTF8);
@@ -297,11 +329,22 @@ if ($devices.Count -gt 0) {{
     {
         return await Task.Run(async () =>
         {
-            string cleanQuery = query.Trim();
+            string cleanQuery = (query ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(cleanQuery))
                 return new List<MachineDetails>();
 
             void Log(string msg) => onLog?.Invoke(msg);
+
+            // Fail-closed: termo fora da whitelist não chega a LDAP/WQL.
+            if (!InputValidator.IsValidSearchTerm(cleanQuery))
+            {
+                Log("[ERRO] Termo de pesquisa inválido. Use apenas letras, números, espaço e . _ - @ :");
+                AppLoggerService.Warning("Termo de pesquisa rejeitado pela validação.", nameof(AdSccmService));
+                return new List<MachineDetails>();
+            }
+
+            string ldapQuery = InputValidator.EscapeLdap(cleanQuery);
+            string wqlQuery = InputValidator.EscapeWql(cleanQuery);
 
             Log($"Iniciando pesquisa ampla (máquina ou usuário) por: '{cleanQuery}'...");
             var resultsDict = new Dictionary<string, MachineDetails>(StringComparer.OrdinalIgnoreCase);
@@ -311,7 +354,7 @@ if ($devices.Count -gt 0) {{
             try
             {
                 using var searcher = new DirectorySearcher();
-                searcher.Filter = $"(&(objectCategory=computer)(|(cn=*{cleanQuery}*)(sAMAccountName=*{cleanQuery}*)(description=*{cleanQuery}*)))";
+                searcher.Filter = $"(&(objectCategory=computer)(|(cn=*{ldapQuery}*)(sAMAccountName=*{ldapQuery}*)(description=*{ldapQuery}*)))";
                 searcher.PropertiesToLoad.AddRange(["cn", "dNSHostName", "operatingSystem", "distinguishedName", "whenCreated", "description", "location"]);
                 searcher.SizeLimit = 20;
 
@@ -368,11 +411,11 @@ if ($devices.Count -gt 0) {{
 
                     string wql = $@"SELECT ResourceID, SMSID, ClientActiveStatus, OperatingSystemNameandVersion, LastLogonUserDomain, LastLogonUserName, UserDomain, UserName, MACAddresses, NetbiosName, Name 
                                     FROM SMS_R_System 
-                                    WHERE NetbiosName LIKE '%{cleanQuery}%' 
-                                       OR Name LIKE '%{cleanQuery}%' 
-                                       OR LastLogonUserName LIKE '%{cleanQuery}%' 
-                                       OR UserName LIKE '%{cleanQuery}%'
-                                       OR MACAddresses LIKE '%{cleanQuery}%'";
+                                    WHERE NetbiosName LIKE '%{wqlQuery}%' 
+                                       OR Name LIKE '%{wqlQuery}%' 
+                                       OR LastLogonUserName LIKE '%{wqlQuery}%' 
+                                       OR UserName LIKE '%{wqlQuery}%'
+                                       OR MACAddresses LIKE '%{wqlQuery}%'";
 
                     using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(wql));
                     using var sccmResults = searcher.Get();
@@ -553,22 +596,36 @@ if ($devices.Count -gt 0) {{
         string? modulePath = FindSccmModulePath();
         if (modulePath == null) return;
 
+        // Fail-closed: nada é interpolado em script sem passar pela whitelist.
+        if (!InputValidator.IsValidSearchTerm(cleanQuery) ||
+            !InputValidator.IsValidHostName(siteServer) ||
+            !InputValidator.IsValidSiteCode(siteCode))
+        {
+            AppLoggerService.Warning("Busca SCCM via provedor abortada: parâmetros inválidos.", nameof(AdSccmService));
+            return;
+        }
+
+        string qMod = InputValidator.EscapePowerShellSingleQuoted(modulePath);
+        string qCode = InputValidator.EscapePowerShellSingleQuoted(siteCode);
+        string qServer = InputValidator.EscapePowerShellSingleQuoted(siteServer);
+        string qQuery = InputValidator.EscapePowerShellSingleQuoted(cleanQuery);
+
         try
         {
             string scriptTemp = Path.Combine(Path.GetTempPath(), $"sccm_search_{Guid.NewGuid():N}.ps1");
             string psCode = $@"
 $ErrorActionPreference = 'SilentlyContinue'
-Import-Module '{modulePath}'
-if (-not (Get-PSDrive -Name '{siteCode}' -ErrorAction SilentlyContinue)) {{
-    New-PSDrive -Name '{siteCode}' -PSProvider 'CMSite' -Root '{siteServer}' -Description 'SCCM' | Out-Null
+Import-Module '{qMod}'
+if (-not (Get-PSDrive -Name '{qCode}' -ErrorAction SilentlyContinue)) {{
+    New-PSDrive -Name '{qCode}' -PSProvider 'CMSite' -Root '{qServer}' -Description 'SCCM' | Out-Null
 }}
-Set-Location '{siteCode}:'
+Set-Location '{qCode}:'
 $all = Get-CMDevice | Where-Object {{
-    $_.Name -like '*{cleanQuery}*' -or 
-    $_.CurrentLogonUser -like '*{cleanQuery}*' -or 
-    $_.LastLogonUserName -like '*{cleanQuery}*' -or 
-    $_.UserName -like '*{cleanQuery}*' -or 
-    $_.MACAddress -like '*{cleanQuery}*'
+    $_.Name -like '*{qQuery}*' -or 
+    $_.CurrentLogonUser -like '*{qQuery}*' -or 
+    $_.LastLogonUserName -like '*{qQuery}*' -or 
+    $_.UserName -like '*{qQuery}*' -or 
+    $_.MACAddress -like '*{qQuery}*'
 }} | Select-Object -First 15
 
 foreach ($dev in $all) {{

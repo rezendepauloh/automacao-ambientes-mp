@@ -241,7 +241,11 @@ public class SoftwareProvisioningService
         if (string.IsNullOrWhiteSpace(siteServer))
             throw new ArgumentException("Servidor SCCM não informado.", nameof(siteServer));
 
-        string core = $"TargetDir=\"{targetDir}\" DefaultSiteServerName={siteServer.Trim()}";
+        string cleanServer = siteServer.Trim();
+        if (!InputValidator.IsValidHostName(cleanServer))
+            throw new ArgumentException("Nome de servidor SCCM inválido.", nameof(siteServer));
+
+        string core = $"TargetDir=\"{targetDir}\" DefaultSiteServerName={cleanServer}";
         return silent ? $"/q {core}" : core;
     }
 
@@ -752,7 +756,7 @@ public class SoftwareProvisioningService
 
             if (File.Exists(networkMsu))
             {
-                string tempMsu = Path.Combine(Path.GetTempPath(), "WindowsTH-RSAT-AD.msu");
+                string tempMsu = Path.Combine(Path.GetTempPath(), $"WindowsTH-RSAT-AD_{Guid.NewGuid():N}.msu");
                 try
                 {
                     log($"  -> Copiando pacote para {tempMsu}...");
@@ -875,6 +879,12 @@ public class SoftwareProvisioningService
             return false;
         }
 
+        if (!InputValidator.IsValidHostName(siteServer) || !InputValidator.IsValidSiteCode(siteCode))
+        {
+            log("[ERRO] SCCM_SITE_SERVER ou SCCM_SITE_CODE com formato inválido (fail-closed).");
+            return false;
+        }
+
         string installerPath = $@"\\{siteServer}\SMS_{siteCode}\bin\i386\consolesetup.exe";
         log($"[1/2] Verificando instalador corporativo em: {installerPath}");
 
@@ -934,14 +944,25 @@ public class SoftwareProvisioningService
             return false;
         }
 
+        if (!InputValidator.IsSafeHttpUrl(item.DownloadUrl) ||
+            !Uri.TryCreate(item.DownloadUrl, UriKind.Absolute, out var msiUri) ||
+            msiUri.Scheme != Uri.UriSchemeHttps)
+        {
+            log("[ERRO] Download de MSI permitido apenas via HTTPS válido (fail-closed).");
+            return false;
+        }
+
         log("==========================================================");
         log($"=== INSTALAÇÃO DIRETA VIA MSI: {item.Name} ===");
         log("==========================================================");
 
         string tempDir = Path.GetTempPath();
-        string msiFileName = Path.GetFileName(new Uri(item.DownloadUrl).LocalPath);
-        if (string.IsNullOrWhiteSpace(msiFileName)) msiFileName = $"{item.Id}.msi";
-        string localMsiPath = Path.Combine(tempDir, msiFileName);
+        string baseMsiName = Path.GetFileName(msiUri.LocalPath);
+        if (string.IsNullOrWhiteSpace(baseMsiName) || !baseMsiName.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+            baseMsiName = $"{item.Id}.msi";
+        string localMsiPath = Path.Combine(tempDir, $"{Path.GetFileNameWithoutExtension(baseMsiName)}_{Guid.NewGuid():N}.msi");
+
+        const long MaxMsiBytes = 300L * 1024 * 1024; // 300 MB
 
         try
         {
@@ -949,8 +970,28 @@ public class SoftwareProvisioningService
             using (var httpClient = new System.Net.Http.HttpClient())
             {
                 httpClient.Timeout = TimeSpan.FromMinutes(5);
-                var data = httpClient.GetByteArrayAsync(item.DownloadUrl).GetAwaiter().GetResult();
-                File.WriteAllBytes(localMsiPath, data);
+                using var response = httpClient.GetAsync(msiUri, System.Net.Http.HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
+                response.EnsureSuccessStatusCode();
+                if (response.Content.Headers.ContentLength is long len && len > MaxMsiBytes)
+                {
+                    log($"[ERRO] Instalador excede o tamanho máximo permitido ({MaxMsiBytes / (1024 * 1024)} MB).");
+                    return false;
+                }
+
+                using var netStream = response.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
+                using var fileStream = new FileStream(localMsiPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                byte[] buffer = new byte[81920];
+                long total = 0;
+                int read;
+                while ((read = netStream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    total += read;
+                    if (total > MaxMsiBytes)
+                    {
+                        throw new InvalidDataException("Download excedeu o limite máximo de 300 MB (proteção anti-DoS).");
+                    }
+                    fileStream.Write(buffer, 0, read);
+                }
             }
             log($"  -> Download concluído: {localMsiPath} ({new FileInfo(localMsiPath).Length / (1024 * 1024.0):F2} MB)");
 

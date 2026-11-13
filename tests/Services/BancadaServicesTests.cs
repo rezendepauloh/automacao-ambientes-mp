@@ -152,5 +152,17 @@ public class BancadaServicesTests
         Assert.True(ConfigService.PingTimeoutMs >= 100);
         Assert.Contains("Administrator", ConfigService.ProtectedProfiles);
     }
+
+    [Theory]
+    [InlineData("app.exe --password=MinhaSenhaSecreta --user=joao", "MinhaSenhaSecreta")]
+    [InlineData("curl -H --token \"eyJhbGciOiJIUzI1NiJ9\"", "eyJhbGciOiJIUzI1NiJ9")]
+    [InlineData("cmd /p:Segredo123 /u:usuario", "Segredo123")]
+    [InlineData("tool --api-key=AKIAIOSFODNN7EXAMPLE", "AKIAIOSFODNN7EXAMPLE")]
+    public void DeviceAnalyzerService_RedactSensitiveCommandLine_RemovesSecretValues(string rawCmd, string secret)
+    {
+        string redacted = DeviceAnalyzerService.RedactSensitiveCommandLine(rawCmd);
+        Assert.DoesNotContain(secret, redacted);
+        Assert.Contains("***REDACTED***", redacted);
+    }
 }
 

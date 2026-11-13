@@ -549,7 +549,16 @@ public class RemoteMaintenanceService
         {
             try
             {
-                Directory.Delete(subDir, recursive: true);
+                // Anti Symlink/Junction Traversal: se for ReparsePoint (junction/symlink), remove apenas o elo sem descer recursivamente no destino.
+                var dirInfo = new DirectoryInfo(subDir);
+                if ((dirInfo.Attributes & FileAttributes.ReparsePoint) != 0)
+                {
+                    dirInfo.Delete(recursive: false);
+                }
+                else
+                {
+                    Directory.Delete(subDir, recursive: true);
+                }
                 removed++;
             }
             catch

@@ -10,9 +10,9 @@ public class BancadaDockerService
     private Process? _activeProcess;
     private readonly object _processLock = new();
 
-    public static string BancadaWindowsDir => ConfigService.Get("BANCADA_WINDOWS_DIR", @"\\wsl.localhost\Ubuntu-26.04\home\paulogoncalves\PythonProjects\automated-OTRS-and-CitSmart");
-    public static string BancadaWslDir => ConfigService.Get("BANCADA_WSL_DIR", "/home/paulogoncalves/PythonProjects/automated-OTRS-and-CitSmart");
-    public static string BancadaWslDistro => ConfigService.Get("BANCADA_WSL_DISTRO", "Ubuntu-26.04");
+    public static string BancadaWindowsDir => ConfigService.BancadaWindowsDir;
+    public static string BancadaWslDir => ConfigService.BancadaWslDir;
+    public static string BancadaWslDistro => ConfigService.BancadaWslDistro;
     public static string BancadaUrl => ConfigService.UrlBancadaLocal;
 
     public bool IsProcessRunning
@@ -55,8 +55,11 @@ public class BancadaDockerService
 
             onOutput("[WSL/Docker] Preparando ambiente da Bancada...");
 
-            string wslDir = BancadaWslDir.Replace("'", @"'\''");
-            string distro = BancadaWslDistro;
+            if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
+            {
+                onOutput($"[ERRO] {error}");
+                return;
+            }
 
             // Comando a ser executado via WSL: cd para o diretório e executa docker compose up -d
             // E em seguida conecta aos logs se streamLogs for true
@@ -70,10 +73,55 @@ public class BancadaDockerService
         });
     }
 
+    /// <summary>
+    /// Fail-closed: distro e diretório WSL precisam estar configurados no .env e casar com a whitelist
+    /// (sem espaços, aspas, $, crase, ;, &amp;, |, "..") antes de qualquer processo ser iniciado.
+    /// </summary>
+    public static bool TryGetValidatedTarget(out string distro, out string wslDir, out string error)
+    {
+        distro = BancadaWslDistro?.Trim() ?? string.Empty;
+        wslDir = BancadaWslDir?.Trim() ?? string.Empty;
+        return ValidateTarget(distro, wslDir, out error);
+    }
+
+    /// <summary>Validação pura (sem I/O) de distro + diretório WSL; usada pelo serviço e pelos testes.</summary>
+    public static bool ValidateTarget(string? distro, string? wslDir, out string error)
+    {
+        error = string.Empty;
+        distro = distro?.Trim() ?? string.Empty;
+        wslDir = wslDir?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(distro) || string.IsNullOrWhiteSpace(wslDir))
+        {
+            error = "BANCADA_WSL_DISTRO e BANCADA_WSL_DIR não configurados no .env. Operação bloqueada.";
+            return false;
+        }
+
+        if (!InputValidator.IsValidWslDistro(distro))
+        {
+            error = "BANCADA_WSL_DISTRO inválido (permitido: letras, números, ponto, hífen e sublinhado).";
+            return false;
+        }
+
+        if (!InputValidator.IsValidWslPath(wslDir))
+        {
+            error = "BANCADA_WSL_DIR inválido (caminho POSIX absoluto, sem espaços ou metacaracteres de shell).";
+            return false;
+        }
+
+        return true;
+    }
+
     public async Task StopDockerBancadaAsync(Action<string> onOutput)
     {
         await Task.Run(() =>
         {
+            if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
+            {
+                onOutput($"[ERRO] {error}");
+                return;
+            }
+
             onOutput("[WSL/Docker] Solicitando parada dos serviços da Bancada (docker compose down)...");
 
             lock (_processLock)
@@ -89,8 +137,6 @@ public class BancadaDockerService
                 }
             }
 
-            string wslDir = BancadaWslDir.Replace("'", @"'\''");
-            string distro = BancadaWslDistro;
             string cmd = $"cd '{wslDir}' && docker compose down";
 
             RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{cmd}\"", onOutput, waitForExit: true);

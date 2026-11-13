@@ -886,7 +886,7 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <ui:TextBox x:Name="TxtRemoteMaintComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou MPE-80600" Margin="0,0,10,0" KeyDown="TxtRemoteMaintComputer_KeyDown" />
+                                    <ui:TextBox x:Name="TxtRemoteMaintComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou NOME-DA-MAQUINA" Margin="0,0,10,0" KeyDown="TxtRemoteMaintComputer_KeyDown" />
                                     <ui:Button x:Name="BtnAnalyzeRemoteMaint" Grid.Column="1" Appearance="Secondary" Content="Analisar Espaço &amp; Caches" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAnalyzeRemoteMaint_Click" Margin="0,0,10,0" />
                                     <ui:Button x:Name="BtnExecuteRemoteMaint" Grid.Column="2" Appearance="Primary" Content="Executar Limpeza &amp; Manutenção" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnExecuteRemoteMaint_Click" />
                                 </Grid>

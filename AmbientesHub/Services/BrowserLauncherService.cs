@@ -15,7 +15,7 @@ public class BrowserLauncherService
     public string GetFirefoxPath()
     {
         string custom = ConfigService.FirefoxBinaryPath;
-        if (!string.IsNullOrWhiteSpace(custom) && File.Exists(custom))
+        if (InputValidator.IsSafeLocalExecutablePath(custom) && File.Exists(custom))
             return custom;
 
         foreach (var path in FirefoxLocations)
@@ -64,7 +64,16 @@ public class BrowserLauncherService
 
     public void OpenUrlsInFirefox(IEnumerable<string> urls)
     {
-        var urlList = urls.Where(u => !string.IsNullOrWhiteSpace(u)).ToList();
+        // Fail-closed: somente http/https sem credenciais embutidas; demais esquemas (file:, javascript:, caminhos) são descartados.
+        var urlList = new List<string>();
+        foreach (var raw in urls.Where(u => !string.IsNullOrWhiteSpace(u)))
+        {
+            string candidate = raw.Trim();
+            if (InputValidator.IsSafeHttpUrl(candidate))
+                urlList.Add(candidate);
+            else
+                AppLoggerService.Warning("URL rejeitada pela validação (apenas http/https são permitidos).", nameof(BrowserLauncherService));
+        }
         if (urlList.Count == 0) return;
 
         string firefoxPath = GetFirefoxPath();
@@ -74,21 +83,15 @@ public class BrowserLauncherService
         {
             try
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = firefoxPath,
-                    Arguments = $"\"{url}\"",
-                    UseShellExecute = true
-                });
+                var info = new ProcessStartInfo { FileName = firefoxPath, UseShellExecute = true };
+                info.ArgumentList.Add(url);
+                Process.Start(info);
             }
             catch
             {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"\"{url}\"",
-                    UseShellExecute = true
-                });
+                var info = new ProcessStartInfo { FileName = "explorer.exe", UseShellExecute = true };
+                info.ArgumentList.Add(url);
+                Process.Start(info);
             }
             Thread.Sleep(200);
         }
@@ -99,7 +102,14 @@ public class BrowserLauncherService
         string firefoxPath = GetFirefoxPath();
         string args = ConfigService.WhatsappPwaArgs;
 
-        AppLoggerService.Info($"Iniciando WhatsApp PWA: {firefoxPath} {args}", nameof(BrowserLauncherService));
+        if (!IsSafeBrowserArguments(args))
+        {
+            AppLoggerService.Warning("WHATSAPP_PWA_ARGS ausente ou contém caracteres não permitidos. Execução bloqueada (fail-closed).", nameof(BrowserLauncherService));
+            return;
+        }
+
+        // Argumentos (que podem conter caminhos de perfil) não são mais gravados no log.
+        AppLoggerService.Info("Iniciando WhatsApp PWA via Firefox.", nameof(BrowserLauncherService));
 
         Process.Start(new ProcessStartInfo
         {
@@ -107,5 +117,12 @@ public class BrowserLauncherService
             Arguments = args,
             UseShellExecute = true
         });
+    }
+
+    /// <summary>Whitelist de argumentos de navegador: rejeita metacaracteres de shell/controle.</summary>
+    public static bool IsSafeBrowserArguments(string? args)
+    {
+        if (string.IsNullOrWhiteSpace(args) || args.Length > 1024) return false;
+        return args.IndexOfAny(['&', '|', ';', '<', '>', '^', '%', '`', '$', '\r', '\n', '\0']) < 0;
     }
 }

@@ -138,12 +138,29 @@ public class RemoteUserProfileService
 
         void Log(string msg) => onLog?.Invoke(msg);
 
-        var cleanUsers = usersToPurge
+        // Fail-closed: host e usuários só seguem se casarem com as whitelists.
+        if (!InputValidator.IsValidHostName(target))
+        {
+            Log($"[ERRO] Nome de máquina inválido. Operação abortada.");
+            AppLoggerService.Warning("PurgeUserProfiles rejeitado: hostname inválido.", nameof(RemoteUserProfileService));
+            return result;
+        }
+
+        var candidateUsers = usersToPurge
             .Where(u => !string.IsNullOrWhiteSpace(u))
             .Select(u => u.Contains('\\') ? u.Split('\\').Last().Trim() : u.Trim())
             .Where(u => !string.IsNullOrWhiteSpace(u))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        foreach (var rejected in candidateUsers.Where(u => !InputValidator.IsValidUserName(u)))
+        {
+            Log("[AVISO] Nome de usuário com caracteres inválidos foi ignorado.");
+            AppLoggerService.Warning("Usuário rejeitado pela validação em PurgeUserProfiles.", nameof(RemoteUserProfileService));
+            result.SkippedCount++;
+        }
+
+        var cleanUsers = candidateUsers.Where(InputValidator.IsValidUserName).ToList();
 
         if (cleanUsers.Count == 0)
         {
@@ -218,6 +235,13 @@ public class RemoteUserProfileService
                     {
                         Log($"  -> [PROTEGIDO] O perfil '{localPath}' está carregado/ativo na sessão atual. Pulando por segurança.");
                         result.SkippedCount++;
+                        continue;
+                    }
+
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(localPath, @"^[A-Za-z]:\\Users\\[A-Za-z0-9._\- ]{1,128}\z"))
+                    {
+                        Log($"  -> [PROTEGIDO] Caminho de perfil fora do padrão C:\\Users\\<perfil>. Fallback destrutivo bloqueado.");
+                        result.FailedCount++;
                         continue;
                     }
 

@@ -21,7 +21,7 @@ public class RemoteToolsService
     {
         // 0. Caminho customizado configurado no .env
         string custom = ConfigService.CmRcViewerCustomPath;
-        if (!string.IsNullOrWhiteSpace(custom) && File.Exists(custom))
+        if (InputValidator.IsSafeLocalExecutablePath(custom) && File.Exists(custom))
             return custom;
 
         // 1. Procura pela variável de ambiente do SCCM Console (SMS_ADMIN_UI_PATH)
@@ -70,10 +70,7 @@ public class RemoteToolsService
 
     public void OpenRemoteExplorer(string computerName)
     {
-        if (string.IsNullOrWhiteSpace(computerName))
-            throw new ArgumentException("Nome do computador não informado.");
-
-        string host = computerName.Trim();
+        string host = RequireValidHost(computerName);
         bool isLocal = RemoteManagementHelper.IsLocalMachine(host);
         string uncPath = isLocal ? @"C:\" : $@"\\{host}\C$";
 
@@ -83,30 +80,41 @@ public class RemoteToolsService
             RemoteManagementHelper.EnsureAdminShareConnected(host);
         }
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "explorer.exe",
-            Arguments = $"\"{uncPath}\"",
-            UseShellExecute = true
-        });
+        var explorerInfo = new ProcessStartInfo { FileName = "explorer.exe", UseShellExecute = true };
+        explorerInfo.ArgumentList.Add(uncPath);
+        Process.Start(explorerInfo);
     }
 
-    public void OpenSccmRemoteControl(string computerName, string? siteServer = null)
+    /// <summary>Fail-closed: aceita somente hostname/FQDN whitelisted; caso contrário lança ArgumentException.</summary>
+    internal static string RequireValidHost(string? computerName)
     {
         if (string.IsNullOrWhiteSpace(computerName))
             throw new ArgumentException("Nome do computador não informado.");
 
+        string host = computerName.Trim();
+        if (!InputValidator.IsValidHostName(host))
+            throw new ArgumentException("Nome do computador inválido. Use apenas letras, números, hífen e ponto.");
+
+        return host;
+    }
+
+    public void OpenSccmRemoteControl(string computerName, string? siteServer = null)
+    {
+        string host = RequireValidHost(computerName);
+
         siteServer ??= ConfigService.SccmSiteServer;
+        if (!InputValidator.IsValidHostName(siteServer?.Trim()))
+            throw new ArgumentException("SCCM_SITE_SERVER ausente ou inválido. Configure-o na aba Configurações.");
+        siteServer = siteServer!.Trim();
+
         var cmPath = GetCmRcViewerPath();
 
         if (cmPath != null)
         {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = cmPath,
-                Arguments = $"{computerName.Trim()} \\\\{siteServer.Trim()}",
-                UseShellExecute = true
-            });
+            var info = new ProcessStartInfo { FileName = cmPath, UseShellExecute = true };
+            info.ArgumentList.Add(host);
+            info.ArgumentList.Add($@"\\{siteServer}");
+            Process.Start(info);
         }
         else
         {
@@ -118,14 +126,10 @@ public class RemoteToolsService
 
     public void OpenRdp(string computerName)
     {
-        if (string.IsNullOrWhiteSpace(computerName))
-            throw new ArgumentException("Nome do computador não informado.");
+        string host = RequireValidHost(computerName);
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "mstsc.exe",
-            Arguments = $"/v:{computerName.Trim()}",
-            UseShellExecute = true
-        });
+        var info = new ProcessStartInfo { FileName = "mstsc.exe", UseShellExecute = true };
+        info.ArgumentList.Add($"/v:{host}");
+        Process.Start(info);
     }
 }

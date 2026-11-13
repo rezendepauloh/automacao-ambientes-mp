@@ -1,4 +1,4 @@
-# 🏛️ Ambientes Hub — Ministério Público do Estado de Mato Grosso do Sul (MPMS)
+# 🏛️ Ambientes Hub — Automação Corporativa & Produtividade Windows
 
 <div align="center">
 
@@ -43,7 +43,7 @@
 
 ## 🎯 1. Visão Geral
 
-O **Ambientes Hub** é uma aplicação nativa Windows desenvolvida em **C# (.NET 8)** com interface moderna **WPF-UI (Fluent Design / Mica)**, criada para consolidar e acelerar as atividades operacionais diárias do suporte técnico e desenvolvimento do **Ministério Público do Estado de Mato Grosso do Sul (MPMS)**.
+O **Ambientes Hub** é uma aplicação nativa Windows desenvolvida em **C# (.NET 8)** com interface moderna **WPF-UI (Fluent Design / Mica)**, criada para consolidar e acelerar as atividades operacionais diárias de suporte técnico, administração de ativos e desenvolvimento em ambientes corporativos Windows.
 
 A plataforma unifica em uma única interface responsiva a transição instantânea de perfis de trabalho (com encerramento seguro de distrações e preservação transacional do Office), central profunda de diagnóstico e acesso remoto de computadores (AD, SCCM, ICMP e RDP), rotinas de saneamento de memória e cofre de senhas criptografado por hardware.
 
@@ -194,15 +194,7 @@ AmbientesVirtuais/
 │   ├── run_all.ps1                           # Script runner interativo com banner ANSI e medição
 │   ├── Unit/                                 # Testes unitários (Models, Config, Logger, DPAPI)
 │   ├── Services/                             # Testes de serviços (RemoteTools, Clipboard)
-│   └── Integration/                          # Testes de integração (Escudo de PIDs, Script Integrity)
-│
-├── Scripts/                                  # Biblioteca legada de automação PowerShell
-│   ├── biblioteca.ps1                        # Rotinas consolidadas de login, saneamento e UI
-│   ├── chamados.ps1                          # Perfil de atendimento e suporte
-│   ├── contratos.ps1                         # Perfil de fiscalização e contratos
-│   ├── impressoras.ps1                       # Perfil de parque de impressão
-│   ├── pxe.ps1                               # Perfil de bancada e formatação em rede
-│   └── estudo.ps1                            # Perfil de foco e aprendizagem
+│   └── Integration/                          # Testes de integração (Escudo de PIDs, Auditoria SecOps)
 │
 ├── Credenciais/                              # Diretório dos cofres DPAPI protegidos (ignorado no git)
 │   ├── cred_admin.xml                        # Credencial do administrador local
@@ -301,6 +293,7 @@ dotnet test C:\AmbientesVirtuais\tests\AmbientesHub.Tests.csproj
 Para guias aprofundados, diagramas conceituais e detalhamento de cada rotina técnica, consulte:
 
 - **[Índice Central de Documentação (Docs/README.md)](Docs/README.md)**
+- **[Arquitetura de Segurança & Hardening (SecOps)](Docs/arquitetura/seguranca_hardening.md)**
 - **[Manual da Suíte de Testes Automatizados](Docs/guias/suite_testes_automatizados.md)**
 - **[Guia Operacional do Ambientes Hub Desktop](Docs/guias/guia_ambientes_hub_desktop.md)**
 - **[Análise Arquitetural: C# Nativo vs PowerShell](Docs/arquitetura/analise_arquitetural_powershell_vs_csharp.md)**

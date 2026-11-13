@@ -355,7 +355,7 @@ public static class DeviceReportExportService
             .section-card.collapsed .card-body { display: block !important; }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
 </head>
 <body>
     <button id="btn-toggle" onclick="toggleSidebar()" title="Alternar Menu">

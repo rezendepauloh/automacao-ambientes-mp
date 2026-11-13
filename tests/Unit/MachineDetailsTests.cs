@@ -109,10 +109,10 @@ public class MachineDetailsTests
 
         var withMachineLocation = new MachineDetails
         {
-            Location = "Sede PGJ",
+            Location = "Sede Central",
             UserDepartment = "Divisao de Redes"
         };
-        Assert.Equal("Sede PGJ • Divisao de Redes", withMachineLocation.EstimatedLocationDisplay);
+        Assert.Equal("Sede Central • Divisao de Redes", withMachineLocation.EstimatedLocationDisplay);
 
         var withOuFallback = new MachineDetails
         {

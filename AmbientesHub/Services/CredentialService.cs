@@ -19,7 +19,23 @@ public static class CredentialService
 
         try
         {
-            var doc = XDocument.Load(xmlPath);
+            // Anti XXE/DoS: arquivo limitado a 64 KB, DTD proibido e resolver de entidades externas desabilitado.
+            if (new FileInfo(xmlPath).Length > 64 * 1024)
+            {
+                return (false, "Arquivo de credencial excede o tamanho máximo permitido (64 KB).", null, null);
+            }
+
+            var readerSettings = new System.Xml.XmlReaderSettings
+            {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 64 * 1024
+            };
+            XDocument doc;
+            using (var xmlReader = System.Xml.XmlReader.Create(xmlPath, readerSettings))
+            {
+                doc = XDocument.Load(xmlReader);
+            }
             var userEl = doc.Descendants(Ns + "S").FirstOrDefault(e => (string?)e.Attribute("N") == "UserName");
             var passEl = doc.Descendants(Ns + "SS").FirstOrDefault(e => (string?)e.Attribute("N") == "Password");
 
@@ -65,6 +81,11 @@ public static class CredentialService
             return (false, "O nome de usuário não pode estar em branco.");
         }
 
+        if (string.IsNullOrEmpty(plainPassword))
+        {
+            return (false, "A senha não pode estar em branco.");
+        }
+
         try
         {
             string? dir = Path.GetDirectoryName(xmlPath);
@@ -95,6 +116,7 @@ $@"<Objs Version=""1.1.0.1"" xmlns=""http://schemas.microsoft.com/powershell/200
 </Objs>";
 
             File.WriteAllText(xmlPath, clixml, new UTF8Encoding(false));
+            ConfigService.HardenFilePermissions(xmlPath);
 
             // Teste imediato de validação
             var test = VerifyCredential(xmlPath);

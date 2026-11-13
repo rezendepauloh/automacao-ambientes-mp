@@ -48,6 +48,7 @@ public static class RemoteManagementHelper
     public static bool PingHost(string? computerName, int timeoutMs = -1)
     {
         if (IsLocalMachine(computerName)) return true;
+        if (!InputValidator.IsValidHostName(computerName!.Trim())) return false;
         if (timeoutMs <= 0) timeoutMs = ConfigService.PingTimeoutMs;
         try
         {
@@ -65,6 +66,9 @@ public static class RemoteManagementHelper
     {
         bool isLocal = IsLocalMachine(computerName);
         string target = isLocal ? "." : computerName!.Trim();
+
+        if (!isLocal && !InputValidator.IsValidHostName(target))
+            throw new ArgumentException("Nome de host remoto inválido.", nameof(computerName));
 
         var options = new ConnectionOptions
         {
@@ -148,6 +152,7 @@ public static class RemoteManagementHelper
     public static bool EnsureAdminShareConnected(string computerName)
     {
         if (IsLocalMachine(computerName)) return true;
+        if (!InputValidator.IsValidHostName(computerName.Trim())) return false;
 
         string uncRoot = $@"\\{computerName.Trim()}\C$";
         if (Directory.Exists(uncRoot)) return true;
@@ -289,6 +294,12 @@ public static class RemoteManagementHelper
 
     public static bool InvokeCommandOnTarget(string computerName, string commandLine, int timeoutSeconds = 90)
     {
+        // Fail-closed: host remoto fora da whitelist ou comando com caracteres de controle nunca é executado.
+        if (string.IsNullOrWhiteSpace(commandLine) || commandLine.IndexOfAny(['\r', '\n', '\0']) >= 0)
+            return false;
+        if (!IsLocalMachine(computerName) && !InputValidator.IsValidHostName(computerName?.Trim()))
+            return false;
+
         if (IsLocalMachine(computerName))
         {
             try

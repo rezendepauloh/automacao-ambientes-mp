@@ -83,6 +83,9 @@ public static class ConfigService
     public static string UrlOtrs => Get("URL_OTRS", "");
     public static string UrlCitsmart => Get("URL_CITSMART", "");
     public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "http://localhost:8501/");
+    public static string BancadaWindowsDir => Get("BANCADA_WINDOWS_DIR", @"\\wsl.localhost\Ubuntu-26.04\home\paulogoncalves\PythonProjects\automated-OTRS-and-CitSmart");
+    public static string BancadaWslDir => Get("BANCADA_WSL_DIR", "/home/paulogoncalves/PythonProjects/automated-OTRS-and-CitSmart");
+    public static string BancadaWslDistro => Get("BANCADA_WSL_DISTRO", "Ubuntu-26.04");
     public static string WhatsappPwaArgs => Get("WHATSAPP_PWA_ARGS", "");
     public static string SccmSiteServer => Get("SCCM_SITE_SERVER", "");
     public static string SccmSiteCode => Get("SCCM_SITE_CODE", "");

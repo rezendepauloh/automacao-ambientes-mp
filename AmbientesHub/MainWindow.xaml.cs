@@ -26,6 +26,14 @@ public partial class MainWindow : FluentWindow
     private readonly ObservableCollection<SoftwarePackageItem> _softwareCatalog = new(SoftwareProvisioningService.CreateDefaultCatalog());
     private readonly ObservableCollection<RemoteUserProfileItem> _remoteProfilesList = [];
     private readonly StartupService _startupService = new();
+    private readonly BancadaDockerService _bancadaService = new();
+    private readonly BrowserLauncherService _browserLauncherService = new();
+
+    private readonly List<AdUserDetails> _allAdUsersFound = [];
+    private readonly List<AdUserDetails> _filteredAdUsers = [];
+    private int _adUserCurrentPage = 1;
+    private const int AdUsersPageSize = 10;
+    private bool _isPopulatingDeptFilter = false;
 
     private TrayIconService? _trayIconService;
     private bool _isRealExit = false;
@@ -45,6 +53,10 @@ public partial class MainWindow : FluentWindow
         InitializeSystemTray();
         RefreshPerformanceAdminStatus();
         RefreshAppsAdminStatus();
+        if (CmbAdUserStatusFilter != null && CmbAdUserStatusFilter.Items.Count > 0)
+        {
+            CmbAdUserStatusFilter.SelectedIndex = 0;
+        }
     }
 
     #region Navegação Lateral Vertical & Hambúrguer
@@ -65,6 +77,8 @@ public partial class MainWindow : FluentWindow
             NavLbl7.Visibility = Visibility.Visible;
             NavLbl8.Visibility = Visibility.Visible;
             NavLbl9.Visibility = Visibility.Visible;
+            NavLbl10.Visibility = Visibility.Visible;
+            NavLbl11.Visibility = Visibility.Visible;
         }
         else
         {
@@ -80,6 +94,8 @@ public partial class MainWindow : FluentWindow
             NavLbl7.Visibility = Visibility.Collapsed;
             NavLbl8.Visibility = Visibility.Collapsed;
             NavLbl9.Visibility = Visibility.Collapsed;
+            NavLbl10.Visibility = Visibility.Collapsed;
+            NavLbl11.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -115,16 +131,43 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (lower is "usuarios ad" or "usuários ad" or "consulta ad" or "usuario ad" or "usuário ad" or "grupos ad")
+        {
+            NavListBox.SelectedIndex = 1;
+            TxtFooterStatus.Text = "Navegado para: Consulta de Usuários AD";
+            return;
+        }
+
+        if (lower.StartsWith("usuario ") || lower.StartsWith("usuário "))
+        {
+            string targetUser = query[(query.IndexOf(' ') + 1)..].Trim();
+            NavListBox.SelectedIndex = 1;
+            if (!string.IsNullOrEmpty(targetUser))
+            {
+                TxtAdUserQuery.Text = targetUser;
+                BtnConsultarUsuarioAd_Click(this, new RoutedEventArgs());
+            }
+            TxtFooterStatus.Text = $"Navegado para Consulta de Usuários AD: {targetUser}";
+            return;
+        }
+
+        if (lower is "acesso remoto" or "remoto" or "rdp" or "cmrcviewer" or "vnc" or "mstsc")
+        {
+            NavListBox.SelectedIndex = 2;
+            TxtFooterStatus.Text = "Navegado para: Acesso Remoto";
+            return;
+        }
+
         if (lower is "saneamento" or "limpar cache" or "teams" or "recursos" or "cache" or "explorer")
         {
-            NavListBox.SelectedIndex = 3;
+            NavListBox.SelectedIndex = 4;
             TxtFooterStatus.Text = "Navegado para: Saneamento de Recursos";
             return;
         }
 
         if (lower is "performance" or "auditoria" or "debloat" or "otimizar" or "otimização" or "otimizacao" or "lentidão" or "lentidao" or "lento" or "wsl" or "trim" or "hibernação" or "hibernacao" or "bloat" or "checkup")
         {
-            NavListBox.SelectedIndex = 4;
+            NavListBox.SelectedIndex = 5;
             TxtFooterStatus.Text = "Navegado para: Performance & Auditoria";
             if (lower is "auditoria" or "checkup")
             {
@@ -135,43 +178,50 @@ public partial class MainWindow : FluentWindow
 
         if (lower is "apps" or "programas" or "instalar" or "instalador" or "rsat" or "dsa" or "console" or "winget" or "provisionamento")
         {
-            NavListBox.SelectedIndex = 5;
+            NavListBox.SelectedIndex = 6;
             TxtFooterStatus.Text = "Navegado para: Apps & Provisionamento";
             return;
         }
 
         if (lower is "analisador" or "analisar" or "relatorio" or "relatório" or "inventario" or "inventário" or "html" or "pdf" or "excel")
         {
-            NavListBox.SelectedIndex = 6;
+            NavListBox.SelectedIndex = 7;
             TxtFooterStatus.Text = "Navegado para: Analisador de Máquina";
             return;
         }
 
         if (lower is "manutencao" or "manutenção" or "limpeza remota" or "manutencao remota")
         {
-            NavListBox.SelectedIndex = 7;
+            NavListBox.SelectedIndex = 8;
             TxtFooterStatus.Text = "Navegado para: Manutenção & Limpeza Remota";
             return;
         }
 
         if (lower is "perfis" or "perfil" or "usuarios remotos" or "usuários remotos" or "remover usuario" or "remover usuário")
         {
-            NavListBox.SelectedIndex = 8;
+            NavListBox.SelectedIndex = 9;
             TxtFooterStatus.Text = "Navegado para: Limpeza de Perfis de Usuários";
             return;
         }
 
         if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
         {
-            NavListBox.SelectedIndex = 9;
+            NavListBox.SelectedIndex = 10;
             TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
+            return;
+        }
+
+        if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
+        {
+            NavListBox.SelectedIndex = 11;
+            TxtFooterStatus.Text = "Navegado para: Bancada Streamlit (Docker WSL)";
             return;
         }
 
         if (lower.StartsWith("limpar ") || lower.StartsWith("desprovisionar ") || lower.StartsWith("ad "))
         {
             string target = query.Substring(query.IndexOf(' ') + 1).Trim();
-            NavListBox.SelectedIndex = 2;
+            NavListBox.SelectedIndex = 3;
             if (!string.IsNullOrEmpty(target))
             {
                 TxtAdTargetComputer.Text = target;
@@ -183,13 +233,13 @@ public partial class MainWindow : FluentWindow
 
         if (lower is "limpeza" or "desprovisionar" or "ad" or "sccm")
         {
-            NavListBox.SelectedIndex = 2;
+            NavListBox.SelectedIndex = 3;
             TxtFooterStatus.Text = "Navegado para: Limpeza AD & SCCM";
             return;
         }
 
         // 2. Consulta Global no Acesso Remoto & Diagnóstico (Máquinas e Usuários)
-        NavListBox.SelectedIndex = 1;
+        NavListBox.SelectedIndex = 2;
         TxtComputerName.Text = query;
         TxtFooterStatus.Text = $"Pesquisa global acionada para: '{query}'...";
         BtnConsultarRemoto_Click(this, new RoutedEventArgs());
@@ -217,7 +267,9 @@ public partial class MainWindow : FluentWindow
         PanelAnalisador.Visibility = Visibility.Collapsed;
         PanelLimpezaRemota.Visibility = Visibility.Collapsed;
         PanelPerfisRemotos.Visibility = Visibility.Collapsed;
+        PanelUsuariosAd.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
+        PanelBancada.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -225,19 +277,22 @@ public partial class MainWindow : FluentWindow
                 PanelAmbientes.Visibility = Visibility.Visible;
                 break;
             case 1:
-                PanelRemoto.Visibility = Visibility.Visible;
+                PanelUsuariosAd.Visibility = Visibility.Visible;
                 break;
             case 2:
-                PanelAdSccm.Visibility = Visibility.Visible;
+                PanelRemoto.Visibility = Visibility.Visible;
                 break;
             case 3:
-                PanelSaneamento.Visibility = Visibility.Visible;
+                PanelAdSccm.Visibility = Visibility.Visible;
                 break;
             case 4:
+                PanelSaneamento.Visibility = Visibility.Visible;
+                break;
+            case 5:
                 PanelPerformance.Visibility = Visibility.Visible;
                 RefreshPerformanceAdminStatus();
                 break;
-            case 5:
+            case 6:
                 PanelApps.Visibility = Visibility.Visible;
                 RefreshAppsAdminStatus();
                 if (!_appsCatalogLoadedOnce)
@@ -246,17 +301,21 @@ public partial class MainWindow : FluentWindow
                     _ = RefreshAppsCatalogAsync();
                 }
                 break;
-            case 6:
+            case 7:
                 PanelAnalisador.Visibility = Visibility.Visible;
                 break;
-            case 7:
+            case 8:
                 PanelLimpezaRemota.Visibility = Visibility.Visible;
                 break;
-            case 8:
+            case 9:
                 PanelPerfisRemotos.Visibility = Visibility.Visible;
                 break;
-            case 9:
+            case 10:
                 PanelConfig.Visibility = Visibility.Visible;
+                break;
+            case 11:
+                PanelBancada.Visibility = Visibility.Visible;
+                _ = CheckBancadaStatusAsync();
                 break;
         }
     }
@@ -318,6 +377,8 @@ public partial class MainWindow : FluentWindow
             RichAnalyzerLogs.FontFamily = font;
             RichRemoteMaintLogs.FontFamily = font;
             RichRemoteProfilesLogs.FontFamily = font;
+            RichAdUsersLogs.FontFamily = font;
+            RichBancadaLogs.FontFamily = font;
             RichScriptsLogs.FontFamily = font;
             RichRemoteLogs.FontFamily = font;
 
@@ -328,6 +389,8 @@ public partial class MainWindow : FluentWindow
             foreach (var block in RichAnalyzerLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRemoteMaintLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRemoteProfilesLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichAdUsersLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichBancadaLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichScriptsLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRemoteLogs.Document.Blocks) block.FontFamily = font;
         }
@@ -362,6 +425,8 @@ public partial class MainWindow : FluentWindow
         TxtCfgOtrs.Text = ConfigService.UrlOtrs;
         TxtCfgCitsmart.Text = ConfigService.UrlCitsmart;
         TxtCfgBancada.Text = ConfigService.UrlBancadaLocal;
+        TxtCfgBancadaWslDir.Text = ConfigService.BancadaWslDir;
+        TxtCfgBancadaWslDistro.Text = ConfigService.BancadaWslDistro;
         TxtCfgWhatsapp.Text = ConfigService.WhatsappPwaArgs;
         TxtCfgDeviceReportsDir.Text = ConfigService.DeviceReportsDir;
         TxtCfgCmRcViewer.Text = ConfigService.CmRcViewerCustomPath;
@@ -498,6 +563,8 @@ public partial class MainWindow : FluentWindow
                 ["URL_OTRS"] = TxtCfgOtrs.Text.Trim(),
                 ["URL_CITSMART"] = TxtCfgCitsmart.Text.Trim(),
                 ["URL_BANCADA_LOCAL"] = TxtCfgBancada.Text.Trim(),
+                ["BANCADA_WSL_DIR"] = TxtCfgBancadaWslDir.Text.Trim(),
+                ["BANCADA_WSL_DISTRO"] = TxtCfgBancadaWslDistro.Text.Trim(),
                 ["WHATSAPP_PWA_ARGS"] = TxtCfgWhatsapp.Text.Trim(),
                 ["DEVICE_REPORTS_DIR"] = TxtCfgDeviceReportsDir.Text.Trim(),
                 ["CMRCVIEWER_PATH"] = TxtCfgCmRcViewer.Text.Trim(),
@@ -1709,6 +1776,463 @@ public partial class MainWindow : FluentWindow
         {
             BtnQueryRemoteProfiles.IsEnabled = true;
             BtnPurgeRemoteProfiles.IsEnabled = true;
+        }
+    }
+    #endregion
+
+    #region Painel 9: Consulta de Usuários Active Directory
+    private void TxtAdUserQuery_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            BtnConsultarUsuarioAd_Click(sender, e);
+        }
+    }
+
+    private async void BtnConsultarUsuarioAd_Click(object sender, RoutedEventArgs e)
+    {
+        string query = TxtAdUserQuery.Text.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            AppendColoredLog(RichAdUsersLogs, "[Aviso] Informe login, nome completo, e-mail, setor ou matrícula para consultar no Active Directory.");
+            return;
+        }
+
+        BtnConsultarUsuarioAd.IsEnabled = false;
+        PlaceholderAdUserCard.Visibility = Visibility.Collapsed;
+        BorderAdUserPagination.Visibility = Visibility.Collapsed;
+        ItemsAdUserResults.ItemsSource = null;
+        _allAdUsersFound.Clear();
+        _adUserCurrentPage = 1;
+
+        LoadingAdUserCard.Visibility = Visibility.Visible;
+        RichAdUsersLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Consultando usuários no Active Directory para '{query}'...";
+
+        try
+        {
+            var results = await _adSccmService.SearchUsersAsync(query, msg =>
+            {
+                AppendColoredLog(RichAdUsersLogs, msg);
+            }, maxResults: 150);
+
+            _allAdUsersFound.AddRange(results);
+
+            if (_allAdUsersFound.Count > 0)
+            {
+                PopulateAdUserDepartments();
+                ApplyAdUserFilters();
+                PlaceholderAdUserCard.Visibility = Visibility.Collapsed;
+                TxtFooterStatus.Text = $"{_allAdUsersFound.Count} usuário(s) encontrado(s) no Active Directory para '{query}'.";
+            }
+            else
+            {
+                PlaceholderAdUserCard.Visibility = Visibility.Visible;
+                BorderAdUserPagination.Visibility = Visibility.Collapsed;
+                AppendColoredLog(RichAdUsersLogs, $"[i] Nenhum usuário encontrado no Active Directory correspondente a '{query}'.");
+                TxtFooterStatus.Text = $"Nenhum usuário AD encontrado para '{query}'.";
+            }
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichAdUsersLogs, $"[ERRO] Falha na consulta de usuários AD: {ex.Message}");
+            AppLoggerService.Danger($"Erro na consulta de usuários AD '{query}': {ex.Message}", nameof(MainWindow));
+            PlaceholderAdUserCard.Visibility = Visibility.Visible;
+            BorderAdUserPagination.Visibility = Visibility.Collapsed;
+        }
+        finally
+        {
+            LoadingAdUserCard.Visibility = Visibility.Collapsed;
+            BtnConsultarUsuarioAd.IsEnabled = true;
+        }
+    }
+
+    private void PopulateAdUserDepartments()
+    {
+        _isPopulatingDeptFilter = true;
+        try
+        {
+            var depts = _allAdUsersFound
+                .Select(u => !string.IsNullOrWhiteSpace(u.Department) ? u.Department.Trim() : (!string.IsNullOrWhiteSpace(u.Office) ? u.Office.Trim() : ""))
+                .Where(d => !string.IsNullOrWhiteSpace(d))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(d => d)
+                .ToList();
+
+            var list = new List<string> { "Todos os Departamentos" };
+            list.AddRange(depts);
+
+            CmbAdUserDeptFilter.ItemsSource = list;
+            CmbAdUserDeptFilter.SelectedIndex = 0;
+        }
+        finally
+        {
+            _isPopulatingDeptFilter = false;
+        }
+    }
+
+    private void TxtAdUserLocalFilter_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (!IsLoaded) return;
+        ApplyAdUserFilters();
+    }
+
+    private void CmbAdUserFilter_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || _isPopulatingDeptFilter) return;
+        ApplyAdUserFilters();
+    }
+
+    private void BtnClearAdUserFilters_Click(object sender, RoutedEventArgs e)
+    {
+        _isPopulatingDeptFilter = true;
+        try
+        {
+            TxtAdUserLocalFilter.Clear();
+            if (CmbAdUserDeptFilter.Items.Count > 0)
+                CmbAdUserDeptFilter.SelectedIndex = 0;
+            CmbAdUserStatusFilter.SelectedIndex = 0;
+        }
+        finally
+        {
+            _isPopulatingDeptFilter = false;
+        }
+
+        ApplyAdUserFilters();
+    }
+
+    private void ApplyAdUserFilters()
+    {
+        if (ItemsAdUserResults == null || BorderAdUserPagination == null)
+            return;
+
+        if (_allAdUsersFound.Count == 0)
+        {
+            _filteredAdUsers.Clear();
+            RenderAdUsersPage();
+            return;
+        }
+
+        string textFilter = TxtAdUserLocalFilter?.Text.Trim().ToLowerInvariant() ?? "";
+        string selectedDept = CmbAdUserDeptFilter?.SelectedItem as string ?? "";
+        int statusIndex = CmbAdUserStatusFilter?.SelectedIndex ?? 0;
+
+        var query = _allAdUsersFound.AsEnumerable();
+
+        // 1. Filtro textual
+        if (!string.IsNullOrEmpty(textFilter))
+        {
+            query = query.Where(u =>
+                (u.SamAccountName != null && u.SamAccountName.ToLowerInvariant().Contains(textFilter)) ||
+                (u.DisplayName != null && u.DisplayName.ToLowerInvariant().Contains(textFilter)) ||
+                (u.CommonName != null && u.CommonName.ToLowerInvariant().Contains(textFilter)) ||
+                (u.Mail != null && u.Mail.ToLowerInvariant().Contains(textFilter)) ||
+                (u.Title != null && u.Title.ToLowerInvariant().Contains(textFilter)) ||
+                (u.Department != null && u.Department.ToLowerInvariant().Contains(textFilter)) ||
+                (u.Office != null && u.Office.ToLowerInvariant().Contains(textFilter)) ||
+                (u.EmployeeId != null && u.EmployeeId.ToLowerInvariant().Contains(textFilter)) ||
+                (u.Description != null && u.Description.ToLowerInvariant().Contains(textFilter))
+            );
+        }
+
+        // 2. Filtro por Departamento
+        if (!string.IsNullOrEmpty(selectedDept) && !selectedDept.StartsWith("Todos", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(u =>
+                string.Equals(u.Department?.Trim(), selectedDept, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(u.Office?.Trim(), selectedDept, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // 3. Filtro por Status da Conta
+        // 0: Todos, 1: Ativas, 2: Bloqueadas, 3: Desativadas, 4: Troca de Senha
+        if (statusIndex == 1)
+        {
+            query = query.Where(u => u.IsEnabled && !u.IsLockedOut);
+        }
+        else if (statusIndex == 2)
+        {
+            query = query.Where(u => u.IsLockedOut);
+        }
+        else if (statusIndex == 3)
+        {
+            query = query.Where(u => !u.IsEnabled);
+        }
+        else if (statusIndex == 4)
+        {
+            query = query.Where(u => u.MustChangePasswordNextLogon);
+        }
+
+        _filteredAdUsers.Clear();
+        _filteredAdUsers.AddRange(query);
+
+        _adUserCurrentPage = 1;
+        RenderAdUsersPage();
+    }
+
+    private void RenderAdUsersPage()
+    {
+        if (ItemsAdUserResults == null || BorderAdUserPagination == null ||
+            TxtAdUserPaginationSummary == null || TxtAdUserCurrentPageNumber == null ||
+            BtnAdUserPrevPage == null || BtnAdUserNextPage == null)
+            return;
+
+        if (_filteredAdUsers.Count == 0)
+        {
+            ItemsAdUserResults.ItemsSource = null;
+            TxtAdUserPaginationSummary.Text = _allAdUsersFound.Count > 0
+                ? $"Nenhum usuário corresponde aos filtros aplicados (de {_allAdUsersFound.Count} carregados)"
+                : "Nenhum usuário localizado";
+            TxtAdUserCurrentPageNumber.Text = "Página 0 / 0";
+            BtnAdUserPrevPage.IsEnabled = false;
+            BtnAdUserNextPage.IsEnabled = false;
+            BorderAdUserPagination.Visibility = _allAdUsersFound.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            return;
+        }
+
+        int totalUsers = _filteredAdUsers.Count;
+        int totalPages = (int)Math.Ceiling((double)totalUsers / AdUsersPageSize);
+        if (_adUserCurrentPage > totalPages) _adUserCurrentPage = totalPages;
+        if (_adUserCurrentPage < 1) _adUserCurrentPage = 1;
+
+        int startIndex = (_adUserCurrentPage - 1) * AdUsersPageSize;
+        var pageItems = _filteredAdUsers.Skip(startIndex).Take(AdUsersPageSize).ToList();
+
+        ItemsAdUserResults.ItemsSource = pageItems;
+
+        int endIndex = Math.Min(startIndex + pageItems.Count, totalUsers);
+        string filterNote = _filteredAdUsers.Count < _allAdUsersFound.Count
+            ? $" (filtrados de {_allAdUsersFound.Count})"
+            : "";
+
+        TxtAdUserPaginationSummary.Text = $"Exibindo {startIndex + 1}–{endIndex} de {totalUsers} usuário(s){filterNote}";
+        TxtAdUserCurrentPageNumber.Text = $"Página {_adUserCurrentPage} / {totalPages}";
+
+        BtnAdUserPrevPage.IsEnabled = _adUserCurrentPage > 1;
+        BtnAdUserNextPage.IsEnabled = _adUserCurrentPage < totalPages;
+
+        BorderAdUserPagination.Visibility = Visibility.Visible;
+    }
+
+    private void BtnAdUserPrevPage_Click(object sender, RoutedEventArgs e)
+    {
+        if (_adUserCurrentPage > 1)
+        {
+            _adUserCurrentPage--;
+            RenderAdUsersPage();
+        }
+    }
+
+    private void BtnAdUserNextPage_Click(object sender, RoutedEventArgs e)
+    {
+        int totalPages = (int)Math.Ceiling((double)_filteredAdUsers.Count / AdUsersPageSize);
+        if (_adUserCurrentPage < totalPages)
+        {
+            _adUserCurrentPage++;
+            RenderAdUsersPage();
+        }
+    }
+
+    private void BtnAdUserCopyLogin_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AdUserDetails user && !string.IsNullOrWhiteSpace(user.SamAccountName))
+        {
+            if (ClipboardHelper.Copy(user.SamAccountName))
+            {
+                TxtFooterStatus.Text = $"Login '{user.SamAccountName}' copiado para a Área de Transferência!";
+            }
+        }
+    }
+
+    private void BtnAdUserCopyMail_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AdUserDetails user)
+        {
+            string mail = !string.IsNullOrWhiteSpace(user.Mail) ? user.Mail : user.UserPrincipalName;
+            if (!string.IsNullOrWhiteSpace(mail) && ClipboardHelper.Copy(mail))
+            {
+                TxtFooterStatus.Text = $"E-mail '{mail}' copiado para a Área de Transferência!";
+            }
+            else
+            {
+                TxtFooterStatus.Text = "Nenhum endereço de e-mail cadastrado para este usuário.";
+            }
+        }
+    }
+
+    private void BtnAdUserCopyDn_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AdUserDetails user && !string.IsNullOrWhiteSpace(user.DistinguishedName))
+        {
+            if (ClipboardHelper.Copy(user.DistinguishedName))
+            {
+                TxtFooterStatus.Text = $"Distinguished Name (DN) de '{user.SamAccountName}' copiado!";
+            }
+        }
+    }
+
+    private void BtnAdUserCopyGroups_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AdUserDetails user)
+        {
+            string groupsText = user.Groups.Count > 0
+                ? string.Join(Environment.NewLine, user.Groups)
+                : "Nenhum grupo listado.";
+
+            if (ClipboardHelper.Copy(groupsText))
+            {
+                TxtFooterStatus.Text = $"Lista de {user.Groups.Count} grupo(s) de '{user.SamAccountName}' copiada!";
+            }
+        }
+    }
+
+    private void BtnAdUserCopyFullDossier_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AdUserDetails user)
+        {
+            if (ClipboardHelper.Copy(user.FormatFullDossier()))
+            {
+                TxtFooterStatus.Text = $"Ficha completa do usuário '{user.SamAccountName}' copiada para a Área de Transferência!";
+            }
+        }
+    }
+
+    private void BtnAdUserFindMachines_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is AdUserDetails user && !string.IsNullOrWhiteSpace(user.SamAccountName))
+        {
+            NavListBox.SelectedIndex = 2;
+            TxtComputerName.Text = user.SamAccountName;
+            TxtFooterStatus.Text = $"Localizando máquinas conectadas para o usuário '{user.SamAccountName}'...";
+            BtnConsultarRemoto_Click(this, new RoutedEventArgs());
+        }
+    }
+    #endregion
+
+    #region Painel 11: Bancada Streamlit (Docker WSL)
+    private async Task CheckBancadaStatusAsync()
+    {
+        TxtBancadaDetails.Text = $"URL: {ConfigService.UrlBancadaLocal} | WSL: {ConfigService.BancadaWslDistro} ({ConfigService.BancadaWslDir})";
+        TxtBancadaStatus.Text = "⚪ Verificando...";
+        BadgeBancadaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1e293b"));
+
+        bool online = await _bancadaService.IsBancadaOnlineAsync();
+        if (online)
+        {
+            TxtBancadaStatus.Text = "🟢 ONLINE (Streamlit 8501)";
+            TxtBancadaStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34d399"));
+            BadgeBancadaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#064e3b"));
+            TxtFooterStatus.Text = "Sistema Bancada STI está online em http://localhost:8501/";
+        }
+        else
+        {
+            TxtBancadaStatus.Text = "🔴 OFFLINE / PARADO";
+            TxtBancadaStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#f87171"));
+            BadgeBancadaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#7f1d1d"));
+            TxtFooterStatus.Text = "Sistema Bancada STI está parado.";
+        }
+    }
+
+    private async void BtnStartBancada_Click(object sender, RoutedEventArgs e)
+    {
+        BtnStartBancada.IsEnabled = false;
+        BtnStopBancada.IsEnabled = false;
+        BtnRestartBancada.IsEnabled = false;
+        TxtFooterStatus.Text = "Iniciando containers Docker da Bancada via WSL...";
+        AppendColoredLog(RichBancadaLogs, "=== INICIALIZANDO SISTEMA BANCADA STI (DOCKER WSL) ===");
+        AppendColoredLog(RichBancadaLogs, $"WSL Distro: {ConfigService.BancadaWslDistro}");
+        AppendColoredLog(RichBancadaLogs, $"Diretório: {ConfigService.BancadaWslDir}");
+        AppendColoredLog(RichBancadaLogs, $"Comando: docker compose up -d");
+
+        _ = Task.Run(async () =>
+        {
+            await _bancadaService.StartDockerBancadaAsync(msg =>
+            {
+                Dispatcher.Invoke(() => AppendColoredLog(RichBancadaLogs, msg));
+            });
+        });
+
+        // Espera 3 segundos para reativar botões e checar status
+        await Task.Delay(3500);
+        BtnStartBancada.IsEnabled = true;
+        BtnStopBancada.IsEnabled = true;
+        BtnRestartBancada.IsEnabled = true;
+        await CheckBancadaStatusAsync();
+    }
+
+    private async void BtnStopBancada_Click(object sender, RoutedEventArgs e)
+    {
+        BtnStartBancada.IsEnabled = false;
+        BtnStopBancada.IsEnabled = false;
+        BtnRestartBancada.IsEnabled = false;
+        TxtFooterStatus.Text = "Parando containers Docker da Bancada...";
+        AppendColoredLog(RichBancadaLogs, "=== PARANDO CONTAINERS (DOCKER COMPOSE DOWN) ===");
+
+        await _bancadaService.StopDockerBancadaAsync(msg =>
+        {
+            Dispatcher.Invoke(() => AppendColoredLog(RichBancadaLogs, msg));
+        });
+
+        BtnStartBancada.IsEnabled = true;
+        BtnStopBancada.IsEnabled = true;
+        BtnRestartBancada.IsEnabled = true;
+        await CheckBancadaStatusAsync();
+        TxtFooterStatus.Text = "Containers da Bancada encerrados.";
+    }
+
+    private async void BtnRestartBancada_Click(object sender, RoutedEventArgs e)
+    {
+        BtnStartBancada.IsEnabled = false;
+        BtnStopBancada.IsEnabled = false;
+        BtnRestartBancada.IsEnabled = false;
+        TxtFooterStatus.Text = "Reiniciando stack Docker da Bancada...";
+        AppendColoredLog(RichBancadaLogs, "=== REINICIANDO CONTAINERS DOCKER ===");
+
+        await _bancadaService.RestartDockerBancadaAsync(msg =>
+        {
+            Dispatcher.Invoke(() => AppendColoredLog(RichBancadaLogs, msg));
+        });
+
+        await Task.Delay(3000);
+        BtnStartBancada.IsEnabled = true;
+        BtnStopBancada.IsEnabled = true;
+        BtnRestartBancada.IsEnabled = true;
+        await CheckBancadaStatusAsync();
+    }
+
+    private void BtnOpenBancadaBrowser_Click(object sender, RoutedEventArgs e)
+    {
+        string url = ConfigService.UrlBancadaLocal;
+        if (string.IsNullOrWhiteSpace(url)) url = "http://localhost:8501/";
+        _browserLauncherService.OpenUrlsInFirefox([url]);
+        TxtFooterStatus.Text = $"Abrindo Bancada no navegador: {url}";
+    }
+
+    private async void BtnCheckBancadaHealth_Click(object sender, RoutedEventArgs e)
+    {
+        await CheckBancadaStatusAsync();
+    }
+
+    private void BtnClearBancadaLogs_Click(object sender, RoutedEventArgs e)
+    {
+        RichBancadaLogs.Document.Blocks.Clear();
+    }
+
+    private void BtnOpenBancadaFolder_Click(object sender, RoutedEventArgs e)
+    {
+        string path = ConfigService.BancadaWindowsDir;
+        if (Directory.Exists(path))
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"\"{path}\"",
+                UseShellExecute = true
+            });
+            TxtFooterStatus.Text = $"Pasta da Bancada aberta no Windows Explorer: {path}";
+        }
+        else
+        {
+            System.Windows.MessageBox.Show($"O caminho da pasta da Bancada não foi encontrado:\n{path}", "Pasta Não Localizada", System.Windows.MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
     #endregion

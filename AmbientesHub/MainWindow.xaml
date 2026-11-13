@@ -115,7 +115,19 @@
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 1: Acesso Remoto -->
+                            <!-- Item 1: Consulta de Usuários AD -->
+                            <ListBoxItem ToolTip="Consulta Completa de Usuários no Active Directory">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:SymbolIcon Grid.Column="0" Symbol="PersonSearch24" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="NavLbl1" Grid.Column="1" Text="Consulta Usuários AD" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 2: Acesso Remoto -->
                             <ListBoxItem ToolTip="Acesso Remoto">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -123,11 +135,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="🖥️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl1" Grid.Column="1" Text="Acesso Remoto" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl2" Grid.Column="1" Text="Acesso Remoto" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 2: Limpeza AD & SCCM -->
+                            <!-- Item 3: Limpeza AD & SCCM -->
                             <ListBoxItem ToolTip="Limpeza AD &amp; SCCM">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -135,11 +147,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="🗑️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl2" Grid.Column="1" Text="Limpeza AD &amp; SCCM" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl3" Grid.Column="1" Text="Limpeza AD &amp; SCCM" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 3: Saneamento de Recursos -->
+                            <!-- Item 4: Saneamento de Recursos -->
                             <ListBoxItem ToolTip="Saneamento de Recursos">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -147,11 +159,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="🧹" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl3" Grid.Column="1" Text="Saneamento de Recursos" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl4" Grid.Column="1" Text="Saneamento de Recursos" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 4: Performance & Auditoria -->
+                            <!-- Item 5: Performance & Auditoria -->
                             <ListBoxItem ToolTip="Performance &amp; Auditoria">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -159,11 +171,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl4" Grid.Column="1" Text="Performance &amp; Auditoria" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl5" Grid.Column="1" Text="Performance &amp; Auditoria" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 5: Apps & Provisionamento -->
+                            <!-- Item 6: Apps & Provisionamento -->
                             <ListBoxItem ToolTip="Apps &amp; Provisionamento">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -171,11 +183,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="📦" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl5" Grid.Column="1" Text="Apps &amp; Provisionamento" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl6" Grid.Column="1" Text="Apps &amp; Provisionamento" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 6: Analisador de Máquina -->
+                            <!-- Item 7: Analisador de Máquina -->
                             <ListBoxItem ToolTip="Analisador de Dispositivos (HTML, PDF &amp; Excel)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -183,11 +195,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="📊" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl6" Grid.Column="1" Text="Analisador de Máquina" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl7" Grid.Column="1" Text="Analisador de Máquina" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 7: Manutenção & Limpeza Remota -->
+                            <!-- Item 8: Manutenção & Limpeza Remota -->
                             <ListBoxItem ToolTip="Manutenção &amp; Limpeza Remota">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -195,11 +207,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="🧽" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl7" Grid.Column="1" Text="Manutenção Remota" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl8" Grid.Column="1" Text="Manutenção Remota" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 8: Perfis de Usuários Remotos -->
+                            <!-- Item 9: Perfis de Usuários Remotos -->
                             <ListBoxItem ToolTip="Limpeza de Perfis de Usuários Remotos">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -207,11 +219,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="👥" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl8" Grid.Column="1" Text="Perfis de Usuários" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl9" Grid.Column="1" Text="Perfis de Usuários" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 9: Configurações & Credenciais -->
+                            <!-- Item 10: Configurações & Credenciais -->
                             <ListBoxItem ToolTip="Configurações &amp; Credenciais">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -219,7 +231,19 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl9" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl10" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 11: Bancada Streamlit (Docker WSL) -->
+                            <ListBoxItem ToolTip="Bancada Streamlit (Docker WSL - localhost:8501)">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🐳" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl11" Grid.Column="1" Text="Bancada Docker (8501)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
                         </ListBox>
@@ -338,7 +362,7 @@
                                 <ItemsControl x:Name="ItemsMachineResults">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{Binding CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
                                                 <Grid>
                                                     <Grid.RowDefinitions>
                                                         <RowDefinition Height="Auto" />
@@ -355,8 +379,8 @@
 
                                                         <StackPanel Grid.Column="0">
                                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                                <Border CornerRadius="4" Padding="8,3" Margin="0,0,10,0" Background="#064e3b">
-                                                                    <TextBlock Text="{Binding OnlineBadgeText}" FontSize="11" FontWeight="Bold" Foreground="#34d399" />
+                                                                <Border CornerRadius="4" Padding="8,3" Margin="0,0,10,0" Background="{Binding OnlineBadgeBackground}">
+                                                                    <TextBlock Text="{Binding OnlineBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding OnlineBadgeForeground}" />
                                                                 </Border>
                                                                 <TextBlock Text="{Binding ComputerName}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
                                                                 <ui:Button Appearance="Transparent" ToolTip="Copiar Nome da Máquina" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyMachine_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" />
@@ -400,7 +424,7 @@
                                                                 <TextBlock Text="{Binding PrimaryUserDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,10" TextTrimming="CharacterEllipsis" />
 
                                                                 <TextBlock Text="Endereço IP &amp; Latência:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                                                <Grid Margin="0,2,0,0">
+                                                                <Grid Margin="0,2,0,10">
                                                                     <Grid.ColumnDefinitions>
                                                                         <ColumnDefinition Width="*" />
                                                                         <ColumnDefinition Width="Auto" />
@@ -408,6 +432,9 @@
                                                                     <TextBlock Text="{Binding IpWithLatency}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
                                                                     <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar Endereço IP" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyIp_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
                                                                 </Grid>
+
+                                                                <TextBlock Text="Localidade Provável (Setor / Sala / OU):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding EstimatedLocationDisplay}" FontSize="12" FontWeight="SemiBold" Foreground="#38bdf8" Margin="0,2,0,0" TextWrapping="Wrap" />
                                                             </StackPanel>
                                                         </Border>
 
@@ -1017,7 +1044,272 @@
                         </Border>
                     </Grid>
 
-                    <!-- PAINEL 9: CONFIGURAÇÕES & COFRE -->
+                    <!-- PAINEL 9: CONSULTA DE USUÁRIOS ACTIVE DIRECTORY -->
+                    <Grid x:Name="PanelUsuariosAd" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+                            <TextBlock Text="Consulta de Usuários no Active Directory" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Pesquise por login (ex: usuario.sobrenome), nome completo, e-mail, setor, cargo ou matrícula com carregamento assíncrono completo." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <!-- Barra de Consulta Ampla de Usuários AD -->
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <ui:TextBox x:Name="TxtAdUserQuery" Grid.Column="0" PlaceholderText="Pesquise por login (ex: usuario.sobrenome), nome completo, e-mail, departamento ou matrícula..." Margin="0,0,10,0" KeyDown="TxtAdUserQuery_KeyDown" Height="38" />
+                                <ui:Button x:Name="BtnConsultarUsuarioAd" Grid.Column="1" Appearance="Primary" Content="Consultar no AD" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnConsultarUsuarioAd_Click" Padding="18,9" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Barra de Paginação, Filtros em Tempo Real & Navegação Rápida -->
+                        <Border x:Name="BorderAdUserPagination" Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14,12" Margin="0,12,0,0" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Linha 0: Controles de Filtros Rápidos Locais (Departamento, Status da Conta e Pesquisa Instantânea) -->
+                                <Grid Grid.Row="0" Margin="0,0,0,10">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="220" />
+                                        <ColumnDefinition Width="180" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Filtro textual instantâneo -->
+                                    <ui:TextBox x:Name="TxtAdUserLocalFilter" Grid.Column="0" PlaceholderText="Filtrar por nome, cargo, matrícula, e-mail..." TextChanged="TxtAdUserLocalFilter_TextChanged" Margin="0,0,8,0" Height="34" />
+
+                                    <!-- Filtro por Departamento / Setor -->
+                                    <ComboBox x:Name="CmbAdUserDeptFilter" Grid.Column="1" SelectionChanged="CmbAdUserFilter_SelectionChanged" Margin="0,0,8,0" Height="34" />
+
+                                    <!-- Filtro por Status da Conta (Todas, Ativas, Bloqueadas, Desativadas) -->
+                                    <ComboBox x:Name="CmbAdUserStatusFilter" Grid.Column="2" SelectionChanged="CmbAdUserFilter_SelectionChanged" Margin="0,0,8,0" Height="34">
+                                        <ComboBoxItem Content="Todos os Status" />
+                                        <ComboBoxItem Content="🟢 Apenas Ativas" />
+                                        <ComboBoxItem Content="🔒 Apenas Bloqueadas" />
+                                        <ComboBoxItem Content="🔴 Apenas Desativadas" />
+                                        <ComboBoxItem Content="🟡 Troca de Senha" />
+                                    </ComboBox>
+
+                                    <!-- Limpar Filtros -->
+                                    <ui:Button x:Name="BtnClearAdUserFilters" Grid.Column="3" Content="Limpar Filtros" Icon="{ui:SymbolIcon Symbol=Dismiss24}" Click="BtnClearAdUserFilters_Click" Padding="10,6" />
+                                </Grid>
+
+                                <Separator Grid.Row="1" Margin="0,0,0,8" />
+
+                                <!-- Linha 2: Indicador de Paginação e Botões Anterior / Próxima -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="TxtAdUserPaginationSummary" Grid.Column="0" Text="Mostrando página 1 de 1" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:Button x:Name="BtnAdUserPrevPage" Content="Anterior" Icon="{ui:SymbolIcon Symbol=ArrowLeft24}" Click="BtnAdUserPrevPage_Click" Margin="0,0,8,0" Padding="12,6" />
+                                        <TextBlock x:Name="TxtAdUserCurrentPageNumber" Text="Página 1 / 1" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="6,0,14,0" />
+                                        <ui:Button x:Name="BtnAdUserNextPage" Content="Próxima" Icon="{ui:SymbolIcon Symbol=ArrowRight24}" Click="BtnAdUserNextPage_Click" Padding="12,6" />
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Conteúdo Scrollável: Lista de Fichas de Usuários + Console de Diagnóstico LDAP -->
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,12,0,0">
+                            <StackPanel>
+
+                                <!-- Card de Placeholder (Antes da consulta) -->
+                                <Border x:Name="PlaceholderAdUserCard" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="30" Margin="0,0,0,12" Visibility="Visible">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="🪪" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                        <TextBlock Text="Consulta Completa de Identidades &amp; Grupos no AD" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="Digite parte do login (ex: usuario.sobrenome), o nome do servidor/colaborador, e-mail ou departamento para inspecionar status da conta, bloqueios, datas de último logon, expiração de senha, OU e todos os grupos de segurança (memberOf)." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextAlignment="Center" Margin="0,6,0,0" MaxWidth="650" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Card de Carregamento (Durante a consulta assíncrona) -->
+                                <Border x:Name="LoadingAdUserCard" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="25" Margin="0,0,0,12" Visibility="Collapsed">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="⏳" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                                        <TextBlock Text="Consultando controlador de domínio Active Directory (LDAP)..." FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" HorizontalAlignment="Center" />
+                                        <TextBlock Text="Aguarde enquanto coletamos atributos organizacionais, políticas de senha, contadores de logon e grupos." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Lista de Resultados Dinâmicos de Usuários (ItemsControl) -->
+                                <ItemsControl x:Name="ItemsAdUserResults">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource AccentFillColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,14">
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                        <RowDefinition Height="Auto" />
+                                                    </Grid.RowDefinitions>
+
+                                                    <!-- Cabeçalho do Card: Badge de Status, Nome Completo, Login/UPN e Ações Rápidas -->
+                                                    <Grid Grid.Row="0" Margin="0,0,0,14">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0">
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border CornerRadius="4" Padding="8,3" Margin="0,0,10,0" Background="{Binding StatusBadgeBackground}">
+                                                                    <TextBlock Text="{Binding StatusBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding HeaderNameDisplay}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                <ui:Button Appearance="Transparent" ToolTip="Copiar Login (sAMAccountName)" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyLogin_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" />
+                                                            </StackPanel>
+                                                            <TextBlock Text="{Binding SamAndUpnDisplay}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <ui:Button Appearance="Primary" Content="Buscar Máquinas deste Usuário" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnAdUserFindMachines_Click" ToolTip="Pesquisar estações onde este usuário está conectado no módulo de Acesso Remoto" Margin="0,0,8,0" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Copiar Ficha Completa" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyFullDossier_Click" ToolTip="Copiar todos os dados do usuário para a Área de Transferência" Margin="0,0,8,0" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Copiar Grupos" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyGroups_Click" ToolTip="Copiar lista de grupos (memberOf) do usuário" Padding="14,8" />
+                                                        </StackPanel>
+                                                    </Grid>
+
+                                                    <Separator Grid.Row="1" Margin="0,0,0,14" />
+
+                                                    <!-- Corpo: 3 Colunas de Dados do Active Directory -->
+                                                    <Grid Grid.Row="2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="*" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- Bloco 1: Identificação, Contato & Lotação -->
+                                                        <Border Grid.Column="0" Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14" Margin="0,0,8,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="👤 IDENTIFICAÇÃO &amp; LOTAÇÃO" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                                                <TextBlock Text="Login de Rede (sAMAccountName):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <Grid Margin="0,2,0,8">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding SamAccountName}" FontSize="14" FontWeight="Bold" Foreground="#38bdf8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar Login" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyLogin_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                </Grid>
+
+                                                                <TextBlock Text="E-mail Corporativo:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <Grid Margin="0,2,0,8">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding MailDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding MailDisplay}" />
+                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar E-mail" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyMail_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                </Grid>
+
+                                                                <TextBlock Text="Cargo / Função:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding TitleDisplay}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                                                                <TextBlock Text="Departamento / Lotação / Órgão:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding DepartmentAndOfficeDisplay}" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                                                                <TextBlock Text="Telefones &amp; Matrícula:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding PhonesDisplay}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                                                                <TextBlock Text="Descrição (AD):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding DescriptionDisplay}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Border>
+
+                                                        <!-- Bloco 2: Segurança, Senha & Auditoria -->
+                                                        <Border Grid.Column="1" Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14" Margin="0,0,8,0">
+                                                            <StackPanel>
+                                                                <TextBlock Text="🔐 SEGURANÇA, SENHA &amp; SESSÃO" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                                                <TextBlock Text="Política de Senha &amp; Controle (UAC):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding PasswordPolicyDisplay}" FontSize="13" FontWeight="SemiBold" Foreground="#34d399" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                                                                <TextBlock Text="Último Logon no Domínio:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding LastLogonDisplay}" FontSize="13" FontWeight="Bold" Foreground="#38bdf8" Margin="0,2,0,8" />
+
+                                                                <TextBlock Text="Última Alteração de Senha (pwdLastSet):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding PasswordLastSetDisplay}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,8" />
+
+                                                                <TextBlock Text="Expiração da Conta:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding AccountExpiresDisplay}" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,8" />
+
+                                                                <TextBlock Text="Contadores de Autenticação:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding AuditCountersDisplay}" FontSize="12" FontWeight="SemiBold" Foreground="#f59e0b" Margin="0,2,0,8" />
+
+                                                                <TextBlock Text="Gestor / Responsável (Manager):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding ManagerDisplay}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding ManagerDn}" />
+                                                            </StackPanel>
+                                                        </Border>
+
+                                                        <!-- Bloco 3: Diretório, Caminhos & Grupos (memberOf) -->
+                                                        <Border Grid.Column="2" Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14">
+                                                            <StackPanel>
+                                                                <TextBlock Text="🏛️ DIRETÓRIO, PERFIL &amp; GRUPOS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                                                                <TextBlock Text="Criação &amp; Última Modificação:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding CreatedAndChangedDisplay}" FontSize="12" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                                                                <TextBlock Text="Unidade Organizacional (OU / DN):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <Grid Margin="0,2,0,8">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="*" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <TextBlock Text="{Binding OrganizationalUnitDisplay}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding DistinguishedName}" />
+                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar Distinguished Name (DN) Completo" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyDn_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                </Grid>
+
+                                                                <TextBlock Text="Script de Logon &amp; Diretório Base:" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                                <TextBlock Text="{Binding ProfileAndPathsDisplay}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,2,0,10" TextWrapping="Wrap" />
+
+                                                                <TextBlock Text="{Binding GroupsHeaderDisplay}" FontSize="11" FontWeight="Bold" Foreground="#38bdf8" Margin="0,0,0,4" />
+                                                                <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="4" Padding="8,6" MaxHeight="110">
+                                                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                                        <TextBox Text="{Binding GroupsDisplay, Mode=OneWay}" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="11" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                                                    </ScrollViewer>
+                                                                </Border>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Console de Log para Diagnóstico de Consulta LDAP -->
+                                <Border Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="12" MinHeight="80" MaxHeight="130">
+                                    <RichTextBox x:Name="RichAdUsersLogs" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                        <FlowDocument />
+                                    </RichTextBox>
+                                </Border>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- PAINEL 10: CONFIGURAÇÕES & COFRE -->
                     <Grid x:Name="PanelConfig" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -1162,6 +1454,12 @@
                                     <TextBlock Text="URL Bancada Local (WSL / Docker):" FontWeight="Medium" Margin="0,0,0,4" />
                                     <ui:TextBox x:Name="TxtCfgBancada" PlaceholderText="http://localhost:8501/" Margin="0,0,0,12" />
 
+                                    <TextBlock Text="Caminho WSL da Bancada (Linux):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgBancadaWslDir" PlaceholderText="/home/usuario/PythonProjects/automated-OTRS-and-CitSmart" Margin="0,0,0,12" />
+
+                                    <TextBlock Text="Distribuição WSL da Bancada:" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <ui:TextBox x:Name="TxtCfgBancadaWslDistro" PlaceholderText="Ubuntu-26.04" Margin="0,0,0,12" />
+
                                     <TextBlock Text="Argumentos PWA do WhatsApp Firefox:" FontWeight="Medium" Margin="0,0,0,4" />
                                     <ui:TextBox x:Name="TxtCfgWhatsapp" PlaceholderText="-taskbar-tab ... -profile ..." Margin="0,0,0,16" />
 
@@ -1206,6 +1504,75 @@
                                 </StackPanel>
                             </Border>
                         </ScrollViewer>
+                    </Grid>
+
+                    <!-- PAINEL 11: BANCADA STREAMLIT (DOCKER WSL) -->
+                    <Grid x:Name="PanelBancada" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Sistema Bancada STI (Streamlit Docker / WSL)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="Gerenciamento de containers Docker, inicialização do Streamlit (localhost:8501) e monitoramento de logs em tempo real." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            </StackPanel>
+                            <Border x:Name="BadgeBancadaStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b">
+                                <TextBlock x:Name="TxtBancadaStatus" Text="⚪ Verificando..." FontSize="12" FontWeight="Bold" Foreground="#94a3b8" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Barra de Ações Rápidas -->
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <WrapPanel Grid.Row="0" Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnStartBancada" Appearance="Primary" Content="Iniciar Docker Bancada" Icon="{ui:SymbolIcon Symbol=Play24}" Click="BtnStartBancada_Click" Margin="0,0,10,8" Padding="16,9" />
+                                    <ui:Button x:Name="BtnStopBancada" Appearance="Danger" Content="Parar Docker (Down)" Icon="{ui:SymbolIcon Symbol=Stop24}" Click="BtnStopBancada_Click" Margin="0,0,10,8" Padding="16,9" />
+                                    <ui:Button x:Name="BtnRestartBancada" Appearance="Secondary" Content="Reiniciar Bancada" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnRestartBancada_Click" Margin="0,0,10,8" Padding="16,9" />
+                                    <ui:Button x:Name="BtnOpenBancadaBrowser" Appearance="Secondary" Content="Abrir no Firefox / Navegador" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnOpenBancadaBrowser_Click" Margin="0,0,10,8" Padding="16,9" />
+                                    <ui:Button x:Name="BtnCheckBancadaHealth" Appearance="Transparent" Content="Checar Status" Icon="{ui:SymbolIcon Symbol=HeartPulse24}" Click="BtnCheckBancadaHealth_Click" Margin="0,0,10,8" Padding="14,9" />
+                                    <ui:Button x:Name="BtnClearBancadaLogs" Appearance="Transparent" Content="Limpar Console" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnClearBancadaLogs_Click" Margin="0,0,0,8" Padding="14,9" />
+                                </WrapPanel>
+
+                                <Grid Grid.Row="1" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="TxtBancadaDetails" Grid.Column="0" Text="URL: http://localhost:8501/ | WSL: Ubuntu-26.04" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <ui:Button x:Name="BtnOpenBancadaFolder" Grid.Column="1" Appearance="Transparent" Content="Abrir Pasta no Windows" Icon="{ui:SymbolIcon Symbol=Folder24}" Click="BtnOpenBancadaFolder_Click" Padding="10,4" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Console / Terminal de Logs do Docker -->
+                        <Border Grid.Row="2" Margin="0,15,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <TextBlock Text="Terminal / Logs do Docker Compose (Web &amp; PostgreSQL)" FontSize="12" FontWeight="SemiBold" Foreground="#38bdf8" />
+                                    <TextBlock Text="Logs em tempo real" HorizontalAlignment="Right" FontSize="11" Foreground="#64748b" />
+                                </Grid>
+                                <RichTextBox x:Name="RichBancadaLogs" Grid.Row="1" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" FontFamily="Consolas, Cascadia Code, Courier New" VerticalScrollBarVisibility="Auto">
+                                    <FlowDocument />
+                                </RichTextBox>
+                            </Grid>
+                        </Border>
                     </Grid>
 
                 </Grid>

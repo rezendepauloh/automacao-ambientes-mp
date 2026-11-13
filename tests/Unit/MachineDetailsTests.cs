@@ -82,7 +82,45 @@ public class MachineDetailsTests
 
         Assert.Contains("ONLINE", online.OnlineBadgeText);
         Assert.Contains("10.0.0.1", online.OnlineBadgeText);
+        Assert.Equal("#064e3b", online.OnlineBadgeBackground);
+        Assert.Equal("#34d399", online.OnlineBadgeForeground);
+        Assert.Equal("#10b981", online.CardBorderBrush);
+
         Assert.Contains("OFFLINE", offlineWithIp.OnlineBadgeText);
+        Assert.Equal("#7f1d1d", offlineWithIp.OnlineBadgeBackground);
+        Assert.Equal("#f87171", offlineWithIp.OnlineBadgeForeground);
+        Assert.Equal("#ef4444", offlineWithIp.CardBorderBrush);
+
         Assert.Contains("INACESSÍVEL", inaccessible.OnlineBadgeText);
+        Assert.Equal("#7f1d1d", inaccessible.OnlineBadgeBackground);
+        Assert.Equal("#f87171", inaccessible.OnlineBadgeForeground);
+        Assert.Equal("#ef4444", inaccessible.CardBorderBrush);
+    }
+
+    [Fact]
+    public void EstimatedLocationDisplay_ResolvesLocationHierarchy()
+    {
+        var withUserDept = new MachineDetails
+        {
+            UserDepartment = "Divisao de Redes",
+            UserOffice = "Bloco B - Sala 204"
+        };
+        Assert.Equal("Divisao de Redes • Bloco B - Sala 204", withUserDept.EstimatedLocationDisplay);
+
+        var withMachineLocation = new MachineDetails
+        {
+            Location = "Sede PGJ",
+            UserDepartment = "Divisao de Redes"
+        };
+        Assert.Equal("Sede PGJ • Divisao de Redes", withMachineLocation.EstimatedLocationDisplay);
+
+        var withOuFallback = new MachineDetails
+        {
+            DistinguishedName = "CN=PC-01,OU=Estacoes,OU=Promotorias,DC=dominio,DC=local"
+        };
+        Assert.Equal("OU: Estacoes / Promotorias", withOuFallback.EstimatedLocationDisplay);
+
+        var empty = new MachineDetails();
+        Assert.Equal("Localidade não identificada", empty.EstimatedLocationDisplay);
     }
 }

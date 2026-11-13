@@ -312,7 +312,7 @@ if ($devices.Count -gt 0) {{
             {
                 using var searcher = new DirectorySearcher();
                 searcher.Filter = $"(&(objectCategory=computer)(|(cn=*{cleanQuery}*)(sAMAccountName=*{cleanQuery}*)(description=*{cleanQuery}*)))";
-                searcher.PropertiesToLoad.AddRange(["cn", "dNSHostName", "operatingSystem", "distinguishedName", "whenCreated", "description"]);
+                searcher.PropertiesToLoad.AddRange(["cn", "dNSHostName", "operatingSystem", "distinguishedName", "whenCreated", "description", "location"]);
                 searcher.SizeLimit = 20;
 
                 var allResults = searcher.FindAll();
@@ -334,6 +334,7 @@ if ($devices.Count -gt 0) {{
                     item.OperatingSystem = entry.Properties["operatingSystem"].Value?.ToString() ?? "Windows";
                     item.DistinguishedName = entry.Properties["distinguishedName"].Value?.ToString() ?? "";
                     item.WhenCreated = entry.Properties["whenCreated"].Value?.ToString() ?? "";
+                    item.Location = entry.Properties["location"].Value?.ToString() ?? "";
                 }
                 Log($"  [OK] {allResults.Count} máquina(s) localizada(s) no Active Directory.");
             }
@@ -448,7 +449,33 @@ if ($devices.Count -gt 0) {{
                 }
             }
 
-            // 3. Verificação de Conectividade de Rede Paralela (Ping com prioridade IPv4)
+            // 3. Resolução de Localidade por Usuário Conectado/Primário no AD
+            var usersToResolve = resultsDict.Values
+                .Select(m => !string.IsNullOrWhiteSpace(m.CurrentLogonUser) ? m.CurrentLogonUser : m.PrimaryUser)
+                .Select(NormalizeAdUserQuery)
+                .Where(u => !string.IsNullOrWhiteSpace(u))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (usersToResolve.Count > 0)
+            {
+                try
+                {
+                    var userLocMap = ResolveUsersLocationFromAd(usersToResolve);
+                    foreach (var m in resultsDict.Values)
+                    {
+                        string user = NormalizeAdUserQuery(!string.IsNullOrWhiteSpace(m.CurrentLogonUser) ? m.CurrentLogonUser : m.PrimaryUser);
+                        if (!string.IsNullOrEmpty(user) && userLocMap.TryGetValue(user, out var locData))
+                        {
+                            m.UserDepartment = locData.dept;
+                            m.UserOffice = locData.office;
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // 4. Verificação de Conectividade de Rede Paralela (Ping com prioridade IPv4)
             Log($"[3/3] Diagnosticando status de rede de {resultsDict.Count} máquina(s)...");
             var pingTasks = resultsDict.Values.Select(async item =>
             {
@@ -684,5 +711,386 @@ foreach ($dev in $all) {{
         {
             AppLoggerService.Warning($"Erro ao buscar SCCM via CMSite: {ex.Message}", nameof(AdSccmService));
         }
+    }
+
+    public static Dictionary<string, (string dept, string office)> ResolveUsersLocationFromAd(IEnumerable<string> usernames)
+    {
+        var map = new Dictionary<string, (string dept, string office)>(StringComparer.OrdinalIgnoreCase);
+        var cleanList = usernames
+            .Select(NormalizeAdUserQuery)
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(25)
+            .ToList();
+
+        if (cleanList.Count == 0) return map;
+
+        try
+        {
+            string userFilterParts = string.Join("", cleanList.Select(u => $"(sAMAccountName={EscapeLdapFilterValue(u)})"));
+            string filter = $"(&(objectCategory=person)(objectClass=user)(|{userFilterParts}))";
+
+            using var searcher = new DirectorySearcher
+            {
+                Filter = filter,
+                SizeLimit = cleanList.Count + 5
+            };
+            searcher.PropertiesToLoad.AddRange(["sAMAccountName", "department", "physicalDeliveryOfficeName"]);
+
+            using var results = searcher.FindAll();
+            foreach (SearchResult res in results)
+            {
+                string sam = GetResultString(res, "sAMAccountName");
+                if (string.IsNullOrEmpty(sam)) continue;
+
+                string dept = GetResultString(res, "department");
+                string office = GetResultString(res, "physicalDeliveryOfficeName");
+                map[sam] = (dept, office);
+            }
+        }
+        catch { }
+
+        return map;
+    }
+
+    public static string NormalizeAdUserQuery(string? rawQuery)
+    {
+        if (string.IsNullOrWhiteSpace(rawQuery))
+            return string.Empty;
+
+        string clean = rawQuery.Trim();
+        int slashIdx = clean.IndexOf('\\');
+        if (slashIdx >= 0 && slashIdx + 1 < clean.Length)
+        {
+            clean = clean[(slashIdx + 1)..].Trim();
+        }
+
+        return clean;
+    }
+
+    public static string EscapeLdapFilterValue(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+
+        return value
+            .Replace(@"\", @"\5c")
+            .Replace("*", @"\2a")
+            .Replace("(", @"\28")
+            .Replace(")", @"\29")
+            .Replace("\0", @"\00");
+    }
+
+    public static string BuildAdUserLdapFilter(string? rawQuery)
+    {
+        string normalized = NormalizeAdUserQuery(rawQuery);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
+        var words = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string wildcardPattern = words.Length > 1
+            ? string.Join("*", words.Select(EscapeLdapFilterValue))
+            : EscapeLdapFilterValue(normalized);
+
+        return $"(&(objectCategory=person)(objectClass=user)(|(sAMAccountName=*{wildcardPattern}*)(cn=*{wildcardPattern}*)(displayName=*{wildcardPattern}*)(mail=*{wildcardPattern}*)(userPrincipalName=*{wildcardPattern}*)(department=*{wildcardPattern}*)(title=*{wildcardPattern}*)(employeeID=*{wildcardPattern}*)(description=*{wildcardPattern}*)))";
+    }
+
+    public static bool TryConvertAdLargeInteger(object? rawValue, out long fileTime)
+    {
+        fileTime = 0;
+        if (rawValue == null) return false;
+
+        if (rawValue is long l)
+        {
+            fileTime = l;
+            return true;
+        }
+
+        if (rawValue is int i)
+        {
+            fileTime = i;
+            return true;
+        }
+
+        if (rawValue is string s && long.TryParse(s, out long parsed))
+        {
+            fileTime = parsed;
+            return true;
+        }
+
+        try
+        {
+            var type = rawValue.GetType();
+            var highProp = type.GetProperty("HighPart");
+            var lowProp = type.GetProperty("LowPart");
+            if (highProp != null && lowProp != null)
+            {
+                int high = Convert.ToInt32(highProp.GetValue(rawValue));
+                int low = Convert.ToInt32(lowProp.GetValue(rawValue));
+                fileTime = ((long)high << 32) | (uint)low;
+                return true;
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+    public static string FormatAdFileTime(long fileTime, bool isAccountExpires = false)
+    {
+        if (isAccountExpires)
+        {
+            // 0 ou Int64.MaxValue (9223372036854775807) indicam que a conta nunca expira no AD
+            if (fileTime <= 0 || fileTime == long.MaxValue)
+                return "Nunca expira";
+        }
+        else
+        {
+            if (fileTime <= 0)
+                return string.Empty;
+        }
+
+        try
+        {
+            var dt = DateTime.FromFileTime(fileTime);
+            if (dt.Year <= 1601 || dt.Year >= 9999)
+                return isAccountExpires ? "Nunca expira" : string.Empty;
+
+            return dt.ToString("dd/MM/yyyy HH:mm");
+        }
+        catch
+        {
+            return isAccountExpires ? "Nunca expira" : string.Empty;
+        }
+    }
+
+    public static (bool isEnabled, bool isLockedOut, bool passwordNeverExpires, bool mustChangePasswordNextLogon) ParseUserAccountFlags(
+        int userAccountControl,
+        int computedUac,
+        long lockoutTime,
+        long pwdLastSet)
+    {
+        const int ADS_UF_ACCOUNTDISABLE = 0x0002;
+        const int ADS_UF_LOCKOUT = 0x0010;
+        const int ADS_UF_DONT_EXPIRE_PASSWD = 0x10000;
+
+        bool isEnabled = (userAccountControl & ADS_UF_ACCOUNTDISABLE) == 0;
+        bool passwordNeverExpires = (userAccountControl & ADS_UF_DONT_EXPIRE_PASSWD) != 0;
+        bool isLockedOut = (userAccountControl & ADS_UF_LOCKOUT) != 0
+                           || (computedUac & ADS_UF_LOCKOUT) != 0
+                           || lockoutTime > 0;
+        bool mustChangeNextLogon = pwdLastSet == 0 && !passwordNeverExpires;
+
+        return (isEnabled, isLockedOut, passwordNeverExpires, mustChangeNextLogon);
+    }
+
+    public async Task<List<AdUserDetails>> SearchUsersAsync(string query, Action<string>? onLog = null, int maxResults = 100)
+    {
+        return await Task.Run(() =>
+        {
+            string normalizedQuery = NormalizeAdUserQuery(query);
+            if (string.IsNullOrWhiteSpace(normalizedQuery))
+                return new List<AdUserDetails>();
+
+            void Log(string msg) => onLog?.Invoke(msg);
+
+            Log($"=== CONSULTA DE USUÁRIOS ACTIVE DIRECTORY: '{normalizedQuery}' ===");
+            AppLoggerService.Info($"Iniciando consulta de usuário AD para: '{normalizedQuery}'", nameof(AdSccmService));
+
+            var users = new List<AdUserDetails>();
+
+            try
+            {
+                string filter = BuildAdUserLdapFilter(normalizedQuery);
+                Log("[1/2] Executando consulta LDAP com proteção de limite no controlador de domínio...");
+
+                using var searcher = new DirectorySearcher
+                {
+                    Filter = filter,
+                    SizeLimit = maxResults,
+                    PageSize = 50
+                };
+
+                searcher.PropertiesToLoad.AddRange(
+                [
+                    "sAMAccountName",
+                    "userPrincipalName",
+                    "displayName",
+                    "cn",
+                    "givenName",
+                    "sn",
+                    "mail",
+                    "telephoneNumber",
+                    "mobile",
+                    "department",
+                    "title",
+                    "company",
+                    "physicalDeliveryOfficeName",
+                    "employeeID",
+                    "description",
+                    "manager",
+                    "distinguishedName",
+                    "homeDirectory",
+                    "homeDrive",
+                    "profilePath",
+                    "scriptPath",
+                    "whenCreated",
+                    "whenChanged",
+                    "lastLogonTimestamp",
+                    "lastLogon",
+                    "pwdLastSet",
+                    "accountExpires",
+                    "userAccountControl",
+                    "lockoutTime",
+                    "msDS-User-Account-Control-Computed",
+                    "badPwdCount",
+                    "logonCount",
+                    "memberOf"
+                ]);
+
+                using var results = searcher.FindAll();
+                Log($"  [OK] {results.Count} conta(s) de usuário localizada(s) no Active Directory.");
+
+                Log("[2/2] Processando atributos de segurança, políticas de senha e grupos (memberOf)...");
+
+                int processedCount = 0;
+                foreach (SearchResult res in results)
+                {
+                    if (processedCount >= maxResults)
+                        break;
+
+                    string sam = GetResultString(res, "sAMAccountName");
+                    string cn = GetResultString(res, "cn");
+                    if (string.IsNullOrWhiteSpace(sam) && string.IsNullOrWhiteSpace(cn))
+                        continue;
+
+                    int uac = GetResultInt(res, "userAccountControl");
+                    int computedUac = GetResultInt(res, "msDS-User-Account-Control-Computed");
+                    long lockoutTime = GetResultLong(res, "lockoutTime");
+                    long pwdLastSetRaw = GetResultLong(res, "pwdLastSet");
+                    long lastLogonTs = GetResultLong(res, "lastLogonTimestamp");
+                    long lastLogonDirect = GetResultLong(res, "lastLogon");
+                    long bestLastLogon = Math.Max(lastLogonTs, lastLogonDirect);
+                    long accountExpiresRaw = GetResultLong(res, "accountExpires");
+
+                    var (isEnabled, isLockedOut, pwdNeverExpires, mustChangePwd) =
+                        ParseUserAccountFlags(uac, computedUac, lockoutTime, pwdLastSetRaw);
+
+                    string pwdLastSetFormatted = pwdLastSetRaw == 0
+                        ? "Troca pendente no próximo logon"
+                        : FormatAdFileTime(pwdLastSetRaw);
+
+                    var groups = new List<string>();
+                    if (res.Properties.Contains("memberOf"))
+                    {
+                        foreach (var grpObj in res.Properties["memberOf"])
+                        {
+                            string grpDn = grpObj?.ToString() ?? string.Empty;
+                            if (!string.IsNullOrWhiteSpace(grpDn))
+                            {
+                                groups.Add(AdUserDetails.ExtractCnFromDn(grpDn));
+                            }
+                        }
+                    }
+
+                    groups.Sort(StringComparer.OrdinalIgnoreCase);
+
+                    var detail = new AdUserDetails
+                    {
+                        SamAccountName = sam,
+                        UserPrincipalName = GetResultString(res, "userPrincipalName"),
+                        DisplayName = GetResultString(res, "displayName"),
+                        CommonName = cn,
+                        GivenName = GetResultString(res, "givenName"),
+                        Surname = GetResultString(res, "sn"),
+                        Mail = GetResultString(res, "mail"),
+                        TelephoneNumber = GetResultString(res, "telephoneNumber"),
+                        Mobile = GetResultString(res, "mobile"),
+                        Department = GetResultString(res, "department"),
+                        Title = GetResultString(res, "title"),
+                        Company = GetResultString(res, "company"),
+                        Office = GetResultString(res, "physicalDeliveryOfficeName"),
+                        EmployeeId = GetResultString(res, "employeeID"),
+                        Description = GetResultString(res, "description"),
+                        ManagerDn = GetResultString(res, "manager"),
+                        DistinguishedName = GetResultString(res, "distinguishedName"),
+                        HomeDirectory = GetResultString(res, "homeDirectory"),
+                        HomeDrive = GetResultString(res, "homeDrive"),
+                        ProfilePath = GetResultString(res, "profilePath"),
+                        ScriptPath = GetResultString(res, "scriptPath"),
+                        WhenCreated = GetResultDateString(res, "whenCreated"),
+                        WhenChanged = GetResultDateString(res, "whenChanged"),
+                        LastLogon = FormatAdFileTime(bestLastLogon),
+                        PasswordLastSet = pwdLastSetFormatted,
+                        AccountExpires = FormatAdFileTime(accountExpiresRaw, isAccountExpires: true),
+                        IsEnabled = isEnabled,
+                        IsLockedOut = isLockedOut,
+                        PasswordNeverExpires = pwdNeverExpires,
+                        MustChangePasswordNextLogon = mustChangePwd,
+                        UserAccountControl = uac,
+                        BadPasswordCount = GetResultInt(res, "badPwdCount"),
+                        LogonCount = GetResultInt(res, "logonCount"),
+                        Groups = groups
+                    };
+
+                    users.Add(detail);
+                    processedCount++;
+                }
+
+                users = users
+                    .OrderByDescending(u => u.IsEnabled)
+                    .ThenBy(u => u.HeaderNameDisplay, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                Log($"[SUCESSO] Consulta AD concluída: {users.Count} usuário(s) processado(s).");
+                AppLoggerService.Success($"Consulta de usuários AD para '{normalizedQuery}' retornou {users.Count} resultado(s).", nameof(AdSccmService));
+            }
+            catch (Exception ex)
+            {
+                Log($"[ERRO] Falha ao consultar usuários no Active Directory: {ex.Message}");
+                AppLoggerService.Warning($"Erro na consulta de usuários AD para '{normalizedQuery}': {ex.Message}", nameof(AdSccmService));
+            }
+
+            return users;
+        });
+    }
+
+    private static string GetResultString(SearchResult res, string propName)
+    {
+        if (!res.Properties.Contains(propName) || res.Properties[propName].Count == 0)
+            return string.Empty;
+
+        return res.Properties[propName][0]?.ToString()?.Trim() ?? string.Empty;
+    }
+
+    private static string GetResultDateString(SearchResult res, string propName)
+    {
+        if (!res.Properties.Contains(propName) || res.Properties[propName].Count == 0)
+            return string.Empty;
+
+        object? val = res.Properties[propName][0];
+        if (val is DateTime dt)
+            return dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+
+        return val?.ToString()?.Trim() ?? string.Empty;
+    }
+
+    private static int GetResultInt(SearchResult res, string propName)
+    {
+        if (!res.Properties.Contains(propName) || res.Properties[propName].Count == 0)
+            return 0;
+
+        object? val = res.Properties[propName][0];
+        if (val is int i) return i;
+        if (int.TryParse(val?.ToString(), out int parsed)) return parsed;
+        return 0;
+    }
+
+    private static long GetResultLong(SearchResult res, string propName)
+    {
+        if (!res.Properties.Contains(propName) || res.Properties[propName].Count == 0)
+            return 0;
+
+        return TryConvertAdLargeInteger(res.Properties[propName][0], out long ft) ? ft : 0;
     }
 }

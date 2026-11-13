@@ -1434,11 +1434,25 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                             <TextBlock Text="Usuário Admin Local:" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgAdminUser" PlaceholderText="admin" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgAdminUser" Grid.Column="0" PlaceholderText="admin" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="ADMIN_USER" />
+                                            </Grid>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="Usuário Admin AD (Domínio):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgAdminAdUser" PlaceholderText="admin_ad" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgAdminAdUser" Grid.Column="0" PlaceholderText="admin_ad" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="ADMIN_AD_USER" />
+                                            </Grid>
                                         </StackPanel>
                                     </Grid>
 
@@ -1448,15 +1462,29 @@
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="190" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                             <TextBlock Text="Servidor SCCM (Site Server):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgSccmServer" PlaceholderText="srv-sccm.dominio.local" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgSccmServer" Grid.Column="0" PlaceholderText="srv-sccm.dominio.local" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="SCCM_SITE_SERVER" />
+                                            </Grid>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="Site Code:" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgSccmCode" PlaceholderText="SITE" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgSccmCode" Grid.Column="0" PlaceholderText="SITE" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="SCCM_SITE_CODE" />
+                                            </Grid>
                                         </StackPanel>
                                     </Grid>
 
@@ -1465,29 +1493,78 @@
                                     <TextBlock Text="Portais &amp; Navegação" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
 
                                     <TextBlock Text="URL do OTRS (Central):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgOtrs" PlaceholderText="https://central.empresa.gov.br/" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgOtrs" Grid.Column="0" PlaceholderText="https://central.empresa.gov.br/" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="URL_OTRS" />
+                                    </Grid>
 
                                     <TextBlock Text="URL do CitSmart (Suporte):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgCitsmart" PlaceholderText="https://suporte.empresa.gov.br/" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgCitsmart" Grid.Column="0" PlaceholderText="https://suporte.empresa.gov.br/" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="URL_CITSMART" />
+                                    </Grid>
 
                                     <TextBlock Text="URL Bancada Local (WSL / Docker):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgBancada" PlaceholderText="http://localhost:8501/" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgBancada" Grid.Column="0" PlaceholderText="http://localhost:8501/" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="URL_BANCADA_LOCAL" />
+                                    </Grid>
 
                                     <TextBlock Text="Caminho WSL da Bancada (Linux):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgBancadaWslDir" PlaceholderText="/home/usuario/PythonProjects/automated-OTRS-and-CitSmart" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgBancadaWslDir" Grid.Column="0" PlaceholderText="/home/usuario/PythonProjects/automated-OTRS-and-CitSmart" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="BANCADA_WSL_DIR" />
+                                    </Grid>
 
                                     <TextBlock Text="Distribuição WSL da Bancada:" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgBancadaWslDistro" PlaceholderText="Ubuntu-26.04" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgBancadaWslDistro" Grid.Column="0" PlaceholderText="Ubuntu-24.04" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="BANCADA_WSL_DISTRO" />
+                                    </Grid>
 
                                     <TextBlock Text="Argumentos PWA do WhatsApp Firefox:" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgWhatsapp" PlaceholderText="-taskbar-tab ... -profile ..." Margin="0,0,0,16" />
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgWhatsapp" Grid.Column="0" PlaceholderText="-taskbar-tab ... -profile ..." />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="WHATSAPP_PWA_ARGS" />
+                                    </Grid>
 
                                     <Separator Margin="0,5,0,15" />
 
                                     <TextBlock Text="Caminhos &amp; Ferramentas Remotas (Avançado)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
 
                                     <TextBlock Text="Diretório de Saída dos Relatórios (DeviceReports):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <ui:TextBox x:Name="TxtCfgDeviceReportsDir" PlaceholderText="C:\Users\...\DeviceReports" Margin="0,0,0,12" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgDeviceReportsDir" Grid.Column="0" PlaceholderText="C:\Users\...\DeviceReports" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="DEVICE_REPORTS_DIR" />
+                                    </Grid>
 
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
@@ -1496,26 +1573,54 @@
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                             <TextBlock Text="Caminho Executável CmRcViewer (Opcional):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgCmRcViewer" PlaceholderText="Caminho personalizado ou em branco para autodetectar" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgCmRcViewer" Grid.Column="0" PlaceholderText="Caminho personalizado ou em branco para autodetectar" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="CMRCVIEWER_PATH" />
+                                            </Grid>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="Caminho Executável Firefox (Opcional):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgFirefoxPath" PlaceholderText="Caminho personalizado ou em branco para autodetectar" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgFirefoxPath" Grid.Column="0" PlaceholderText="Caminho personalizado ou em branco para autodetectar" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="FIREFOX_PATH" />
+                                            </Grid>
                                         </StackPanel>
                                     </Grid>
 
                                     <Grid Margin="0,0,0,20">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="190" />
                                         </Grid.ColumnDefinitions>
                                         <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                             <TextBlock Text="Perfis Locais Protegidos (separados por vírgula):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgProtectedProfiles" PlaceholderText="Public, Default, Default User, Administrator, Administrador" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgProtectedProfiles" Grid.Column="0" PlaceholderText="Public, Default, Default User, Administrator, Administrador" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="PROTECTED_PROFILES" />
+                                            </Grid>
                                         </StackPanel>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="Timeout ICMP (ms):" FontWeight="Medium" Margin="0,0,0,4" />
-                                            <ui:TextBox x:Name="TxtCfgPingTimeout" PlaceholderText="2500" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgPingTimeout" Grid.Column="0" PlaceholderText="2500" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="PING_TIMEOUT_MS" />
+                                            </Grid>
                                         </StackPanel>
                                     </Grid>
 

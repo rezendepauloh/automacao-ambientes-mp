@@ -587,6 +587,33 @@ public partial class MainWindow : FluentWindow
             System.Windows.MessageBox.Show($"Falha ao salvar: {ex.Message}", "Erro", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
+
+    private void BtnResetConfigField_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.Tag is string key)
+        {
+            string defVal = ConfigService.GetRecommendedDefault(key);
+            switch (key)
+            {
+                case "ADMIN_USER": TxtCfgAdminUser.Text = defVal; break;
+                case "ADMIN_AD_USER": TxtCfgAdminAdUser.Text = defVal; break;
+                case "SCCM_SITE_SERVER": TxtCfgSccmServer.Text = defVal; break;
+                case "SCCM_SITE_CODE": TxtCfgSccmCode.Text = defVal; break;
+                case "URL_OTRS": TxtCfgOtrs.Text = defVal; break;
+                case "URL_CITSMART": TxtCfgCitsmart.Text = defVal; break;
+                case "URL_BANCADA_LOCAL": TxtCfgBancada.Text = defVal; break;
+                case "BANCADA_WSL_DIR": TxtCfgBancadaWslDir.Text = defVal; break;
+                case "BANCADA_WSL_DISTRO": TxtCfgBancadaWslDistro.Text = defVal; break;
+                case "WHATSAPP_PWA_ARGS": TxtCfgWhatsapp.Text = defVal; break;
+                case "DEVICE_REPORTS_DIR": TxtCfgDeviceReportsDir.Text = defVal; break;
+                case "CMRCVIEWER_PATH": TxtCfgCmRcViewer.Text = defVal; break;
+                case "FIREFOX_PATH": TxtCfgFirefoxPath.Text = defVal; break;
+                case "PROTECTED_PROFILES": TxtCfgProtectedProfiles.Text = defVal; break;
+                case "PING_TIMEOUT_MS": TxtCfgPingTimeout.Text = defVal; break;
+            }
+            TxtFooterStatus.Text = $"Campo '{key}' preenchido com o valor recomendado padrão.";
+        }
+    }
     #endregion
 
     #region Scripts & Cofre de Credenciais

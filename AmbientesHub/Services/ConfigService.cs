@@ -127,11 +127,11 @@ public static class ConfigService
         return Configs.TryGetValue(key, out var val) ? val : defaultValue;
     }
 
-    public static string AdminUser => Get("ADMIN_USER", "admin_local");
-    public static string AdminAdUser => Get("ADMIN_AD_USER", "admin_dominio");
+    public static string AdminUser => Get("ADMIN_USER", "");
+    public static string AdminAdUser => Get("ADMIN_AD_USER", "");
     public static string UrlOtrs => Get("URL_OTRS", "");
     public static string UrlCitsmart => Get("URL_CITSMART", "");
-    public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "http://localhost:8501/");
+    public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "");
     public static string BancadaWindowsDir => Get("BANCADA_WINDOWS_DIR", "");
     public static string BancadaWslDir => Get("BANCADA_WSL_DIR", "");
     public static string BancadaWslDistro => Get("BANCADA_WSL_DISTRO", "");
@@ -140,10 +140,40 @@ public static class ConfigService
     public static string SccmSiteCode => Get("SCCM_SITE_CODE", "");
     public static string RsatMsuNetworkPath => Get("RSAT_MSU_NETWORK_PATH", "");
 
-    public static string DeviceReportsDir => Get("DEVICE_REPORTS_DIR", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DeviceReports"));
+    public static string DeviceReportsDir => Get("DEVICE_REPORTS_DIR", "");
     public static string CmRcViewerCustomPath => Get("CMRCVIEWER_PATH", "");
     public static string FirefoxBinaryPath => Get("FIREFOX_PATH", "");
-    public static string ProtectedProfiles => Get("PROTECTED_PROFILES", "Public, Default, Default User, All Users, Administrator, Administrador");
+    public static string ProtectedProfiles => Get("PROTECTED_PROFILES", "");
     public static int PingTimeoutMs => int.TryParse(Get("PING_TIMEOUT_MS", "2500"), out int t) && t > 100 ? t : 2500;
     public static bool MinimizeToTray => bool.TryParse(Get("MINIMIZE_TO_TRAY", "true"), out bool min) ? min : true;
+
+    /// <summary>
+    /// Retorna valores padrão recomendados e dinâmicos (ex: perfil do usuário atual do Windows)
+    /// sem expor dados pessoais fixos no código-fonte.
+    /// </summary>
+    public static string GetRecommendedDefault(string key)
+    {
+        string user = Environment.UserName;
+        return key switch
+        {
+            "APP_TERMINAL_FONT" => "Consolas",
+            "ADMIN_USER" => !string.IsNullOrWhiteSpace(user) ? user : "admin_local",
+            "ADMIN_AD_USER" => !string.IsNullOrWhiteSpace(user) ? $"{user}_ad" : "admin_ad",
+            "SCCM_SITE_SERVER" => "srv-sccm.dominio.local",
+            "SCCM_SITE_CODE" => "XXX",
+            "URL_OTRS" => "https://central.empresa.gov.br/",
+            "URL_CITSMART" => "https://suporte.empresa.gov.br/",
+            "URL_BANCADA_LOCAL" => "http://localhost:8501/",
+            "BANCADA_WSL_DIR" => $"/home/{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}/projetos/bancada",
+            "BANCADA_WSL_DISTRO" => "Ubuntu-24.04",
+            "BANCADA_WINDOWS_DIR" => $@"\\wsl.localhost\Ubuntu-24.04\home\{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}\projetos\bancada",
+            "WHATSAPP_PWA_ARGS" => "\"-taskbar-tab\" \"uuid\" \"-new-window\" \"https://web.whatsapp.com/\" \"-container\" \"0\"",
+            "DEVICE_REPORTS_DIR" => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DeviceReports"),
+            "CMRCVIEWER_PATH" => @"C:\Program Files (x86)\Microsoft Endpoint Manager\AdminConsole\bin\i386\CmRcViewer.exe",
+            "FIREFOX_PATH" => @"C:\Program Files\Mozilla Firefox\firefox.exe",
+            "PROTECTED_PROFILES" => "Public, Default, Default User, All Users, Administrator, Administrador",
+            "PING_TIMEOUT_MS" => "2500",
+            _ => string.Empty
+        };
+    }
 }

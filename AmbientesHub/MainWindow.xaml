@@ -242,19 +242,7 @@
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 10: Configurações & Credenciais -->
-                            <ListBoxItem ToolTip="Configurações &amp; Credenciais">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl10" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 11: Bancada Streamlit (Docker WSL) -->
+                            <!-- Item 10: Bancada Streamlit (Docker WSL) -->
                             <ListBoxItem ToolTip="Bancada Streamlit (Docker WSL - localhost:8501)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -262,7 +250,43 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="🐳" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl11" Grid.Column="1" Text="Bancada Docker (8501)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl10" Grid.Column="1" Text="Bancada Docker (8501)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 11: Otimizações de Registro (Tweaks & Rollback) -->
+                            <ListBoxItem ToolTip="Otimizações do Registro do Windows (Tweaks &amp; Rollback)">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl11" Grid.Column="1" Text="Otimizações de Registro" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 12: Logs da Aplicação -->
+                            <ListBoxItem ToolTip="Logs e Monitoramento da Aplicação (app.log)">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📜" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl12" Grid.Column="1" Text="Logs da Aplicação" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 13: Configurações & Credenciais (Último item da barra) -->
+                            <ListBoxItem ToolTip="Configurações &amp; Credenciais">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl13" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
                         </ListBox>
@@ -1693,6 +1717,220 @@
                                     <TextBlock Text="Logs em tempo real" HorizontalAlignment="Right" FontSize="11" Foreground="#64748b" />
                                 </Grid>
                                 <RichTextBox x:Name="RichBancadaLogs" Grid.Row="1" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" FontFamily="Consolas, Cascadia Code, Courier New" VerticalScrollBarVisibility="Auto">
+                                    <FlowDocument />
+                                </RichTextBox>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 12: LOGS DA APLICAÇÃO -->
+                    <Grid x:Name="PanelAppLogs" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Central de Logs da Aplicação" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="Histórico consolidado e monitoramento em tempo real dos logs operacionais e de segurança gravados em AmbientesHub\logs\app.log." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            </StackPanel>
+                            <Border x:Name="BadgeAppLogsCount" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b">
+                                <TextBlock x:Name="TxtAppLogsCount" Text="0 registros" FontSize="12" FontWeight="Bold" Foreground="#38bdf8" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Barra de Filtros e Ações Rápidas -->
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Filtros: Nível e Busca por Texto -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Nível:" VerticalAlignment="Center" FontWeight="Medium" Margin="0,0,8,0" />
+                                    <ComboBox x:Name="CmbAppLogLevelFilter" SelectionChanged="CmbAppLogLevelFilter_SelectionChanged" Width="150" Height="34" Margin="0,0,14,0">
+                                        <ComboBoxItem Content="Todos os Níveis" IsSelected="True" />
+                                        <ComboBoxItem Content="[INFO] Informações" />
+                                        <ComboBoxItem Content="[WARNING] Avisos" />
+                                        <ComboBoxItem Content="[DANGER] Erros" />
+                                        <ComboBoxItem Content="[SUCCESS] Sucessos" />
+                                    </ComboBox>
+
+                                    <ui:TextBox x:Name="TxtAppLogSearch" PlaceholderText="Filtrar por texto nos logs..." Width="280" Height="34" Icon="{ui:SymbolIcon Symbol=Filter24}" TextChanged="TxtAppLogSearch_TextChanged" Margin="0,0,14,0" />
+                                </StackPanel>
+
+                                <!-- Botões de Ação -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ui:Button x:Name="BtnReloadAppLogs" Appearance="Primary" Content="Recarregar" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnReloadAppLogs_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Recarrega as entradas do arquivo de log em disco" />
+                                    <ui:Button x:Name="BtnClearAppLogsView" Appearance="Secondary" Content="Limpar Tela" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnClearAppLogsView_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Limpa apenas a visualização atual na tela" />
+                                    <ui:Button x:Name="BtnOpenAppLogsFolder" Appearance="Transparent" Content="Abrir Pasta" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenAppLogsFolder_Click" Padding="10,7" ToolTip="Abre a pasta AmbientesHub\logs no Windows Explorer" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Terminal de Logs em Cores -->
+                        <Border Grid.Row="2" Margin="0,15,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <TextBlock Text="Console / Visualizador de Logs do Sistema (app.log)" FontSize="12" FontWeight="SemiBold" Foreground="#38bdf8" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <CheckBox x:Name="ChkAutoScrollAppLogs" Content="Rolagem Automática" IsChecked="True" FontSize="11" Foreground="#94a3b8" />
+                                    </StackPanel>
+                                </Grid>
+                                <RichTextBox x:Name="RichAppLogs" Grid.Row="1" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" FontFamily="Consolas, Cascadia Code, Courier New" VerticalScrollBarVisibility="Auto">
+                                    <FlowDocument />
+                                </RichTextBox>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 11: OTIMIZAÇÕES DE REGISTRO (TWEAKS & ROLLBACK) -->
+                    <Grid x:Name="PanelRegistryTweaks" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Otimizações do Registro do Windows (Tweaks &amp; Rollback)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="Ajustes cirúrgicos no Windows Registry para redução de latência, aceleração de menus e eliminação de bloatware em background, com backup automático (.reg) e restauração segura." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            </StackPanel>
+                            <Border x:Name="BadgeRegistryOptStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b">
+                                <TextBlock x:Name="TxtRegistryOptBadge" Text="0 / 12 Otimizados" FontSize="12" FontWeight="Bold" Foreground="#38bdf8" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Barra de Filtros e Ações Rápidas -->
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Filtros: Categoria e Seleção -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Categoria:" VerticalAlignment="Center" FontWeight="Medium" Margin="0,0,8,0" />
+                                    <ComboBox x:Name="CmbRegistryCategoryFilter" SelectionChanged="CmbRegistryCategoryFilter_SelectionChanged" Width="190" Height="34" Margin="0,0,12,0">
+                                        <ComboBoxItem Content="Todas as Categorias" IsSelected="True" />
+                                        <ComboBoxItem Content="Responsividade &amp; UI" />
+                                        <ComboBoxItem Content="Inicialização &amp; Encerramento" />
+                                        <ComboBoxItem Content="Sistema &amp; Background" />
+                                        <ComboBoxItem Content="Rede &amp; Multimídia" />
+                                    </ComboBox>
+
+                                    <ui:Button x:Name="BtnSelectAllRegistryTweaks" Appearance="Secondary" Content="Marcar Todos" Click="BtnSelectAllRegistryTweaks_Click" Margin="0,0,6,0" Padding="10,6" />
+                                    <ui:Button x:Name="BtnDeselectAllRegistryTweaks" Appearance="Transparent" Content="Desmarcar" Click="BtnDeselectAllRegistryTweaks_Click" Margin="0,0,12,0" Padding="10,6" />
+                                </StackPanel>
+
+                                <!-- Ações Principais -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ui:Button x:Name="BtnScanRegistryTweaks" Appearance="Secondary" Content="Escanear Registro" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnScanRegistryTweaks_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Verifica o estado atual das chaves no registro do Windows" />
+                                    <ui:Button x:Name="BtnApplySelectedRegistryTweaks" Appearance="Primary" Content="Aplicar Selecionados" Icon="{ui:SymbolIcon Symbol=Checkmark24}" Click="BtnApplySelectedRegistryTweaks_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Gera backup automático e aplica as otimizações marcadas" />
+                                    <ui:Button x:Name="BtnRollbackSelectedRegistryTweaks" Appearance="Danger" Content="Restaurar / Rollback" Icon="{ui:SymbolIcon Symbol=ArrowUndo24}" Click="BtnRollbackSelectedRegistryTweaks_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Restaura os valores anteriores ou padrão das chaves selecionadas" />
+                                    <ui:Button x:Name="BtnOpenRegistryBackupFolder" Appearance="Transparent" Content="Backups (.reg)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenRegistryBackupFolder_Click" Padding="10,7" ToolTip="Abre a pasta de backups de registro C:\AmbientesVirtuais\Backups" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Lista de Tweaks (ScrollViewer + ItemsControl estilizado) -->
+                        <Border Grid.Row="2" Margin="0,12,0,12" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="10">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="LstRegistryTweaks">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Checkbox de Seleção -->
+                                                    <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,12,0" />
+
+                                                    <!-- Detalhes do Tweak -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Emoji}" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+
+                                                            <!-- Badge de Categoria -->
+                                                            <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                                <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94a3b8" />
+                                                            </Border>
+
+                                                            <!-- Badge de Privilégio (HKCU vs HKLM) -->
+                                                            <Border CornerRadius="4" Padding="6,2" Margin="0,0,6,0" Background="{Binding PrivilegeBadgeBackground}">
+                                                                <TextBlock Text="{Binding PrivilegeTag}" FontSize="11" FontWeight="Medium" Foreground="{Binding PrivilegeBadgeForeground}" />
+                                                            </Border>
+
+                                                            <!-- Badge de Status Atual -->
+                                                            <Border CornerRadius="4" Padding="8,2" Background="{Binding StatusBadgeBackground}">
+                                                                <TextBlock Text="{Binding StatusBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
+                                                            </Border>
+                                                        </StackPanel>
+
+                                                        <!-- Descrição -->
+                                                        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="21,3,0,4" TextWrapping="Wrap" />
+
+                                                        <!-- Informações Técnicas da Chave -->
+                                                        <StackPanel Orientation="Horizontal" Margin="21,0,0,0">
+                                                            <TextBlock Text="Chave: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                            <TextBlock Text="{Binding FullRegistryPath}" FontSize="11" FontFamily="Consolas" Foreground="#94a3b8" Margin="0,0,14,0" />
+                                                            <TextBlock Text="Atual: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                            <TextBlock Text="{Binding CurrentValueDisplay}" FontSize="11" FontFamily="Consolas" FontWeight="Bold" Foreground="#f8fafc" Margin="0,0,14,0" />
+                                                            <TextBlock Text="Recomendado: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                            <TextBlock Text="{Binding RecommendedValueDisplay}" FontSize="11" FontFamily="Consolas" FontWeight="Bold" Foreground="#38bdf8" Margin="0,0,14,0" />
+                                                            <TextBlock Text="Padrão: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                            <TextBlock Text="{Binding DefaultValueDisplay}" FontSize="11" FontFamily="Consolas" Foreground="#94a3b8" />
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <!-- Botões de Ação Rápida por Item -->
+                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                                                        <ui:Button Content="Aplicar" Appearance="Primary" Padding="10,5" Margin="0,0,6,0" Tag="{Binding}" Click="BtnApplySingleTweak_Click" ToolTip="Aplica este tweak individualmente" />
+                                                        <ui:Button Content="Restaurar" Appearance="Secondary" Padding="10,5" Tag="{Binding}" Click="BtnRollbackSingleTweak_Click" ToolTip="Restaura o valor original/padrão deste tweak" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
+                        <!-- Terminal de Logs de Registro -->
+                        <Border Grid.Row="3" Height="130" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Console de Operações de Registro &amp; Rollback" FontSize="11" FontWeight="SemiBold" Foreground="#38bdf8" Margin="0,0,0,4" />
+                                <RichTextBox x:Name="RichRegistryLogs" Grid.Row="1" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="11" FontFamily="Consolas, Cascadia Code, Courier New" VerticalScrollBarVisibility="Auto">
                                     <FlowDocument />
                                 </RichTextBox>
                             </Grid>

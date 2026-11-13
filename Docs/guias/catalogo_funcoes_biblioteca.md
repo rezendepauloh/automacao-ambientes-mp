@@ -55,3 +55,29 @@
 - **Métodos:**
   - `SaveCredential(string xmlPath, string username, string plainPassword)`: Criptografa a senha com DPAPI (`DataProtectionScope.CurrentUser`), grava em Clixml compatível e aplica permissões de arquivo restritas (ACL 600).
   - `ReadPlaintextCredential(string xmlPath)`: Lê e valida o cofre contra ataques de XML DoS / XXE (limite de 64 KB e `DtdProcessing.Prohibit`), descriptografando a senha em memória.
+
+---
+
+## 6. `AppLoggerService` (Logs e Auditoria do Sistema)
+
+- **Objetivo:** Gravar e recuperar logs estruturados de forma thread-safe com rotatividade automática e notificações em tempo real para a interface gráfica.
+- **Propriedades e Eventos:**
+  - `LogDirectoryPath`: Retorna o caminho do diretório de logs (`C:\AmbientesVirtuais\AmbientesHub\logs`).
+  - `CurrentLogFilePath`: Retorna o caminho do arquivo ativo (`app.log`).
+  - `OnLogLineWritten`: Evento disparado a cada linha gravada para sincronização em tempo real com a UI.
+- **Métodos:**
+  - `Log(LogLevel level, string message, string? caller = null)`: Grava com carimbo de tempo, nível (`INFO`, `WARNING`, `DANGER`, `SUCCESS`), sanitização de quebras de linha (`InputValidator.SanitizeLogText`) e rotação ao atingir 3 MB.
+  - `ReadRecentLogs(int maxLines = 1000)`: Lê as últimas linhas do arquivo `app.log` usando `FileShare.ReadWrite` com tratamento seguro de concorrência.
+  - Métodos utilitários: `Info()`, `Warning()`, `Danger()`, `Success()`.
+
+---
+
+## 7. `RegistryOptimizerService` (Otimizações de Registro & Rollback)
+
+- **Objetivo:** Aplicar ajustes no Registro do Windows com segurança cirúrgica, backup prévio em formato `.reg` e rollback em 1 clique.
+- **Métodos Principais:**
+  - `GetDefaultTweaks()`: Retorna o catálogo de 12 otimizações curadas nas categorias: Responsividade & UI, Inicialização & Encerramento, Sistema & Background e Rede & Multimídia.
+  - `ScanTweak(RegistryTweakItem tweak)` / `ScanAll()`: Inspeciona as chaves no registro em tempo real sem alterar dados, comparando os valores atuais contra os padrões e os valores recomendados.
+  - `CreateBackup(IEnumerable<RegistryTweakItem> tweaks, string? customPath = null)`: Gera arquivo `.reg` (Windows Registry Editor Version 5.00) e snapshot JSON com permissões ACL 600 em `C:\AmbientesVirtuais\Backups`.
+  - `ApplyTweak(RegistryTweakItem tweak)` / `ApplyBatch()`: Salva o estado anterior para rollback e aplica o valor otimizado, validando privilégios de Administrador em chaves `HKLM`.
+  - `RollbackTweak(RegistryTweakItem tweak)` / `RollbackBatch()`: Reverte o valor ao estado original gravado no ponto de restauração ou ao padrão Windows.

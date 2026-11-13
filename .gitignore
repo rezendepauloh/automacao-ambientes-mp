@@ -12,6 +12,7 @@ cred_*.xml
 !.env.example
 AmbientesHub/.env
 temp/
+Backups/
 
 # Chaves, certificados, cofres e conexões remotas
 *.pfx

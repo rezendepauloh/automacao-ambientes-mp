@@ -19,6 +19,10 @@ public class AppLoggerService
     private const long MaxFileSizeBytes = 3 * 1024 * 1024; // 3 MB
     private const int MaxLogFiles = 3;
 
+    public static string LogDirectoryPath => LogsDirectory;
+    public static string CurrentLogFilePath => Path.Combine(LogsDirectory, "app.log");
+    public static event Action<string>? OnLogLineWritten;
+
     static AppLoggerService()
     {
         try
@@ -57,10 +61,49 @@ public class AppLoggerService
                 string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}]{prefix} {InputValidator.SanitizeLogText(message)}";
 
                 File.AppendAllText(currentLogPath, line + Environment.NewLine);
+
+                try
+                {
+                    OnLogLineWritten?.Invoke(line);
+                }
+                catch { }
             }
             catch
             {
                 // Garante estabilidade
+            }
+        }
+    }
+
+    public static List<string> ReadRecentLogs(int maxLines = 1000)
+    {
+        lock (LockObj)
+        {
+            try
+            {
+                string logFile = CurrentLogFilePath;
+                if (!File.Exists(logFile)) return [];
+
+                using var fs = new FileStream(logFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                using var reader = new StreamReader(fs, System.Text.Encoding.UTF8);
+                var lines = new List<string>();
+                string? line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                        lines.Add(line);
+                }
+
+                if (lines.Count > maxLines)
+                {
+                    lines = lines.Skip(lines.Count - maxLines).ToList();
+                }
+
+                return lines;
+            }
+            catch
+            {
+                return [];
             }
         }
     }

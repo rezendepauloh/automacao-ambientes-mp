@@ -32,5 +32,29 @@ public class AppLoggerServiceTests
 
         Assert.Null(exception);
     }
+
+    [Fact]
+    public void AppLogger_ReadRecentLogs_ReturnsEntriesAndFiresEvent()
+    {
+        string testToken = Guid.NewGuid().ToString("N");
+        string? receivedLine = null;
+        Action<string> handler = line => receivedLine = line;
+
+        AppLoggerService.OnLogLineWritten += handler;
+        try
+        {
+            AppLoggerService.Info($"Mensagem de teste {testToken}", "TestCaller");
+            Assert.NotNull(receivedLine);
+            Assert.Contains(testToken, receivedLine);
+
+            var recentLogs = AppLoggerService.ReadRecentLogs(50);
+            Assert.NotEmpty(recentLogs);
+            Assert.Contains(recentLogs, l => l.Contains(testToken));
+        }
+        finally
+        {
+            AppLoggerService.OnLogLineWritten -= handler;
+        }
+    }
 }
 

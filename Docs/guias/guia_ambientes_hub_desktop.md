@@ -89,9 +89,26 @@ _Executável leve disponível em:_
   - Imuniza o próprio Hub, seu processo pai e janelas rotuladas com `"🛠️ Modo"` através do escudo de processos.
   - Modo Nuclear do Explorer para zerar caches bloqueados de ícones e arquivos temporários.
 
-### E. Inicialização com Windows & Bandeja do Sistema
+### E. Aba "Otimizações de Registro (Tweaks & Rollback)" (Item 11)
+
+- **Ajustes Cirúrgicos de Performance:** Lista curada de tweaks no Windows Registry focados em redução de latência (`MenuShowDelay`), eliminação do atraso de boot (`StartupDelayInMSec`), priorização de foreground em multitarefa (`SystemResponsiveness`), desativação de throttling de rede TCP (`NetworkThrottlingIndex`) e supressão de bloatware em segundo plano.
+- **Backup Obrigatório Pré-Gravação:** Gera automaticamente arquivos `.reg` (compatíveis com o Editor de Registro do Windows) e snapshot JSON em `C:\AmbientesVirtuais\Backups\RegBackup_yyyyMMdd_HHmmss.reg` antes de qualquer alteração.
+- **Restauração em 1 Clique (Rollback):** Permite reverter valores anteriores ou padrões da Microsoft individualmente ou em lote.
+- **Segurança e Privilégios:** Separação visual clara entre chaves em espaço de usuário (`HKCU` - seguras e sem elevação) e chaves do sistema (`HKLM` - com badge indicando necessidade de execução como Administrador).
+
+### F. Aba "Logs da Aplicação" (Item 12)
+
+- **Observabilidade em Tempo Real:** Visualizador integrado dos logs gravados em `AmbientesHub\logs\app.log`.
+- **Destaque Sintático Colorido:** Formatação rica no console WPF com identificação visual instantânea por cores para carimbos de data/hora, níveis (`INFO`, `WARNING`, `DANGER`, `SUCCESS`) e classes chamadoras.
+- **Filtros Dinâmicos:** Filtro por nível e busca por texto em tempo real com rolagem automática.
+
+### G. Aba "Configurações & Credenciais" (Item 13 - Último da Barra Lateral)
+
+- **Centralização Unificada:** Módulo posicionado estrategicamente como o último item da navegação, consolidando todas as variáveis de ambiente (`.env`), seleção tipográfica, arranque com o Windows e cofres seguros DPAPI.
+
+### H. Inicialização com Windows & Bandeja do Sistema
 
 - **Iniciar com o Windows:** Alternador (ToggleSwitch) nas Configurações para habilitar ou desabilitar o arranque automático do aplicativo após login (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
 - **Atalho no Menu Iniciar:** Alternador nas Configurações que cria e remove o atalho `Ambientes Hub.lnk` na pasta de Programas do Menu Iniciar (`AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) com metadados e ícone corporativo.
-- **Minimizar para a Bandeja (Tray Icon):** Mantém o aplicativo acessível próximo ao relógio. Suporta duplo clique para restaurar a janela e menu de contexto com opções de exibição e encerramento seguro.
+- **Minimizar para a Bandeja (Tray Icon):** Mantém o aplicativo acessível próximo ao relógio. Suporta duplo clique para restaurar a janela e menu de contexto com opções de alternância entre Modo Comum e Modo Administrador (com badge indicativo no cabeçalho da janela).
 - **Identidade Visual:** Exibe o ícone e a descrição oficiais no Gerenciador de Tarefas do Windows.

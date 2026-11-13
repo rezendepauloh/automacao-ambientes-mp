@@ -61,12 +61,11 @@ public class BancadaDockerService
                 return;
             }
 
-            // Comando a ser executado via WSL: cd para o diretório e executa docker compose up -d
-            // E em seguida conecta aos logs se streamLogs for true
-            string cmd = $"cd '{wslDir}' && docker compose up -d";
+            // Comando a ser executado via WSL: define PYTHONUNBUFFERED=1, sobe os containers e conecta aos logs em tempo real
+            string cmd = $"cd '{wslDir}' && export PYTHONUNBUFFERED=1 && docker compose up -d";
             if (streamLogs)
             {
-                cmd += " && docker compose logs -f --tail=100 web";
+                cmd += " && docker compose logs -f --tail=100";
             }
 
             RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{cmd}\"", onOutput);

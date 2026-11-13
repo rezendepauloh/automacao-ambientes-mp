@@ -41,13 +41,21 @@ public partial class MainWindow : FluentWindow
     private DeviceAnalysisResult? _lastAnalyzerResult;
     private bool _isNavExpanded = true;
     private bool _appsCatalogLoadedOnce;
+    private readonly List<string> _allAppLogsInMemory = [];
+    private readonly RegistryOptimizerService _registryOptimizerService = new();
+    private readonly ObservableCollection<RegistryTweakItem> _allRegistryTweaks = [];
+    private readonly ObservableCollection<RegistryTweakItem> _filteredRegistryTweaks = [];
+    private bool _registryTweaksScannedOnce = false;
 
     public MainWindow()
     {
         InitializeComponent();
+        AppLoggerService.OnLogLineWritten += OnNewLogLineReceived;
         AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;
         ItemsRemoteProfiles.ItemsSource = _remoteProfilesList;
+        LstRegistryTweaks.ItemsSource = _filteredRegistryTweaks;
+        InitializeRegistryTweaks();
         PopulateFontList();
         LoadSettingsIntoUi();
         InitializeSystemTray();
@@ -79,6 +87,8 @@ public partial class MainWindow : FluentWindow
             NavLbl9.Visibility = Visibility.Visible;
             NavLbl10.Visibility = Visibility.Visible;
             NavLbl11.Visibility = Visibility.Visible;
+            NavLbl12.Visibility = Visibility.Visible;
+            NavLbl13.Visibility = Visibility.Visible;
         }
         else
         {
@@ -96,6 +106,8 @@ public partial class MainWindow : FluentWindow
             NavLbl9.Visibility = Visibility.Collapsed;
             NavLbl10.Visibility = Visibility.Collapsed;
             NavLbl11.Visibility = Visibility.Collapsed;
+            NavLbl12.Visibility = Visibility.Collapsed;
+            NavLbl13.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -204,17 +216,31 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
         {
             NavListBox.SelectedIndex = 10;
-            TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
+            TxtFooterStatus.Text = "Navegado para: Bancada Streamlit (Docker WSL)";
             return;
         }
 
-        if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
+        if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
         {
             NavListBox.SelectedIndex = 11;
-            TxtFooterStatus.Text = "Navegado para: Bancada Streamlit (Docker WSL)";
+            TxtFooterStatus.Text = "Navegado para: Otimizações de Registro (Tweaks & Rollback)";
+            return;
+        }
+
+        if (lower is "logs" or "log" or "eventos" or "historico" or "histórico" or "console" or "app.log")
+        {
+            NavListBox.SelectedIndex = 12;
+            TxtFooterStatus.Text = "Navegado para: Logs da Aplicação";
+            return;
+        }
+
+        if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
+        {
+            NavListBox.SelectedIndex = 13;
+            TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
             return;
         }
 
@@ -268,8 +294,10 @@ public partial class MainWindow : FluentWindow
         PanelLimpezaRemota.Visibility = Visibility.Collapsed;
         PanelPerfisRemotos.Visibility = Visibility.Collapsed;
         PanelUsuariosAd.Visibility = Visibility.Collapsed;
-        PanelConfig.Visibility = Visibility.Collapsed;
         PanelBancada.Visibility = Visibility.Collapsed;
+        PanelRegistryTweaks.Visibility = Visibility.Collapsed;
+        PanelAppLogs.Visibility = Visibility.Collapsed;
+        PanelConfig.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -311,11 +339,19 @@ public partial class MainWindow : FluentWindow
                 PanelPerfisRemotos.Visibility = Visibility.Visible;
                 break;
             case 10:
-                PanelConfig.Visibility = Visibility.Visible;
-                break;
-            case 11:
                 PanelBancada.Visibility = Visibility.Visible;
                 _ = CheckBancadaStatusAsync();
+                break;
+            case 11:
+                PanelRegistryTweaks.Visibility = Visibility.Visible;
+                RefreshRegistryTweaksStatus();
+                break;
+            case 12:
+                PanelAppLogs.Visibility = Visibility.Visible;
+                LoadAppLogsToUi();
+                break;
+            case 13:
+                PanelConfig.Visibility = Visibility.Visible;
                 break;
         }
     }
@@ -381,6 +417,8 @@ public partial class MainWindow : FluentWindow
             RichBancadaLogs.FontFamily = font;
             RichScriptsLogs.FontFamily = font;
             RichRemoteLogs.FontFamily = font;
+            RichAppLogs.FontFamily = font;
+            RichRegistryLogs.FontFamily = font;
 
             foreach (var block in RichAdLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;
@@ -393,6 +431,8 @@ public partial class MainWindow : FluentWindow
             foreach (var block in RichBancadaLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichScriptsLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRemoteLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichAppLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichRegistryLogs.Document.Blocks) block.FontFamily = font;
         }
         catch { }
     }
@@ -519,6 +559,7 @@ public partial class MainWindow : FluentWindow
     private void ExitApplication()
     {
         _isRealExit = true;
+        AppLoggerService.OnLogLineWritten -= OnNewLogLineReceived;
         _trayIconService?.Dispose();
         _trayIconService = null;
         System.Windows.Application.Current.Shutdown();
@@ -544,6 +585,7 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        AppLoggerService.OnLogLineWritten -= OnNewLogLineReceived;
         _trayIconService?.Dispose();
         _trayIconService = null;
         base.OnClosing(e);
@@ -2325,6 +2367,509 @@ public partial class MainWindow : FluentWindow
         else
         {
             System.Windows.MessageBox.Show($"O caminho da pasta da Bancada não foi encontrado:\n{path}", "Pasta Não Localizada", System.Windows.MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+    #endregion
+
+    #region Central de Logs da Aplicação
+    private void OnNewLogLineReceived(string logLine)
+    {
+        lock (_allAppLogsInMemory)
+        {
+            _allAppLogsInMemory.Add(logLine);
+            if (_allAppLogsInMemory.Count > 3000)
+            {
+                _allAppLogsInMemory.RemoveAt(0);
+            }
+        }
+
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+        {
+            if (PanelAppLogs != null && PanelAppLogs.Visibility == Visibility.Visible)
+            {
+                if (PassesAppLogFilter(logLine))
+                {
+                    AddAppLogParagraph(logLine);
+                    UpdateAppLogsCountBadge();
+                    if (ChkAutoScrollAppLogs?.IsChecked == true)
+                    {
+                        RichAppLogs.ScrollToEnd();
+                    }
+                }
+            }
+        }));
+    }
+
+    private void LoadAppLogsToUi()
+    {
+        try
+        {
+            var logs = AppLoggerService.ReadRecentLogs(2000);
+            lock (_allAppLogsInMemory)
+            {
+                _allAppLogsInMemory.Clear();
+                _allAppLogsInMemory.AddRange(logs);
+            }
+            RenderFilteredAppLogs();
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Erro ao carregar logs da aplicação: {ex.Message}", nameof(MainWindow));
+        }
+    }
+
+    private void RenderFilteredAppLogs()
+    {
+        if (RichAppLogs == null) return;
+
+        RichAppLogs.Document.Blocks.Clear();
+
+        List<string> snapshot;
+        lock (_allAppLogsInMemory)
+        {
+            snapshot = new List<string>(_allAppLogsInMemory);
+        }
+
+        int count = 0;
+        foreach (var line in snapshot)
+        {
+            if (PassesAppLogFilter(line))
+            {
+                AddAppLogParagraph(line);
+                count++;
+            }
+        }
+
+        UpdateAppLogsCountBadge(count);
+
+        if (ChkAutoScrollAppLogs?.IsChecked == true)
+        {
+            RichAppLogs.ScrollToEnd();
+        }
+    }
+
+    private bool PassesAppLogFilter(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        // 1. Filtro por Nível
+        if (CmbAppLogLevelFilter != null && CmbAppLogLevelFilter.SelectedIndex > 0)
+        {
+            string requiredLevel = CmbAppLogLevelFilter.SelectedIndex switch
+            {
+                1 => "[INFO]",
+                2 => "[WARNING]",
+                3 => "[DANGER]",
+                4 => "[SUCCESS]",
+                _ => ""
+            };
+
+            if (!string.IsNullOrEmpty(requiredLevel) && !line.Contains(requiredLevel, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        // 2. Filtro por Busca de Texto
+        string search = TxtAppLogSearch?.Text?.Trim() ?? string.Empty;
+        if (!string.IsNullOrEmpty(search) && !line.Contains(search, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void AddAppLogParagraph(string line)
+    {
+        var para = new Paragraph
+        {
+            Margin = new Thickness(0, 1, 0, 1),
+            LineHeight = 18,
+            FontFamily = RichAppLogs.FontFamily
+        };
+
+        int idxFirstClose = line.IndexOf(']');
+        if (line.StartsWith("[") && idxFirstClose > 0)
+        {
+            // Timestamp
+            string timestamp = line[..(idxFirstClose + 1)];
+            para.Inlines.Add(new Run(timestamp)
+            {
+                Foreground = new SolidColorBrush(Color.FromRgb(148, 163, 184)) // Slate 400
+            });
+
+            string rest = line[(idxFirstClose + 1)..].TrimStart();
+            int idxSecondClose = rest.IndexOf(']');
+            if (rest.StartsWith("[") && idxSecondClose > 0)
+            {
+                string levelTag = rest[..(idxSecondClose + 1)];
+                var levelBrush = levelTag.ToUpperInvariant() switch
+                {
+                    "[INFO]" => new SolidColorBrush(Color.FromRgb(56, 189, 248)),       // Sky 400
+                    "[WARNING]" => new SolidColorBrush(Color.FromRgb(251, 191, 36)),    // Amber 400
+                    "[DANGER]" => new SolidColorBrush(Color.FromRgb(248, 113, 113)),    // Red 400
+                    "[SUCCESS]" => new SolidColorBrush(Color.FromRgb(52, 211, 153)),    // Emerald 400
+                    _ => new SolidColorBrush(Color.FromRgb(203, 213, 225))              // Slate 300
+                };
+
+                para.Inlines.Add(new Run(" " + levelTag)
+                {
+                    Foreground = levelBrush,
+                    FontWeight = FontWeights.Bold
+                });
+
+                string afterLevel = rest[(idxSecondClose + 1)..].TrimStart();
+                int idxThirdClose = afterLevel.IndexOf(']');
+                if (afterLevel.StartsWith("[") && idxThirdClose > 0)
+                {
+                    // Caller
+                    string callerTag = afterLevel[..(idxThirdClose + 1)];
+                    para.Inlines.Add(new Run(" " + callerTag)
+                    {
+                        Foreground = new SolidColorBrush(Color.FromRgb(167, 139, 250)), // Purple 400
+                        FontWeight = FontWeights.Medium
+                    });
+
+                    string msg = afterLevel[(idxThirdClose + 1)..];
+                    para.Inlines.Add(new Run(" " + msg.TrimStart())
+                    {
+                        Foreground = GetMessageBrush(levelTag)
+                    });
+                }
+                else
+                {
+                    para.Inlines.Add(new Run(" " + afterLevel)
+                    {
+                        Foreground = GetMessageBrush(levelTag)
+                    });
+                }
+            }
+            else
+            {
+                para.Inlines.Add(new Run(" " + rest)
+                {
+                    Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240))
+                });
+            }
+        }
+        else
+        {
+            para.Inlines.Add(new Run(line)
+            {
+                Foreground = new SolidColorBrush(Color.FromRgb(226, 232, 240))
+            });
+        }
+
+        RichAppLogs.Document.Blocks.Add(para);
+    }
+
+    private static SolidColorBrush GetMessageBrush(string levelTag)
+    {
+        return levelTag.ToUpperInvariant() switch
+        {
+            "[DANGER]" => new SolidColorBrush(Color.FromRgb(254, 202, 202)),   // Red 200
+            "[WARNING]" => new SolidColorBrush(Color.FromRgb(254, 240, 138)),  // Yellow 200
+            "[SUCCESS]" => new SolidColorBrush(Color.FromRgb(167, 243, 208)),  // Emerald 200
+            _ => new SolidColorBrush(Color.FromRgb(241, 245, 249))             // Slate 100
+        };
+    }
+
+    private void UpdateAppLogsCountBadge(int? specificCount = null)
+    {
+        if (TxtAppLogsCount != null && RichAppLogs != null)
+        {
+            int count = specificCount ?? RichAppLogs.Document.Blocks.Count;
+            TxtAppLogsCount.Text = $"{count} registro(s)";
+        }
+    }
+
+    private void BtnReloadAppLogs_Click(object sender, RoutedEventArgs e)
+    {
+        LoadAppLogsToUi();
+        TxtFooterStatus.Text = "Logs da aplicação recarregados do disco.";
+    }
+
+    private void BtnClearAppLogsView_Click(object sender, RoutedEventArgs e)
+    {
+        RichAppLogs?.Document.Blocks.Clear();
+        UpdateAppLogsCountBadge(0);
+        TxtFooterStatus.Text = "Visualização de logs limpa na tela.";
+    }
+
+    private void BtnOpenAppLogsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        string dir = AppLoggerService.LogDirectoryPath;
+        if (Directory.Exists(dir))
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true
+            });
+            TxtFooterStatus.Text = $"Pasta de logs aberta: {dir}";
+        }
+        else
+        {
+            System.Windows.MessageBox.Show($"A pasta de logs não foi encontrada em:\n{dir}", "Logs", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void CmbAppLogLevelFilter_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        RenderFilteredAppLogs();
+    }
+
+    private void TxtAppLogSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        RenderFilteredAppLogs();
+    }
+    #endregion
+
+    #region Painel 11: Otimizações de Registro (Tweaks & Rollback)
+    private void InitializeRegistryTweaks()
+    {
+        _allRegistryTweaks.Clear();
+        var defaults = _registryOptimizerService.GetDefaultTweaks();
+        foreach (var t in defaults)
+        {
+            _allRegistryTweaks.Add(t);
+        }
+        FilterRegistryTweaksByCategory();
+    }
+
+    private void RefreshRegistryTweaksStatus()
+    {
+        if (!_registryTweaksScannedOnce)
+        {
+            _registryTweaksScannedOnce = true;
+            _ = ScanRegistryTweaksAsync();
+        }
+    }
+
+    private async Task ScanRegistryTweaksAsync()
+    {
+        BtnScanRegistryTweaks.IsEnabled = false;
+        BtnApplySelectedRegistryTweaks.IsEnabled = false;
+        BtnRollbackSelectedRegistryTweaks.IsEnabled = false;
+        RichRegistryLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = "Escaneando chaves do Registro do Windows...";
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                _registryOptimizerService.ScanAll(_allRegistryTweaks, msg =>
+                {
+                    Dispatcher.Invoke(() => AppendColoredLog(RichRegistryLogs, msg));
+                });
+            });
+
+            UpdateRegistryOptBadge();
+            TxtFooterStatus.Text = "Escaneamento de registro concluído.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRegistryLogs, $"[ERRO] Falha no escaneamento: {ex.Message}");
+            TxtFooterStatus.Text = "Erro ao escanear o registro.";
+        }
+        finally
+        {
+            BtnScanRegistryTweaks.IsEnabled = true;
+            BtnApplySelectedRegistryTweaks.IsEnabled = true;
+            BtnRollbackSelectedRegistryTweaks.IsEnabled = true;
+        }
+    }
+
+    private void UpdateRegistryOptBadge()
+    {
+        int total = _allRegistryTweaks.Count;
+        int opt = _allRegistryTweaks.Count(t => t.IsOptimized);
+        if (TxtRegistryOptBadge != null)
+        {
+            TxtRegistryOptBadge.Text = $"{opt} / {total} Otimizados";
+        }
+    }
+
+    private void FilterRegistryTweaksByCategory()
+    {
+        _filteredRegistryTweaks.Clear();
+        string category = (CmbRegistryCategoryFilter?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Categorias";
+
+        foreach (var t in _allRegistryTweaks)
+        {
+            if (category == "Todas as Categorias" || t.Category.Equals(category, StringComparison.OrdinalIgnoreCase))
+            {
+                _filteredRegistryTweaks.Add(t);
+            }
+        }
+    }
+
+    private void CmbRegistryCategoryFilter_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        FilterRegistryTweaksByCategory();
+    }
+
+    private void BtnSelectAllRegistryTweaks_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var t in _filteredRegistryTweaks) t.IsSelected = true;
+    }
+
+    private void BtnDeselectAllRegistryTweaks_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var t in _filteredRegistryTweaks) t.IsSelected = false;
+    }
+
+    private async void BtnScanRegistryTweaks_Click(object sender, RoutedEventArgs e)
+    {
+        await ScanRegistryTweaksAsync();
+    }
+
+    private async void BtnApplySelectedRegistryTweaks_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = _allRegistryTweaks.Where(t => t.IsSelected).ToList();
+        if (selected.Count == 0)
+        {
+            System.Windows.MessageBox.Show("Marque pelo menos um tweak de registro para aplicar.", "Nenhum Tweak Selecionado", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Deseja aplicar {selected.Count} tweak(s) no Registro do Windows?\n\nUm ponto de restauração (.reg e snapshot) será gerado automaticamente antes de qualquer alteração.",
+            "Confirmar Aplicação de Tweaks",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes) return;
+
+        BtnScanRegistryTweaks.IsEnabled = false;
+        BtnApplySelectedRegistryTweaks.IsEnabled = false;
+        BtnRollbackSelectedRegistryTweaks.IsEnabled = false;
+        TxtFooterStatus.Text = $"Aplicando {selected.Count} otimização(ões) no registro...";
+
+        try
+        {
+            var (applied, failed) = await Task.Run(() => _registryOptimizerService.ApplyBatch(selected, msg =>
+            {
+                Dispatcher.Invoke(() => AppendColoredLog(RichRegistryLogs, msg));
+            }));
+
+            UpdateRegistryOptBadge();
+            TxtFooterStatus.Text = $"Tweaks aplicados: {applied} sucesso(s), {failed} falha(s).";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRegistryLogs, $"[ERRO] Exceção durante aplicação: {ex.Message}");
+            TxtFooterStatus.Text = "Erro ao aplicar tweaks de registro.";
+        }
+        finally
+        {
+            BtnScanRegistryTweaks.IsEnabled = true;
+            BtnApplySelectedRegistryTweaks.IsEnabled = true;
+            BtnRollbackSelectedRegistryTweaks.IsEnabled = true;
+        }
+    }
+
+    private async void BtnRollbackSelectedRegistryTweaks_Click(object sender, RoutedEventArgs e)
+    {
+        var selected = _allRegistryTweaks.Where(t => t.IsSelected).ToList();
+        if (selected.Count == 0)
+        {
+            System.Windows.MessageBox.Show("Marque pelo menos um tweak para restauração (rollback).", "Nenhum Tweak Selecionado", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Deseja restaurar {selected.Count} tweak(s) aos valores padrão/anteriores do Windows?",
+            "Confirmar Rollback",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Warning);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes) return;
+
+        BtnScanRegistryTweaks.IsEnabled = false;
+        BtnApplySelectedRegistryTweaks.IsEnabled = false;
+        BtnRollbackSelectedRegistryTweaks.IsEnabled = false;
+        TxtFooterStatus.Text = $"Restaurando {selected.Count} tweak(s)...";
+
+        try
+        {
+            var (restored, failed) = await Task.Run(() => _registryOptimizerService.RollbackBatch(selected, msg =>
+            {
+                Dispatcher.Invoke(() => AppendColoredLog(RichRegistryLogs, msg));
+            }));
+
+            UpdateRegistryOptBadge();
+            TxtFooterStatus.Text = $"Rollback finalizado: {restored} restaurado(s), {failed} falha(s).";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichRegistryLogs, $"[ERRO] Exceção durante rollback: {ex.Message}");
+            TxtFooterStatus.Text = "Erro no rollback de registro.";
+        }
+        finally
+        {
+            BtnScanRegistryTweaks.IsEnabled = true;
+            BtnApplySelectedRegistryTweaks.IsEnabled = true;
+            BtnRollbackSelectedRegistryTweaks.IsEnabled = true;
+        }
+    }
+
+    private void BtnApplySingleTweak_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.Tag is RegistryTweakItem tweak)
+        {
+            try
+            {
+                var (success, _) = _registryOptimizerService.ApplyTweak(tweak, msg =>
+                {
+                    Dispatcher.Invoke(() => AppendColoredLog(RichRegistryLogs, msg));
+                });
+                UpdateRegistryOptBadge();
+                TxtFooterStatus.Text = success ? $"Tweak '{tweak.Title}' aplicado." : $"Falha no tweak '{tweak.Title}'.";
+            }
+            catch (Exception ex)
+            {
+                AppendColoredLog(RichRegistryLogs, $"[ERRO] {ex.Message}");
+            }
+        }
+    }
+
+    private void BtnRollbackSingleTweak_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button btn && btn.Tag is RegistryTweakItem tweak)
+        {
+            try
+            {
+                var (success, _) = _registryOptimizerService.RollbackTweak(tweak, msg =>
+                {
+                    Dispatcher.Invoke(() => AppendColoredLog(RichRegistryLogs, msg));
+                });
+                UpdateRegistryOptBadge();
+                TxtFooterStatus.Text = success ? $"Tweak '{tweak.Title}' restaurado." : $"Falha no rollback de '{tweak.Title}'.";
+            }
+            catch (Exception ex)
+            {
+                AppendColoredLog(RichRegistryLogs, $"[ERRO] {ex.Message}");
+            }
+        }
+    }
+
+    private void BtnOpenRegistryBackupFolder_Click(object sender, RoutedEventArgs e)
+    {
+        string dir = RegistryOptimizerService.BackupFolderPath;
+        if (Directory.Exists(dir))
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true
+            });
+            TxtFooterStatus.Text = $"Pasta de backups aberta: {dir}";
+        }
+        else
+        {
+            System.Windows.MessageBox.Show($"Nenhum backup gerado ainda em:\n{dir}", "Backups de Registro", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
     #endregion

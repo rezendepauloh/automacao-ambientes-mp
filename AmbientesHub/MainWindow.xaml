@@ -18,22 +18,41 @@
         </Grid.RowDefinitions>
 
         <!-- Barra de Título Customizada Fluent com Input de Pesquisa Centralizado Integrado no Header -->
-        <ui:TitleBar Grid.Row="0" Title="Ambientes Hub">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="Assets/app.ico" Width="18" Height="18" />
-            </ui:TitleBar.Icon>
-            <ui:TitleBar.Header>
-                <ui:TextBox x:Name="TxtGlobalSearch" 
-                            PlaceholderText="Pesquisar (máquinas, usuários, módulos)..." 
-                            Icon="{ui:SymbolIcon Symbol=Search24}"
-                            Width="380" Height="32" 
-                            HorizontalAlignment="Center" VerticalAlignment="Center"
-                            Background="{DynamicResource ControlFillColorDefaultBrush}"
-                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                            KeyDown="TxtGlobalSearch_KeyDown"
-                            ToolTip="Pesquisa global: digite máquina, usuário ou módulo e pressione Enter" />
-            </ui:TitleBar.Header>
-        </ui:TitleBar>
+        <Grid Grid.Row="0">
+            <ui:TitleBar x:Name="AppTitleBar" Title="Ambientes Hub">
+                <ui:TitleBar.Icon>
+                    <ui:ImageIcon Source="Assets/app.ico" Width="18" Height="18" />
+                </ui:TitleBar.Icon>
+                <ui:TitleBar.Header>
+                    <ui:TextBox x:Name="TxtGlobalSearch" 
+                                PlaceholderText="Pesquisar (máquinas, usuários, módulos)..." 
+                                Icon="{ui:SymbolIcon Symbol=Search24}"
+                                Width="380" Height="32" 
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                KeyDown="TxtGlobalSearch_KeyDown"
+                                ToolTip="Pesquisa global: digite máquina, usuário ou módulo e pressione Enter" />
+                </ui:TitleBar.Header>
+            </ui:TitleBar>
+
+            <!-- Badge Indicadora de Privilégio (Admin vs Usuário Padrão) alinhada à direita, antes dos botões de controle -->
+            <Border x:Name="TitleBarAdminBadge"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Margin="0,0,145,0"
+                    Padding="10,4"
+                    CornerRadius="12"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    MouseDown="TitleBarAdminBadge_MouseDown"
+                    ToolTip="Clique para alternar o modo de execução (Admin / Padrão)">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:SymbolIcon x:Name="IconTitleBarAdmin" Symbol="Shield20" FontSize="13" Margin="0,0,5,0" />
+                    <TextBlock x:Name="TxtTitleBarAdmin" Text="Usuário" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- Layout com Menu Lateral Vertical Responsivo (Expandido / Recolhido com Splitter) -->
         <Grid Grid.Row="1" Margin="10,5,10,0">

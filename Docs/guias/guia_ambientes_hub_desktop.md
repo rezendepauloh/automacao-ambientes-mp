@@ -1,6 +1,6 @@
-# 📖 Guia de Operação do Ambientes Hub (WinUI / C#)
+# 📖 Guia de Operação do Ambientes Hub (WPF-UI / C#)
 
-O **Ambientes Hub** é a interface desktop moderna (Fluent Design Windows 11) desenvolvida em .NET 8 com o objetivo de centralizar a alternância de ambientes de trabalho, fornecer launcher leve para conexões remotas e permitir operações de limpeza e desprovisionamento sem a lentidão de consoles pesados.
+O **Ambientes Hub** é a interface desktop nativa Windows (Fluent Design / Mica) desenvolvida em **C# (.NET 8 com WPF-UI)** com o objetivo de centralizar a alternância de ambientes corporativos de trabalho, fornecer launcher com proteção contra injeção para conexões remotas (RDP e SCCM) e executar rotinas profundas de saneamento de memória, desprovisionamento no AD/SCCM e cofre de senhas DPAPI.
 
 ---
 
@@ -77,12 +77,17 @@ _Executável leve disponível em:_
 
 ### C. Aba "Limpeza AD & SCCM"
 
-- Integra a rotina desprovisionadora de `D:\ArrumarPC\remover_computador_ad_sccm.ps1`.
-- Exibe o log em tempo real dentro da própria janela do Hub, com confirmação de segurança antes de efetuar a exclusão.
+- Realiza desprovisionamento transacional de estações de trabalho de forma 100% nativa em C# (`AdSccmService`).
+- Remove contas de computador no Active Directory via LDAP nativo (`DeleteTree`) e no Configuration Manager via WMI com PacketPrivacy ou provedor CMSite PowerShell sanitizado.
+- Exige validação estrita do hostname (anti-wildcard) e caixa de diálogo de confirmação crítica antes de qualquer exclusão.
 
 ### D. Aba "Performance & Limpeza"
 
-- Dispara o saneamento do Windows: salva documentos do Office com segurança, fecha processos pesados sem derrubar o próprio Hub e limpa histórico de abas travadas do Edge.
+- Dispara o saneamento de recursos via `CleanupService`:
+  - Salva documentos abertos do Word e Excel de forma transacional via COM antes de encerrá-los, liberando ponteiros com `Marshal.ReleaseComObject`.
+  - Encerra navegadores pesados (Chrome, Edge) e Teams liberando memória.
+  - Imuniza o próprio Hub, seu processo pai e janelas rotuladas com `"🛠️ Modo"` através do escudo de processos.
+  - Modo Nuclear do Explorer para zerar caches bloqueados de ícones e arquivos temporários.
 
 ### E. Inicialização com Windows & Bandeja do Sistema
 

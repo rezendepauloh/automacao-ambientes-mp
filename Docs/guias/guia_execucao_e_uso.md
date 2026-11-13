@@ -1,87 +1,103 @@
-# 📖 Guia de Execução e Uso
+# 📖 Guia de Execução e Uso dos Serviços C# (AmbientesHub)
 
-Guia passo a passo para carregar e executar as funções do módulo `biblioteca.ps1` no Windows PowerShell (5.1) ou PowerShell 7+ (`pwsh`).
-
----
-
-## 1. Pré-Requisitos
-
-- **Sistema Operacional:** Windows 10 ou Windows 11.
-- **Permissão de Execução:** Política que permita carregar scripts locais (ex: `RemoteSigned` ou `Bypass`).
-- **Privilégios:**
-  - Modo padrão (usuário comum): Executa todas as funções normais (fechamento de processos do usuário, salvamento Office, abas do Edge/Explorer).
-  - Modo Administrador (opcional): Necessário apenas para interromper serviços de sistema como o `DiagTrack` (Telemetria).
+> Manual técnico de referência e uso dos serviços nativos em C# (.NET 8) que substituíram integralmente os scripts PowerShell legados (`biblioteca.ps1` e rotinas de ambiente).
 
 ---
 
-## 2. Como Carregar as Funções (Dot-Sourcing)
+## 1. Arquitetura de Serviços Nativos
 
-Abra o terminal do PowerShell na raiz do projeto (`C:\AmbientesVirtuais`) e carregue as funções na sessão atual:
+Toda a lógica de automação, manipulação de janelas, limpeza transacional e orquestração de rede reside sob o namespace `AmbientesHub.Services`:
+
+| Serviço C#                       | Responsabilidade Principal                                                                                                             |
+| :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
+| **`CleanupService`**             | Encerramento transacional do Office via COM, supressão de telemetria, expurgo de caches e reinício limpo do Explorer.                  |
+| **`EnvironmentLauncherService`** | Orquestração dos Modos de Trabalho (Chamados, Contratos, Impressoras, PXE, Estudo).                                                    |
+| **`BrowserLauncherService`**     | Abertura validada (HTTP/HTTPS) de URLs no Firefox/Edge e execução segura do WhatsApp PWA.                                              |
+| **`CredentialService`**          | Gravação e leitura criptografada de credenciais com Windows DPAPI (`DataProtectionScope.CurrentUser`) com restrição de ACL NTFS (600). |
+| **`RemoteToolsService`**         | Disparo sanitizado com `ArgumentList` de RDP (`mstsc.exe`), SCCM Remote Control (`CmRcViewer.exe`) e Explorer remoto.                  |
+| **`AdSccmService`**              | Consultas e desprovisionamento seguro de computadores e usuários via LDAP nativo e WMI/CMSite.                                         |
+| **`FolderLauncherService`**      | Abertura de múltiplos diretórios com validação de caminho.                                                                             |
+
+---
+
+## 2. Como Executar e Compilar o Projeto
+
+O projeto é compilado e executado através do .NET 8 SDK:
+
+### A. Executar em Modo de Desenvolvimento (Hot Reload / Debug)
 
 ```powershell
-# Carrega todas as funções na memória do terminal atual
-. .\biblioteca.ps1
+cd C:\AmbientesVirtuais\AmbientesHub
+dotnet run
 ```
+
+### B. Compilar e Publicar o Executável Autônomo (Portátil)
+
+Gera um executável único com runtime embutido (Single-File), dispensando pré-instalação do .NET na máquina de destino:
+
+```powershell
+cd C:\AmbientesVirtuais\AmbientesHub
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o .\bin\Portatil
+```
+
+_Binário pronto em:_ `C:\AmbientesVirtuais\AmbientesHub\bin\Portatil\AmbientesHub.exe`
+
+### C. Compilar Publicação Leve (Framework-Dependent)
+
+Gera binário enxuto para parques corporativos que já distribuem o .NET Desktop Runtime 8 via SCCM/Intune:
+
+```powershell
+cd C:\AmbientesVirtuais\AmbientesHub
+dotnet publish -c Release -r win-x64 --self-contained false -o .\bin\Publish
+```
+
+_Binário pronto em:_ `C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe`
 
 ---
 
-## 3. Exemplos Práticos de Execução
+## 3. Exemplos Práticos de Invocação dos Serviços em C#
 
-### A. Limpeza Geral de Ambiente
-Executa o ciclo completo: salva documentos do Office, fecha aplicações pesadas respeitando escudos de PID/Título, limpa cache de sessão do Edge, reinicia o Explorer e mata processos de telemetria.
+### A. Saneamento Completo de Ambiente com Escudo de Proteção
 
-```powershell
-Limpar-Ambiente
+```csharp
+var cleanup = new CleanupService();
+cleanup.CleanEnvironment(new CleanupOptions
+{
+    CloseOffice = true,                 // Transacional: Salva Word/Excel antes de fechar
+    CloseBrowsers = true,               // Encerra Edge, Chrome e libera memória
+    CloseFirefox = false,               // Preserva o Firefox onde o Hub ou PWA roda
+    CloseTeams = true,                  // Derruba todas as instâncias do Teams
+    CloseAdministrativeTools = true,
+    CloseUtilities = true,
+    StopTelemetry = true                // Finaliza CompatTelRunner e desativa DiagTrack
+});
 ```
 
----
+### B. Acionamento de Modo de Trabalho
 
-### B. Fechamento Rápido do Teams
-Derruba processos persistentes do Teams (legado, moderno e web):
-
-```powershell
-Matar-Teams
+```csharp
+var launcher = new EnvironmentLauncherService();
+// Aciona o Modo Chamados (limpa o ambiente previamente e orquestra navegadores/PWA)
+launcher.LaunchEnvironment("Chamados", cleanFirst: true);
 ```
 
----
+### C. Conexão Remota Sanitizada (Anti Argument Injection)
 
-### C. Abertura Agrupada de Pastas em Abas do Explorer
-Abre o Explorador de Arquivos e adiciona pastas como abas na mesma janela:
+```csharp
+var remote = new RemoteToolsService();
+// Dispara RDP validando o hostname contra whitelists rígidas
+remote.OpenRdp("ESTACAO-01");
 
-```powershell
-$pastasDeTrabalho = [ordered]@{
-    "Projetos"  = "C:\Projetos"
-    "Downloads" = "$env:USERPROFILE\Downloads"
-    "Documentos"= "$env:USERPROFILE\Documents"
-}
-
-Abrir-PastasEmAbas -Pastas $pastasDeTrabalho
+// Dispara visualizador de controle remoto SCCM
+remote.OpenSccmRemoteControl("ESTACAO-01");
 ```
 
----
+### D. Armazenamento Seguro de Credenciais DPAPI
 
-### D. Abertura Otimizada do Microsoft Edge
-Abre o Edge em modo leve (sem extensões) com a vacina anti-crash aplicada:
+```csharp
+// Salva credencial criptografada na sessão do usuário atual com ACL 600
+CredentialService.SaveCredential(@"C:\AmbientesVirtuais\Credenciais\cred_admin.xml", "admin_local", "SenhaForte123!");
 
-```powershell
-$meusSites = [ordered]@{
-    "Portal Corporativo" = "https://intranet.exemplo.gov.br"
-    "Chamados"           = "https://chamados.exemplo.gov.br"
-}
-
-Abrir-SitesEdgeLeve -Sites $meusSites
+// Recupera a credencial de forma segura
+var (success, msg, username, password) = CredentialService.ReadPlaintextCredential();
 ```
-
----
-
-### E. Limpeza de Credenciais da Memória
-Remove variáveis que continham credenciais e força a coleta imediata pelo Garbage Collector:
-
-```powershell
-# Usando os nomes de variáveis padrão
-Remover-CredenciaisMemoria
-
-# Ou informando variáveis customizadas
-Remover-CredenciaisMemoria -Variaveis @("tokenAcesso", "minhaSenha")
-```
-

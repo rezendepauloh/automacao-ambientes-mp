@@ -70,6 +70,8 @@ public sealed class TrayIconService : IDisposable
 
     public event Action? OnOpenRequested;
     public event Action? OnExitRequested;
+    public event Action? OnToggleAdminModeRequested;
+    public Func<bool>? IsAdminModeProvider;
 
     public TrayIconService(Window window)
     {
@@ -156,6 +158,13 @@ public sealed class TrayIconService : IDisposable
         };
         itemOpen.Click += (s, e) => OnOpenRequested?.Invoke();
 
+        bool isAdmin = IsAdminModeProvider?.Invoke() ?? false;
+        var itemToggleAdmin = new System.Windows.Controls.MenuItem
+        {
+            Header = isAdmin ? "Reiniciar em Modo Padrão (Sem Admin)" : "Reiniciar como Administrador (Elevado)"
+        };
+        itemToggleAdmin.Click += (s, e) => OnToggleAdminModeRequested?.Invoke();
+
         var itemExit = new System.Windows.Controls.MenuItem
         {
             Header = "Sair do Aplicativo"
@@ -163,6 +172,8 @@ public sealed class TrayIconService : IDisposable
         itemExit.Click += (s, e) => OnExitRequested?.Invoke();
 
         menu.Items.Add(itemOpen);
+        menu.Items.Add(new System.Windows.Controls.Separator());
+        menu.Items.Add(itemToggleAdmin);
         menu.Items.Add(new System.Windows.Controls.Separator());
         menu.Items.Add(itemExit);
 

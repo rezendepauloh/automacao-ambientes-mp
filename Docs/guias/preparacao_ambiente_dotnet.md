@@ -1,31 +1,24 @@
-# 📖 Guia de Instalação e Preparação do Ambiente .NET & WinUI 3
+# 📖 Guia de Instalação e Preparação do Ambiente .NET
 
-Para compilar e executar o Hub Desktop em C# e WinUI 3 no Windows, precisamos do **.NET 8 ou .NET 9 SDK**.
-
----
-
-## 1. Situação Atual Detectada
-
-No terminal, o comando `dotnet --version` retornou:
-> `No .NET SDKs were found.`
-
-Isso indica que o runtime ou SDK do .NET ainda não está instalado ou não está no `PATH`.
+Para compilar, publicar e executar o Ambientes Hub e sua suíte de testes xUnit, é necessário o **.NET 8.0 SDK** (ou superior).
 
 ---
 
-## 2. Opções de Instalação Recomendadas
+## 1. Pré-Requisitos Recomendados
 
-### Opção A: Via Windows Package Manager (`winget`) — Mais Rápido
+- **Windows 10 (Build 19041+) ou Windows 11**.
+- **.NET 8.0 SDK**: Necessário para desenvolvimento, compilação de binários e execução dos testes xUnit.
+
+---
+
+## 2. Opções de Instalação
+
+### Opção A: Via Windows Package Manager (`winget`) — Recomendado
 Abra o PowerShell como Administrador e execute:
 
 ```powershell
 # Instala o .NET 8 SDK oficial da Microsoft
 winget install Microsoft.DotNet.SDK.8 --silent --accept-package-agreements --accept-source-agreements
-```
-
-*(Ou para .NET 9):*
-```powershell
-winget install Microsoft.DotNet.SDK.9 --silent --accept-package-agreements --accept-source-agreements
 ```
 
 ---
@@ -37,13 +30,18 @@ winget install Microsoft.DotNet.SDK.9 --silent --accept-package-agreements --acc
 
 ---
 
-## 3. Validação pós-instalação
+## 3. Validação e Compilação Inicial
 
-Após instalar, abra uma **nova janela do terminal** (para carregar o novo PATH do sistema) e execute:
+Após instalar, abra uma nova janela de terminal e execute:
 
 ```powershell
+# 1. Validar versão do SDK instalada
 dotnet --version
-```
 
-A saída deverá exibir a versão instalada (ex: `8.0.404` ou `9.0.100`).
+# 2. Restaurar dependências e compilar a aplicação
+dotnet build C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj
+
+# 3. Executar a suíte completa de testes unitários e de integração
+pwsh -NoProfile -File C:\AmbientesVirtuais\tests\run_all.ps1
+```
 

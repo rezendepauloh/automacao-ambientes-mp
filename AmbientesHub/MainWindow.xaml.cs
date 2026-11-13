@@ -496,8 +496,10 @@ public partial class MainWindow : FluentWindow
             }
 
             _trayIconService = new TrayIconService(this);
+            _trayIconService.IsAdminModeProvider = () => SystemPerformanceService.IsUserAdministrator();
             _trayIconService.OnOpenRequested += RestoreFromTray;
             _trayIconService.OnExitRequested += ExitApplication;
+            _trayIconService.OnToggleAdminModeRequested += ToggleAdminMode;
             _trayIconService.Initialize(iconPath, "Ambientes Hub — Produtividade & Performance");
         }
         catch (Exception ex)
@@ -1053,10 +1055,34 @@ public partial class MainWindow : FluentWindow
     #region Performance & Auditoria (ArrumarPC Nativo)
     private void RefreshPerformanceAdminStatus()
     {
+        bool isAdmin = SystemPerformanceService.IsUserAdministrator();
+
+        // Atualização da Badge da Barra de Título (ao lado dos botões de controle da janela)
+        if (TitleBarAdminBadge != null && TxtTitleBarAdmin != null && IconTitleBarAdmin != null)
+        {
+            if (isAdmin)
+            {
+                TxtTitleBarAdmin.Text = "Admin";
+                TxtTitleBarAdmin.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153)); // Emerald 400
+                IconTitleBarAdmin.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+                TitleBarAdminBadge.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
+                TitleBarAdminBadge.BorderBrush = new SolidColorBrush(Color.FromArgb(120, 16, 185, 129));
+                TitleBarAdminBadge.ToolTip = "Executando com Privilégios de Administrador. Clique para alternar para Usuário Padrão.";
+            }
+            else
+            {
+                TxtTitleBarAdmin.Text = "Usuário";
+                TxtTitleBarAdmin.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36)); // Amber 400
+                IconTitleBarAdmin.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+                TitleBarAdminBadge.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
+                TitleBarAdminBadge.BorderBrush = new SolidColorBrush(Color.FromArgb(120, 245, 158, 11));
+                TitleBarAdminBadge.ToolTip = "Executando em Modo Usuário Padrão. Clique para reiniciar como Administrador (UAC).";
+            }
+        }
+
         if (TxtPerfAdminStatus == null || BadgeAdminStatus == null || BtnReiniciarComoAdmin == null)
             return;
 
-        bool isAdmin = SystemPerformanceService.IsUserAdministrator();
         if (isAdmin)
         {
             TxtPerfAdminStatus.Text = "Modo Administrador";
@@ -1072,6 +1098,45 @@ public partial class MainWindow : FluentWindow
             BadgeAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
             BadgeAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 245, 158, 11));
             BtnReiniciarComoAdmin.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void TitleBarAdminBadge_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+        {
+            ToggleAdminMode();
+        }
+    }
+
+    private void ToggleAdminMode()
+    {
+        bool isAdmin = SystemPerformanceService.IsUserAdministrator();
+        if (isAdmin)
+        {
+            // Se já for admin, relança em modo normal via explorer.exe (sem herdar token elevado)
+            try
+            {
+                string? exePath = Environment.ProcessPath;
+                if (!string.IsNullOrWhiteSpace(exePath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{exePath}\"",
+                        UseShellExecute = true
+                    });
+                    ExitApplication();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppLoggerService.Warning($"Erro ao reiniciar em modo padrão: {ex.Message}", nameof(MainWindow));
+            }
+        }
+        else
+        {
+            BtnReiniciarComoAdmin_Click(this, new RoutedEventArgs());
         }
     }
 

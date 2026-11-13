@@ -537,9 +537,39 @@ public partial class MainWindow : FluentWindow
 
             _trayIconService = new TrayIconService(this);
             _trayIconService.IsAdminModeProvider = () => SystemPerformanceService.IsUserAdministrator();
+            _trayIconService.ClipboardTextProvider = () =>
+            {
+                try
+                {
+                    return System.Windows.Clipboard.ContainsText() ? System.Windows.Clipboard.GetText() : string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            };
             _trayIconService.OnOpenRequested += RestoreFromTray;
             _trayIconService.OnExitRequested += ExitApplication;
             _trayIconService.OnToggleAdminModeRequested += ToggleAdminMode;
+            _trayIconService.OnLaunchEnvironmentRequested += TrayLaunchEnvironment;
+            _trayIconService.OnQuickCleanRequested += TrayQuickClean;
+            _trayIconService.OnStartDockerRequested += () => BtnStartBancada_Click(this, new RoutedEventArgs());
+            _trayIconService.OnStopDockerRequested += () => BtnStopBancada_Click(this, new RoutedEventArgs());
+            _trayIconService.OnRebuildDockerRequested += () => BtnRebuildBancada_Click(this, new RoutedEventArgs());
+            _trayIconService.OnOpenBancadaBrowserRequested += () => BtnOpenBancadaBrowser_Click(this, new RoutedEventArgs());
+            _trayIconService.OnOpenBancadaFolderRequested += () => BtnOpenBancadaFolder_Click(this, new RoutedEventArgs());
+            _trayIconService.OnCheckBancadaHealthRequested += async () =>
+            {
+                await CheckBancadaStatusAsync();
+                bool online = await _bancadaService.IsBancadaOnlineAsync();
+                _trayIconService?.ShowBalloon("Bancada Streamlit", online ? "O sistema está ONLINE (porta 8501)." : "O sistema está OFFLINE / PARADO.");
+            };
+            _trayIconService.OnRemoteConnectClipboardRequested += TrayRemoteConnect;
+            _trayIconService.OnOpenAppLogsRequested += () =>
+            {
+                RestoreFromTray();
+                NavListBox.SelectedIndex = 12;
+            };
             _trayIconService.Initialize(iconPath, "Ambientes Hub — Produtividade & Performance");
         }
         catch (Exception ex)
@@ -554,6 +584,76 @@ public partial class MainWindow : FluentWindow
         WindowState = WindowState.Normal;
         Activate();
         Focus();
+    }
+
+    private void TrayLaunchEnvironment(string modeName)
+    {
+        try
+        {
+            _envService.LaunchEnvironment(modeName, cleanFirst: false);
+            _trayIconService?.ShowBalloon("Ambientes Hub", $"Ambiente 'Modo {modeName}' disparado com sucesso.");
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Danger($"Erro ao alternar para modo {modeName} via bandeja: {ex.Message}", nameof(MainWindow));
+        }
+    }
+
+    private async void TrayQuickClean()
+    {
+        _trayIconService?.ShowBalloon("Saneamento", "Iniciando saneamento de processos e liberação de memória...");
+        try
+        {
+            var options = new CleanupOptions
+            {
+                CloseOffice = true,
+                CloseBrowsers = true,
+                CloseTeams = true,
+                StopTelemetry = true,
+                RestartExplorer = false
+            };
+
+            await Task.Run(() => _cleanupService.CleanEnvironment(options));
+            _trayIconService?.ShowBalloon("Saneamento Concluído", "Memória RAM liberada e processos do Office/Browsers saneados.");
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Danger($"Erro no saneamento rápido via bandeja: {ex.Message}", nameof(MainWindow));
+        }
+    }
+
+    private void TrayRemoteConnect(bool useSccm)
+    {
+        string raw = System.Windows.Clipboard.ContainsText() ? System.Windows.Clipboard.GetText().Trim() : string.Empty;
+        if (string.IsNullOrWhiteSpace(raw) || !InputValidator.IsValidHostName(raw))
+        {
+            RestoreFromTray();
+            NavListBox.SelectedIndex = 2; // Painel Remoto
+            System.Windows.MessageBox.Show(
+                "Nenhum nome de computador ou endereço IP válido foi detectado na sua Área de Transferência.\n\nDigite o alvo diretamente no campo de Acesso Remoto.",
+                "Acesso Remoto",
+                System.Windows.MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            if (useSccm)
+            {
+                _remoteToolsService.OpenSccmRemoteControl(raw, ConfigService.SccmSiteServer);
+                _trayIconService?.ShowBalloon("SCCM Remoto", $"Conectando ao console SCCM na máquina '{raw}'...");
+            }
+            else
+            {
+                _remoteToolsService.OpenRdp(raw);
+                _trayIconService?.ShowBalloon("RDP Padrão", $"Conectando via mstsc na máquina '{raw}'...");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show($"Falha ao iniciar conexão remota: {ex.Message}", "Erro de Conexão", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void ExitApplication()
@@ -2271,6 +2371,7 @@ public partial class MainWindow : FluentWindow
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
+        BtnRebuildBancada.IsEnabled = false;
         TxtFooterStatus.Text = "Iniciando containers Docker da Bancada via WSL...";
         AppendColoredLog(RichBancadaLogs, "=== INICIALIZANDO SISTEMA BANCADA STI (DOCKER WSL) ===");
         AppendColoredLog(RichBancadaLogs, $"WSL Distro: {ConfigService.BancadaWslDistro}");
@@ -2281,7 +2382,11 @@ public partial class MainWindow : FluentWindow
         {
             await _bancadaService.StartDockerBancadaAsync(msg =>
             {
-                Dispatcher.Invoke(() => AppendColoredLog(RichBancadaLogs, msg));
+                Dispatcher.Invoke(() =>
+                {
+                    AppendColoredLog(RichBancadaLogs, msg);
+                    InspectBancadaLogForSystemNotification(msg);
+                });
             });
         });
 
@@ -2290,6 +2395,7 @@ public partial class MainWindow : FluentWindow
         BtnStartBancada.IsEnabled = true;
         BtnStopBancada.IsEnabled = true;
         BtnRestartBancada.IsEnabled = true;
+        BtnRebuildBancada.IsEnabled = true;
         await CheckBancadaStatusAsync();
     }
 
@@ -2298,6 +2404,7 @@ public partial class MainWindow : FluentWindow
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
+        BtnRebuildBancada.IsEnabled = false;
         TxtFooterStatus.Text = "Parando containers Docker da Bancada...";
         AppendColoredLog(RichBancadaLogs, "=== PARANDO CONTAINERS (DOCKER COMPOSE DOWN) ===");
 
@@ -2309,6 +2416,7 @@ public partial class MainWindow : FluentWindow
         BtnStartBancada.IsEnabled = true;
         BtnStopBancada.IsEnabled = true;
         BtnRestartBancada.IsEnabled = true;
+        BtnRebuildBancada.IsEnabled = true;
         await CheckBancadaStatusAsync();
         TxtFooterStatus.Text = "Containers da Bancada encerrados.";
     }
@@ -2318,18 +2426,53 @@ public partial class MainWindow : FluentWindow
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
+        BtnRebuildBancada.IsEnabled = false;
         TxtFooterStatus.Text = "Reiniciando stack Docker da Bancada...";
         AppendColoredLog(RichBancadaLogs, "=== REINICIANDO CONTAINERS DOCKER ===");
 
         await _bancadaService.RestartDockerBancadaAsync(msg =>
         {
-            Dispatcher.Invoke(() => AppendColoredLog(RichBancadaLogs, msg));
+            Dispatcher.Invoke(() =>
+            {
+                AppendColoredLog(RichBancadaLogs, msg);
+                InspectBancadaLogForSystemNotification(msg);
+            });
         });
 
         await Task.Delay(3000);
         BtnStartBancada.IsEnabled = true;
         BtnStopBancada.IsEnabled = true;
         BtnRestartBancada.IsEnabled = true;
+        BtnRebuildBancada.IsEnabled = true;
+        await CheckBancadaStatusAsync();
+    }
+
+    private async void BtnRebuildBancada_Click(object sender, RoutedEventArgs e)
+    {
+        BtnStartBancada.IsEnabled = false;
+        BtnStopBancada.IsEnabled = false;
+        BtnRestartBancada.IsEnabled = false;
+        BtnRebuildBancada.IsEnabled = false;
+        TxtFooterStatus.Text = "Reconstruindo imagens Docker da Bancada (build --no-cache)...";
+        AppendColoredLog(RichBancadaLogs, "=== RECONSTRUINDO CONTAINERS (BUILD --NO-CACHE) ===");
+
+        _ = Task.Run(async () =>
+        {
+            await _bancadaService.RebuildDockerBancadaAsync(msg =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    AppendColoredLog(RichBancadaLogs, msg);
+                    InspectBancadaLogForSystemNotification(msg);
+                });
+            });
+        });
+
+        await Task.Delay(4000);
+        BtnStartBancada.IsEnabled = true;
+        BtnStopBancada.IsEnabled = true;
+        BtnRestartBancada.IsEnabled = true;
+        BtnRebuildBancada.IsEnabled = true;
         await CheckBancadaStatusAsync();
     }
 
@@ -2367,6 +2510,38 @@ public partial class MainWindow : FluentWindow
         else
         {
             System.Windows.MessageBox.Show($"O caminho da pasta da Bancada não foi encontrado:\n{path}", "Pasta Não Localizada", System.Windows.MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void InspectBancadaLogForSystemNotification(string logLine)
+    {
+        if (string.IsNullOrWhiteSpace(logLine)) return;
+
+        // Remove códigos de escape ANSI de cor se presentes (ex: [36m, [0m)
+        string cleanText = System.Text.RegularExpressions.Regex.Replace(logLine, @"\x1B\[[^@-~]*[@-~]", "");
+
+        // 1. Notificação de Tarefa Concluída com Sucesso (ex: orquestrador_chamados)
+        if (cleanText.Contains("Tarefa", StringComparison.OrdinalIgnoreCase) && 
+            (cleanText.Contains("finalizada com sucesso", StringComparison.OrdinalIgnoreCase) || cleanText.Contains("executado com sucesso", StringComparison.OrdinalIgnoreCase)))
+        {
+            string summary = cleanText;
+            int idx = cleanText.IndexOf("Tarefa", StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0) summary = cleanText[idx..].Trim();
+
+            _trayIconService?.ShowBalloon("Bancada STI — Tarefa Concluída", summary, TrayIconService.NIIF_INFO);
+            return;
+        }
+
+        // 2. Notificação de Erro Crítico ou Falha em Tarefa
+        if (cleanText.Contains("Falha na tarefa", StringComparison.OrdinalIgnoreCase) || 
+            cleanText.Contains("Erro crítico na execução", StringComparison.OrdinalIgnoreCase))
+        {
+            string summary = cleanText;
+            int idx = cleanText.IndexOf("Falha", StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) idx = cleanText.IndexOf("Erro", StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0) summary = cleanText[idx..].Trim();
+
+            _trayIconService?.ShowBalloon("Bancada STI — Alerta / Falha", summary, TrayIconService.NIIF_WARNING);
         }
     }
     #endregion

@@ -62,6 +62,12 @@ public sealed class TrayIconService : IDisposable
     private const uint LR_LOADFROMFILE = 0x00000010;
     private const uint LR_DEFAULTSIZE = 0x00000040;
 
+    public const uint NIIF_NONE = 0x00000000;
+    public const uint NIIF_INFO = 0x00000001;
+    public const uint NIIF_WARNING = 0x00000002;
+    public const uint NIIF_ERROR = 0x00000003;
+    public const uint NIIF_LARGE_ICON = 0x00000020;
+
     private readonly Window _window;
     private IntPtr _hwnd;
     private IntPtr _hIcon = IntPtr.Zero;
@@ -71,7 +77,19 @@ public sealed class TrayIconService : IDisposable
     public event Action? OnOpenRequested;
     public event Action? OnExitRequested;
     public event Action? OnToggleAdminModeRequested;
+    public event Action<string>? OnLaunchEnvironmentRequested;
+    public event Action? OnQuickCleanRequested;
+    public event Action? OnStartDockerRequested;
+    public event Action? OnStopDockerRequested;
+    public event Action? OnRebuildDockerRequested;
+    public event Action? OnOpenBancadaBrowserRequested;
+    public event Action? OnOpenBancadaFolderRequested;
+    public event Action? OnCheckBancadaHealthRequested;
+    public event Action<bool>? OnRemoteConnectClipboardRequested; // true = SCCM, false = RDP
+    public event Action? OnOpenAppLogsRequested;
+
     public Func<bool>? IsAdminModeProvider;
+    public Func<string>? ClipboardTextProvider;
 
     public TrayIconService(Window window)
     {
@@ -107,7 +125,7 @@ public sealed class TrayIconService : IDisposable
         Shell_NotifyIcon(NIM_SETVERSION, ref data);
     }
 
-    public void ShowBalloon(string title, string message)
+    public void ShowBalloon(string title, string message, uint infoFlags = NIIF_INFO)
     {
         if (!_isAdded || _hwnd == IntPtr.Zero) return;
 
@@ -119,7 +137,7 @@ public sealed class TrayIconService : IDisposable
             uFlags = NIF_INFO,
             szInfoTitle = title.Length > 63 ? title[..63] : title,
             szInfo = message.Length > 255 ? message[..255] : message,
-            dwInfoFlags = 0x00000001 // NIIF_INFO
+            dwInfoFlags = infoFlags
         };
 
         Shell_NotifyIcon(NIM_MODIFY, ref data);
@@ -151,30 +169,121 @@ public sealed class TrayIconService : IDisposable
 
         var menu = new System.Windows.Controls.ContextMenu();
 
+        // 1. Abertura Principal
         var itemOpen = new System.Windows.Controls.MenuItem
         {
             Header = "Abrir Ambientes Hub",
             FontWeight = FontWeights.Bold
         };
         itemOpen.Click += (s, e) => OnOpenRequested?.Invoke();
+        menu.Items.Add(itemOpen);
+        menu.Items.Add(new System.Windows.Controls.Separator());
 
+        // 2. Submenu: Alternar Ambientes de Trabalho
+        var menuAmbientes = new System.Windows.Controls.MenuItem { Header = "🛠️ Alternar Ambiente" };
+        var modes = new (string Name, string Label)[]
+        {
+            ("Chamados", "🛠️ Modo Chamados"),
+            ("Contratos", "🛠️ Modo Contratos"),
+            ("Impressoras", "🛠️ Modo Impressoras"),
+            ("PXE", "🛠️ Modo PXE / Bancada"),
+            ("Estudo", "🛠️ Modo Estudo")
+        };
+        foreach (var (name, label) in modes)
+        {
+            var subItem = new System.Windows.Controls.MenuItem { Header = label };
+            subItem.Click += (s, e) => OnLaunchEnvironmentRequested?.Invoke(name);
+            menuAmbientes.Items.Add(subItem);
+        }
+        menu.Items.Add(menuAmbientes);
+
+        // 3. Saneamento Rápido de Memória & Processos
+        var itemClean = new System.Windows.Controls.MenuItem
+        {
+            Header = "⚡ Saneamento Rápido (Liberar RAM)"
+        };
+        itemClean.Click += (s, e) => OnQuickCleanRequested?.Invoke();
+        menu.Items.Add(itemClean);
+
+        // 4. Submenu: Bancada Streamlit (Docker WSL)
+        var menuDocker = new System.Windows.Controls.MenuItem { Header = "🐳 Bancada Streamlit (Docker)" };
+
+        var itemDockerStart = new System.Windows.Controls.MenuItem { Header = "▶️ Iniciar Bancada Docker" };
+        itemDockerStart.Click += (s, e) => OnStartDockerRequested?.Invoke();
+
+        var itemDockerStop = new System.Windows.Controls.MenuItem { Header = "⏹️ Parar Bancada Docker" };
+        itemDockerStop.Click += (s, e) => OnStopDockerRequested?.Invoke();
+
+        var itemDockerRebuild = new System.Windows.Controls.MenuItem { Header = "🔨 Reconstruir Containers (Build --no-cache)" };
+        itemDockerRebuild.Click += (s, e) => OnRebuildDockerRequested?.Invoke();
+
+        var itemDockerBrowser = new System.Windows.Controls.MenuItem { Header = "🌐 Abrir no Navegador (localhost:8501)" };
+        itemDockerBrowser.Click += (s, e) => OnOpenBancadaBrowserRequested?.Invoke();
+
+        var itemDockerCheck = new System.Windows.Controls.MenuItem { Header = "💓 Checar Status (Online/Offline)" };
+        itemDockerCheck.Click += (s, e) => OnCheckBancadaHealthRequested?.Invoke();
+
+        var itemDockerFolder = new System.Windows.Controls.MenuItem { Header = "📁 Abrir Pasta no Windows" };
+        itemDockerFolder.Click += (s, e) => OnOpenBancadaFolderRequested?.Invoke();
+
+        menuDocker.Items.Add(itemDockerStart);
+        menuDocker.Items.Add(itemDockerStop);
+        menuDocker.Items.Add(itemDockerRebuild);
+        menuDocker.Items.Add(new System.Windows.Controls.Separator());
+        menuDocker.Items.Add(itemDockerBrowser);
+        menuDocker.Items.Add(itemDockerCheck);
+        menuDocker.Items.Add(itemDockerFolder);
+        menu.Items.Add(menuDocker);
+
+        // 5. Submenu: Acesso Remoto (com Clipboard inteligente)
+        string clip = ClipboardTextProvider?.Invoke()?.Trim() ?? string.Empty;
+        string targetPreview = !string.IsNullOrWhiteSpace(clip) && clip.Length <= 25 ? $" ('{clip}')" : "";
+
+        var menuRemoto = new System.Windows.Controls.MenuItem { Header = "🖥️ Acesso Remoto" };
+
+        var itemRdp = new System.Windows.Controls.MenuItem
+        {
+            Header = $"Conectar RDP Padrão (mstsc){targetPreview}"
+        };
+        itemRdp.Click += (s, e) => OnRemoteConnectClipboardRequested?.Invoke(false);
+
+        var itemSccm = new System.Windows.Controls.MenuItem
+        {
+            Header = $"Conectar SCCM Remoto (CmRcViewer){targetPreview}"
+        };
+        itemSccm.Click += (s, e) => OnRemoteConnectClipboardRequested?.Invoke(true);
+
+        menuRemoto.Items.Add(itemRdp);
+        menuRemoto.Items.Add(itemSccm);
+        menu.Items.Add(menuRemoto);
+
+        // 6. Logs da Aplicação
+        var itemLogs = new System.Windows.Controls.MenuItem
+        {
+            Header = "📜 Ver Logs da Aplicação"
+        };
+        itemLogs.Click += (s, e) => OnOpenAppLogsRequested?.Invoke();
+        menu.Items.Add(itemLogs);
+
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        // 7. Alternância Admin / Comum
         bool isAdmin = IsAdminModeProvider?.Invoke() ?? false;
         var itemToggleAdmin = new System.Windows.Controls.MenuItem
         {
-            Header = isAdmin ? "Reiniciar em Modo Padrão (Sem Admin)" : "Reiniciar como Administrador (Elevado)"
+            Header = isAdmin ? "Reiniciar em Modo Padrão (Sem Admin)" : "🛡️ Reiniciar como Administrador (Elevado)"
         };
         itemToggleAdmin.Click += (s, e) => OnToggleAdminModeRequested?.Invoke();
+        menu.Items.Add(itemToggleAdmin);
 
+        menu.Items.Add(new System.Windows.Controls.Separator());
+
+        // 8. Sair
         var itemExit = new System.Windows.Controls.MenuItem
         {
             Header = "Sair do Aplicativo"
         };
         itemExit.Click += (s, e) => OnExitRequested?.Invoke();
-
-        menu.Items.Add(itemOpen);
-        menu.Items.Add(new System.Windows.Controls.Separator());
-        menu.Items.Add(itemToggleAdmin);
-        menu.Items.Add(new System.Windows.Controls.Separator());
         menu.Items.Add(itemExit);
 
         menu.IsOpen = true;

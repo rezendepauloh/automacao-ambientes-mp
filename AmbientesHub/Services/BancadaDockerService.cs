@@ -150,6 +150,42 @@ public class BancadaDockerService
         await StartDockerBancadaAsync(onOutput);
     }
 
+    public async Task RebuildDockerBancadaAsync(Action<string> onOutput, bool streamLogs = true)
+    {
+        await Task.Run(() =>
+        {
+            if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
+            {
+                onOutput($"[ERRO] {error}");
+                return;
+            }
+
+            onOutput("[WSL/Docker] Iniciando reconstrução da stack (docker compose build --no-cache)...");
+
+            lock (_processLock)
+            {
+                if (_activeProcess != null && !_activeProcess.HasExited)
+                {
+                    try
+                    {
+                        _activeProcess.Kill(true);
+                    }
+                    catch { }
+                    _activeProcess = null;
+                }
+            }
+
+            // Para os containers e reconstrói as imagens
+            string buildCmd = $"cd '{wslDir}' && docker compose down && export PYTHONUNBUFFERED=1 && docker compose build --no-cache && docker compose up -d";
+            if (streamLogs)
+            {
+                buildCmd += " && docker compose logs -f --tail=100";
+            }
+
+            RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{buildCmd}\"", onOutput);
+        });
+    }
+
     private void RunProcess(string filename, string arguments, Action<string> onOutput, bool waitForExit = false)
     {
         try

@@ -1177,6 +1177,7 @@ public partial class MainWindow : FluentWindow
         BtnAdClean.IsEnabled = true;
         TxtFooterStatus.Text = $"Exclusão concluída para {host}";
         AppLoggerService.Success($"Rotina de exclusão concluída para {host}", nameof(MainWindow));
+        _trayIconService?.ShowBalloon("Desprovisionamento AD & SCCM", $"Rotina finalizada para a máquina '{host}'.", TrayIconService.NIIF_INFO);
     }
 
     private void TxtAdTargetComputer_KeyDown(object sender, KeyEventArgs e)
@@ -1557,6 +1558,11 @@ public partial class MainWindow : FluentWindow
             TxtFooterStatus.Text = success
                 ? $"{pkg.Name} pronto para uso!"
                 : $"Instalação de {pkg.Name} finalizada com avisos.";
+
+            if (success)
+            {
+                _trayIconService?.ShowBalloon("Apps & Provisionamento", $"{pkg.Name} instalado com sucesso!", TrayIconService.NIIF_INFO);
+            }
         }
         catch (Exception ex)
         {
@@ -1667,6 +1673,11 @@ public partial class MainWindow : FluentWindow
             TxtFooterStatus.Text = res.Success
                 ? $"Análise de '{target}' concluída! Relatórios salvos em {res.OutputFolder}"
                 : $"Análise de '{target}' finalizada com alertas.";
+
+            if (res.Success)
+            {
+                _trayIconService?.ShowBalloon("Analisador de Dispositivo", $"Diagnóstico de '{target}' concluído com sucesso. Relatórios gerados em DeviceReports.", TrayIconService.NIIF_INFO);
+            }
         }
         catch (Exception ex)
         {
@@ -1857,10 +1868,12 @@ public partial class MainWindow : FluentWindow
                 TxtRmFreeBefore.Text = $"{res.FreeSpaceBeforeGb:N2} GB livres (de {res.TotalSpaceGb:N2} GB)";
                 TxtRmFreeAfter.Text = $"{res.FreeSpaceAfterGb:N2} GB livres (+{res.FreedGb:N2} GB recuperados)";
                 TxtFooterStatus.Text = $"Manutenção em '{res.ComputerName}' concluída! (+{res.FreedGb:N2} GB livres)";
+                _trayIconService?.ShowBalloon("Manutenção Remota Concluída", $"Máquina '{res.ComputerName}': +{res.FreedGb:N2} GB de espaço recuperados.", TrayIconService.NIIF_INFO);
             }
             else
             {
                 TxtFooterStatus.Text = $"Manutenção em '{target}' encerrada com alertas.";
+                _trayIconService?.ShowBalloon("Manutenção Remota", $"Operação em '{target}' finalizada com alertas.", TrayIconService.NIIF_WARNING);
             }
         }
         catch (Exception ex)
@@ -2000,6 +2013,7 @@ public partial class MainWindow : FluentWindow
 
             TxtProfilesListHeader.Text = $"Perfis em '{res.ComputerName}': {updated.Count} restante(s) ({res.RemovedCount} removido(s), ~{res.FreedEstimateGb:N2} GB liberados)";
             TxtFooterStatus.Text = $"Remoção concluída: {res.RemovedCount} perfil(is) excluído(s) (~{res.FreedEstimateGb:N2} GB liberados).";
+            _trayIconService?.ShowBalloon("Perfis Remotos Excluídos", $"{res.RemovedCount} perfil(is) removido(s) na máquina '{res.ComputerName}' (~{res.FreedEstimateGb:N2} GB liberados).", TrayIconService.NIIF_INFO);
         }
         catch (Exception ex)
         {
@@ -2356,6 +2370,22 @@ public partial class MainWindow : FluentWindow
             TxtBancadaStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34d399"));
             BadgeBancadaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#064e3b"));
             TxtFooterStatus.Text = "Sistema Bancada STI está online em http://localhost:8501/";
+
+            // Se os containers já estão de pé mas o streaming de logs ainda não está conectado no terminal:
+            if (!_bancadaService.IsProcessRunning)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await _bancadaService.AttachLogsAsync(msg =>
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            AppendColoredLog(RichBancadaLogs, msg);
+                            InspectBancadaLogForSystemNotification(msg);
+                        });
+                    });
+                });
+            }
         }
         else
         {
@@ -2487,6 +2517,24 @@ public partial class MainWindow : FluentWindow
     private async void BtnCheckBancadaHealth_Click(object sender, RoutedEventArgs e)
     {
         await CheckBancadaStatusAsync();
+    }
+
+    private async void BtnAttachBancadaLogs_Click(object sender, RoutedEventArgs e)
+    {
+        TxtFooterStatus.Text = "Conectando fluxo de logs do Docker Compose...";
+        AppendColoredLog(RichBancadaLogs, "=== CONECTANDO AO FLUXO DE LOGS (DOCKER COMPOSE LOGS -F) ===");
+
+        await Task.Run(async () =>
+        {
+            await _bancadaService.AttachLogsAsync(msg =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    AppendColoredLog(RichBancadaLogs, msg);
+                    InspectBancadaLogForSystemNotification(msg);
+                });
+            });
+        });
     }
 
     private void BtnClearBancadaLogs_Click(object sender, RoutedEventArgs e)
@@ -2931,11 +2979,13 @@ public partial class MainWindow : FluentWindow
 
             UpdateRegistryOptBadge();
             TxtFooterStatus.Text = $"Tweaks aplicados: {applied} sucesso(s), {failed} falha(s).";
+            _trayIconService?.ShowBalloon("Otimizações de Registro", $"{applied} tweak(s) aplicados com sucesso! Ponto de restauração salvo em Backups.", TrayIconService.NIIF_INFO);
         }
         catch (Exception ex)
         {
             AppendColoredLog(RichRegistryLogs, $"[ERRO] Exceção durante aplicação: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao aplicar tweaks de registro.";
+            _trayIconService?.ShowBalloon("Ajustes de Registro", "Falha ao aplicar tweaks de registro.", TrayIconService.NIIF_WARNING);
         }
         finally
         {
@@ -2976,11 +3026,13 @@ public partial class MainWindow : FluentWindow
 
             UpdateRegistryOptBadge();
             TxtFooterStatus.Text = $"Rollback finalizado: {restored} restaurado(s), {failed} falha(s).";
+            _trayIconService?.ShowBalloon("Restauração de Registro", $"{restored} tweak(s) restaurados com sucesso aos valores originais.", TrayIconService.NIIF_INFO);
         }
         catch (Exception ex)
         {
             AppendColoredLog(RichRegistryLogs, $"[ERRO] Exceção durante rollback: {ex.Message}");
             TxtFooterStatus.Text = "Erro no rollback de registro.";
+            _trayIconService?.ShowBalloon("Restauração de Registro", "Falha durante o rollback de registro.", TrayIconService.NIIF_WARNING);
         }
         finally
         {

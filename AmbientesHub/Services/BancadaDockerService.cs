@@ -26,6 +26,24 @@ public class BancadaDockerService
         }
     }
 
+    public async Task AttachLogsAsync(Action<string> onOutput)
+    {
+        await Task.Run(() =>
+        {
+            lock (_processLock)
+            {
+                if (_activeProcess != null && !_activeProcess.HasExited)
+                    return; // Já conectado
+            }
+
+            if (!TryGetValidatedTarget(out string distro, out string wslDir, out string _))
+                return;
+
+            string cmd = $"cd '{wslDir}' && docker compose logs -f --tail=100";
+            RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{cmd}\"", onOutput);
+        });
+    }
+
     public async Task<bool> IsBancadaOnlineAsync()
     {
         try

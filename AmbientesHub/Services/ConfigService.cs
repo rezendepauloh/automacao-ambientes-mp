@@ -158,6 +158,11 @@ public static class ConfigService
     public static string CmRcViewerCustomPath => Get("CMRCVIEWER_PATH", "");
     public static string FirefoxBinaryPath => Get("FIREFOX_PATH", "");
     public static string UsmtPath => Get("USMT_PATH", "");
+    public static string BancadaDbHost => Get("BANCADA_DB_HOST", "127.0.0.1");
+    public static int BancadaDbPort => int.TryParse(Get("BANCADA_DB_PORT", "5432"), out int p) && p > 0 ? p : 5432;
+    public static string BancadaDbName => Get("BANCADA_DB_NAME", "");
+    public static string BancadaDbUser => Get("BANCADA_DB_USER", "");
+    public static string BancadaDbPassword => Get("BANCADA_DB_PASSWORD", "");
     public static string ProtectedProfiles => Get("PROTECTED_PROFILES", "");
     public static int PingTimeoutMs => int.TryParse(Get("PING_TIMEOUT_MS", "2500"), out int t) && t > 100 ? t : 2500;
     public static bool MinimizeToTray => bool.TryParse(Get("MINIMIZE_TO_TRAY", "true"), out bool min) ? min : true;
@@ -187,6 +192,8 @@ public static class ConfigService
             "CMRCVIEWER_PATH" => @"C:\Program Files (x86)\Microsoft Endpoint Manager\AdminConsole\bin\i386\CmRcViewer.exe",
             "FIREFOX_PATH" => @"C:\Program Files\Mozilla Firefox\firefox.exe",
             "USMT_PATH" => @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\amd64",
+            "BANCADA_DB_HOST" => "127.0.0.1",
+            "BANCADA_DB_PORT" => "5432",
             "PROTECTED_PROFILES" => "Public, Default, Default User, All Users, Administrator, Administrador",
             "PING_TIMEOUT_MS" => "2500",
             _ => string.Empty

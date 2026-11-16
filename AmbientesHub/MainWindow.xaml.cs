@@ -48,6 +48,13 @@ public partial class MainWindow : FluentWindow
     private bool _registryTweaksScannedOnce = false;
     private readonly UsmtBackupService _usmtService = new();
     private readonly ObservableCollection<RemoteUserProfileItem> _usmtUsersList = [];
+    private readonly BancadaChamadosService _chamadosService = new();
+    private readonly ObservableCollection<ChamadoItem> _chamadosList = [];
+    private readonly List<ChamadoItem> _allChamadosFound = [];
+    private readonly HashSet<string> _selectedLocalidades = new(StringComparer.OrdinalIgnoreCase);
+    private bool _isUpdatingChamadosFilters = false;
+    private int _chamadosCurrentPage = 1;
+    private const int ChamadosPageSize = 10;
 
     public MainWindow()
     {
@@ -57,6 +64,7 @@ public partial class MainWindow : FluentWindow
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;
         ItemsRemoteProfiles.ItemsSource = _remoteProfilesList;
         ItemsUsmtUsers.ItemsSource = _usmtUsersList;
+        ItemsChamados.ItemsSource = _chamadosList;
         LstRegistryTweaks.ItemsSource = _filteredRegistryTweaks;
         InitializeRegistryTweaks();
         PopulateFontList();
@@ -93,6 +101,7 @@ public partial class MainWindow : FluentWindow
             NavLbl12.Visibility = Visibility.Visible;
             NavLbl13.Visibility = Visibility.Visible;
             NavLbl14.Visibility = Visibility.Visible;
+            NavLbl15.Visibility = Visibility.Visible;
         }
         else
         {
@@ -113,6 +122,7 @@ public partial class MainWindow : FluentWindow
             NavLbl12.Visibility = Visibility.Collapsed;
             NavLbl13.Visibility = Visibility.Collapsed;
             NavLbl14.Visibility = Visibility.Collapsed;
+            NavLbl15.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -235,23 +245,30 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
+        if (lower is "chamados" or "otrs" or "citsmart" or "tickets" or "fila")
         {
             NavListBox.SelectedIndex = 12;
+            TxtFooterStatus.Text = "Navegado para: Chamados (OTRS & CitSmart)";
+            return;
+        }
+
+        if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
+        {
+            NavListBox.SelectedIndex = 13;
             TxtFooterStatus.Text = "Navegado para: Otimizações de Registro (Tweaks & Rollback)";
             return;
         }
 
         if (lower is "logs" or "log" or "eventos" or "historico" or "histórico" or "console" or "app.log")
         {
-            NavListBox.SelectedIndex = 13;
+            NavListBox.SelectedIndex = 14;
             TxtFooterStatus.Text = "Navegado para: Logs da Aplicação";
             return;
         }
 
         if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
         {
-            NavListBox.SelectedIndex = 14;
+            NavListBox.SelectedIndex = 15;
             TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
             return;
         }
@@ -308,6 +325,7 @@ public partial class MainWindow : FluentWindow
         PanelUsmtBackup.Visibility = Visibility.Collapsed;
         PanelUsuariosAd.Visibility = Visibility.Collapsed;
         PanelBancada.Visibility = Visibility.Collapsed;
+        PanelChamados.Visibility = Visibility.Collapsed;
         PanelRegistryTweaks.Visibility = Visibility.Collapsed;
         PanelAppLogs.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
@@ -359,14 +377,18 @@ public partial class MainWindow : FluentWindow
                 _ = CheckBancadaStatusAsync();
                 break;
             case 12:
+                PanelChamados.Visibility = Visibility.Visible;
+                _ = LoadChamadosAsync();
+                break;
+            case 13:
                 PanelRegistryTweaks.Visibility = Visibility.Visible;
                 RefreshRegistryTweaksStatus();
                 break;
-            case 13:
+            case 14:
                 PanelAppLogs.Visibility = Visibility.Visible;
                 LoadAppLogsToUi();
                 break;
-            case 14:
+            case 15:
                 PanelConfig.Visibility = Visibility.Visible;
                 break;
         }
@@ -490,6 +512,11 @@ public partial class MainWindow : FluentWindow
         TxtCfgCmRcViewer.Text = ConfigService.CmRcViewerCustomPath;
         TxtCfgFirefoxPath.Text = ConfigService.FirefoxBinaryPath;
         TxtCfgUsmtPath.Text = ConfigService.UsmtPath;
+        TxtCfgDbHost.Text = ConfigService.BancadaDbHost;
+        TxtCfgDbPort.Text = ConfigService.BancadaDbPort.ToString();
+        TxtCfgDbName.Text = ConfigService.BancadaDbName;
+        TxtCfgDbUser.Text = ConfigService.BancadaDbUser;
+        TxtCfgDbPassword.Password = ConfigService.BancadaDbPassword;
         TxtCfgProtectedProfiles.Text = ConfigService.ProtectedProfiles;
         TxtCfgPingTimeout.Text = ConfigService.PingTimeoutMs.ToString();
     }
@@ -587,7 +614,7 @@ public partial class MainWindow : FluentWindow
             _trayIconService.OnOpenAppLogsRequested += () =>
             {
                 RestoreFromTray();
-                NavListBox.SelectedIndex = 13;
+                NavListBox.SelectedIndex = 14;
             };
             _trayIconService.Initialize(iconPath, "Ambientes Hub — Produtividade & Performance");
         }
@@ -734,7 +761,12 @@ public partial class MainWindow : FluentWindow
                 ["FIREFOX_PATH"] = TxtCfgFirefoxPath.Text.Trim(),
                 ["USMT_PATH"] = TxtCfgUsmtPath.Text.Trim(),
                 ["PROTECTED_PROFILES"] = TxtCfgProtectedProfiles.Text.Trim(),
-                ["PING_TIMEOUT_MS"] = TxtCfgPingTimeout.Text.Trim()
+                ["PING_TIMEOUT_MS"] = TxtCfgPingTimeout.Text.Trim(),
+                ["BANCADA_DB_HOST"] = TxtCfgDbHost.Text.Trim(),
+                ["BANCADA_DB_PORT"] = TxtCfgDbPort.Text.Trim(),
+                ["BANCADA_DB_NAME"] = TxtCfgDbName.Text.Trim(),
+                ["BANCADA_DB_USER"] = TxtCfgDbUser.Text.Trim(),
+                ["BANCADA_DB_PASSWORD"] = TxtCfgDbPassword.Password.Trim()
             };
 
             ConfigService.SaveConfig(dict);
@@ -773,6 +805,8 @@ public partial class MainWindow : FluentWindow
                 case "FIREFOX_PATH": TxtCfgFirefoxPath.Text = defVal; break;
                 case "USMT_PATH": TxtCfgUsmtPath.Text = defVal; break;
                 case "PROTECTED_PROFILES": TxtCfgProtectedProfiles.Text = defVal; break;
+                case "BANCADA_DB_HOST": TxtCfgDbHost.Text = defVal; break;
+                case "BANCADA_DB_PORT": TxtCfgDbPort.Text = defVal; break;
                 case "PING_TIMEOUT_MS": TxtCfgPingTimeout.Text = defVal; break;
             }
             TxtFooterStatus.Text = $"Campo '{key}' preenchido com o valor recomendado padrão.";
@@ -3342,5 +3376,676 @@ public partial class MainWindow : FluentWindow
         BtnUsmtRunBackup.IsEnabled = enabled;
         BtnUsmtRunRestore.IsEnabled = enabled;
     }
+    #endregion
+
+    #region Painel 12: Chamados (OTRS & CitSmart)
+
+    private async System.Threading.Tasks.Task LoadChamadosAsync()
+    {
+        string baseFilter = (CmbChamadosBase?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Bases";
+        string statusFilter = (CmbChamadosStatus?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Aberto";
+        string tagFilter = (CmbChamadosTag?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Tags";
+        string search = TxtChamadosSearch?.Text?.Trim() ?? string.Empty;
+
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando PostgreSQL da Bancada...";
+        if (BtnRefreshChamados != null) BtnRefreshChamados.IsEnabled = false;
+
+        try
+        {
+            var (availTags, availLocs) = await _chamadosService.GetAvailableFiltersAsync(search, baseFilter, statusFilter);
+            UpdateChamadosFilterOptions(availTags, availLocs);
+            tagFilter = (CmbChamadosTag?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Tags";
+
+            var (success, items, summary, error) = await _chamadosService.QueryChamadosAsync(
+                search, baseFilter, statusFilter, 150, tagFilter, _selectedLocalidades.ToList());
+
+            if (success)
+            {
+                _allChamadosFound.Clear();
+                _allChamadosFound.AddRange(items);
+                _chamadosCurrentPage = 1;
+                RenderChamadosPage();
+
+                if (TxtChamadosKpiTotal != null) TxtChamadosKpiTotal.Text = summary.Total.ToString();
+                if (TxtChamadosKpiAbertos != null) TxtChamadosKpiAbertos.Text = summary.Abertos.ToString();
+                if (TxtChamadosKpiOtrs != null) TxtChamadosKpiOtrs.Text = summary.OtrsCount.ToString();
+                if (TxtChamadosKpiCitSmart != null) TxtChamadosKpiCitSmart.Text = summary.CitSmartCount.ToString();
+            }
+
+            if (TxtFooterStatus != null)
+            {
+                TxtFooterStatus.Text = !string.IsNullOrEmpty(error)
+                    ? error
+                    : (items.Count == 0
+                        ? "Nenhum chamado encontrado para os filtros aplicados."
+                        : $"Exibindo {items.Count} chamado(s) mais recentes.");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar chamados: {ex.Message}";
+        }
+        finally
+        {
+            if (BtnRefreshChamados != null) BtnRefreshChamados.IsEnabled = true;
+        }
+    }
+
+    private void UpdateChamadosFilterOptions(List<string> availTags, List<string> availLocs)
+    {
+        _isUpdatingChamadosFilters = true;
+        try
+        {
+            if (CmbChamadosTag != null)
+            {
+                string currentTag = (CmbChamadosTag.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Tags";
+                CmbChamadosTag.Items.Clear();
+                var allItem = new System.Windows.Controls.ComboBoxItem { Content = "Todas as Tags" };
+                CmbChamadosTag.Items.Add(allItem);
+                System.Windows.Controls.ComboBoxItem? toSelect = allItem;
+
+                foreach (var t in availTags)
+                {
+                    var item = new System.Windows.Controls.ComboBoxItem { Content = t };
+                    CmbChamadosTag.Items.Add(item);
+                    if (string.Equals(t, currentTag, StringComparison.OrdinalIgnoreCase))
+                        toSelect = item;
+                }
+                CmbChamadosTag.SelectedItem = toSelect;
+            }
+
+            if (PanelLocalidadesCheckboxes != null)
+            {
+                _selectedLocalidades.IntersectWith(availLocs);
+                PanelLocalidadesCheckboxes.Children.Clear();
+                foreach (var loc in availLocs)
+                {
+                    var cb = new System.Windows.Controls.CheckBox
+                    {
+                        Content = loc,
+                        Foreground = System.Windows.Media.Brushes.White,
+                        Margin = new Thickness(0, 2, 0, 4),
+                        IsChecked = _selectedLocalidades.Contains(loc)
+                    };
+                    cb.Checked += (_, _) =>
+                    {
+                        _selectedLocalidades.Add(loc);
+                        UpdateLocalidadesButtonText();
+                        _ = LoadChamadosAsync();
+                    };
+                    cb.Unchecked += (_, _) =>
+                    {
+                        _selectedLocalidades.Remove(loc);
+                        UpdateLocalidadesButtonText();
+                        _ = LoadChamadosAsync();
+                    };
+                    PanelLocalidadesCheckboxes.Children.Add(cb);
+                }
+                UpdateLocalidadesButtonText();
+            }
+        }
+        finally
+        {
+            _isUpdatingChamadosFilters = false;
+        }
+    }
+
+    private void UpdateLocalidadesButtonText()
+    {
+        if (BtnChamadosLocalidades == null) return;
+        BtnChamadosLocalidades.Content = _selectedLocalidades.Count == 0
+            ? "Localidades (Todas)"
+            : $"Localidades ({_selectedLocalidades.Count})";
+    }
+
+    private void BtnChamadosLocalidades_Click(object sender, RoutedEventArgs e)
+    {
+        if (PopupChamadosLocalidades != null)
+            PopupChamadosLocalidades.IsOpen = !PopupChamadosLocalidades.IsOpen;
+    }
+
+    private void BtnClearLocalidades_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedLocalidades.Clear();
+        if (PanelLocalidadesCheckboxes != null)
+        {
+            foreach (var child in PanelLocalidadesCheckboxes.Children)
+            {
+                if (child is System.Windows.Controls.CheckBox cb)
+                    cb.IsChecked = false;
+            }
+        }
+        UpdateLocalidadesButtonText();
+        _ = LoadChamadosAsync();
+    }
+
+    private void RenderChamadosPage()
+    {
+        _chamadosList.Clear();
+        int total = _allChamadosFound.Count;
+        int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)ChamadosPageSize));
+        if (_chamadosCurrentPage > totalPages) _chamadosCurrentPage = totalPages;
+        if (_chamadosCurrentPage < 1) _chamadosCurrentPage = 1;
+
+        var pageItems = _allChamadosFound
+            .Skip((_chamadosCurrentPage - 1) * ChamadosPageSize)
+            .Take(ChamadosPageSize);
+
+        foreach (var item in pageItems)
+            _chamadosList.Add(item);
+
+        if (TxtChamadosPageInfo != null)
+            TxtChamadosPageInfo.Text = $"Página {_chamadosCurrentPage} de {totalPages} ({total} chamados)";
+        if (BtnChamadosPrevPage != null)
+            BtnChamadosPrevPage.IsEnabled = _chamadosCurrentPage > 1;
+        if (BtnChamadosNextPage != null)
+            BtnChamadosNextPage.IsEnabled = _chamadosCurrentPage < totalPages;
+    }
+
+    private void BtnChamadosPrevPage_Click(object sender, RoutedEventArgs e)
+    {
+        if (_chamadosCurrentPage > 1)
+        {
+            _chamadosCurrentPage--;
+            RenderChamadosPage();
+        }
+    }
+
+    private void BtnChamadosNextPage_Click(object sender, RoutedEventArgs e)
+    {
+        int totalPages = Math.Max(1, (int)Math.Ceiling(_allChamadosFound.Count / (double)ChamadosPageSize));
+        if (_chamadosCurrentPage < totalPages)
+        {
+            _chamadosCurrentPage++;
+            RenderChamadosPage();
+        }
+    }
+
+    private void BtnRefreshChamados_Click(object sender, RoutedEventArgs e)
+    {
+        _ = LoadChamadosAsync();
+    }
+
+    private void TxtChamadosSearch_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            e.Handled = true;
+            _ = LoadChamadosAsync();
+        }
+    }
+
+    private void CmbChamadosFilter_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded || _isUpdatingChamadosFilters) return;
+        _ = LoadChamadosAsync();
+    }
+
+    private void BtnChamadosOpenOtrs_Click(object sender, RoutedEventArgs e)
+    {
+        string url = ConfigService.UrlOtrs;
+        if (!InputValidator.IsSafeHttpUrl(url))
+        {
+            System.Windows.MessageBox.Show("Configure uma URL http/https válida para o OTRS nas Configurações.", "URL Inválida", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        _browserLauncherService.OpenUrlsInFirefox(new[] { url });
+    }
+
+    private void BtnChamadosOpenCitSmart_Click(object sender, RoutedEventArgs e)
+    {
+        string url = ConfigService.UrlCitsmart;
+        if (!InputValidator.IsSafeHttpUrl(url))
+        {
+            System.Windows.MessageBox.Show("Configure uma URL http/https válida para o CitSmart nas Configurações.", "URL Inválida", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        _browserLauncherService.OpenUrlsInFirefox(new[] { url });
+    }
+
+    private void BtnChamadoDetails_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not ChamadoItem item)
+            return;
+
+        var win = new System.Windows.Window
+        {
+            Title = $"Chamado #{item.Id} ({item.BaseDisplay})",
+            Width = 720,
+            Height = 620,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+            Foreground = System.Windows.Media.Brushes.White
+        };
+
+        var root = new System.Windows.Controls.Grid { Margin = new Thickness(20) };
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+
+        var header = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+        header.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"#{item.Id} — {item.TituloDisplay}",
+            FontSize = 18,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = System.Windows.Media.Brushes.White
+        });
+        header.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"{item.BaseDisplay}  |  Status: {item.Status}  |  Criado: {FormatDateBr(item.DataCriacao)}  |  Atualizado: {FormatDateBr(item.DataAtualizacao)}",
+            FontSize = 12,
+            Margin = new Thickness(0, 4, 0, 0),
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        System.Windows.Controls.Grid.SetRow(header, 0);
+        root.Children.Add(header);
+
+        var scroll = new System.Windows.Controls.ScrollViewer
+        {
+            VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Disabled
+        };
+        var contentStack = new System.Windows.Controls.StackPanel();
+
+        // Card de Metadados (2 colunas)
+        var metaCard = new System.Windows.Controls.Border
+        {
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+            BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(14),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        var metaGrid = new System.Windows.Controls.Grid();
+        metaGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        metaGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var leftMeta = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 10, 0) };
+        leftMeta.Children.Add(CreateMetaLine("Solicitante", $"{item.SolicitanteDisplay}" + (string.IsNullOrWhiteSpace(item.IdCliente) ? "" : $" ({item.IdCliente})")));
+        var txtEditCidade = CreateEditableMetaBox("Localização (Cidade / Prédio)", item.CidadePredio, leftMeta, isReadOnly: true);
+        var txtEditUnidade = CreateEditableMetaBox("Unidade", item.Unidade, leftMeta, isReadOnly: true);
+        var txtEditLocalidade = CreateEditableMetaBox("Localidade", item.LocalidadeFisica, leftMeta, isReadOnly: true);
+        System.Windows.Controls.Grid.SetColumn(leftMeta, 0);
+        metaGrid.Children.Add(leftMeta);
+
+        var rightMeta = new System.Windows.Controls.StackPanel { Margin = new Thickness(10, 0, 0, 0) };
+        var cmbEditStatus = new System.Windows.Controls.ComboBox
+        {
+            IsEditable = true,
+            IsEnabled = false,
+            Text = item.Status,
+            Margin = new Thickness(0, 2, 0, 6)
+        };
+        cmbEditStatus.Items.Add("Aberto");
+        cmbEditStatus.Items.Add("Em Atendimento");
+        cmbEditStatus.Items.Add("Pendente");
+        cmbEditStatus.Items.Add("Fechado");
+        rightMeta.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Status",
+            FontSize = 11,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        rightMeta.Children.Add(cmbEditStatus);
+
+        var txtEditHostname = CreateEditableMetaBox("Hostname", item.Hostname, rightMeta, isReadOnly: true);
+
+        var cmbEditTag = new System.Windows.Controls.ComboBox
+        {
+            IsEditable = true,
+            IsEnabled = false,
+            Text = item.Tag,
+            Margin = new Thickness(0, 2, 0, 6)
+        };
+        foreach (var tagOpt in new[]
+        {
+            "BACKUP", "EVENTO", "FORMATAÇÃO", "GARANTIA", "IMPRESSORA",
+            "INSTALAÇÃO HARDWARE", "INSTALAÇÃO SOFTWARE", "MANUTENÇÃO", "MONITOR",
+            "MUDANÇA", "PREPARAÇÃO COMPUTADORES", "REDE", "SOLICITAÇÃO SSD",
+            "SUPORTE", "TELEFONIA FIXA", "VIAGEM"
+        })
+        {
+            cmbEditTag.Items.Add(tagOpt);
+        }
+        rightMeta.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Tag",
+            FontSize = 11,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        rightMeta.Children.Add(cmbEditTag);
+        System.Windows.Controls.Grid.SetColumn(rightMeta, 1);
+        metaGrid.Children.Add(rightMeta);
+
+        metaCard.Child = metaGrid;
+        contentStack.Children.Add(metaCard);
+
+        // Card de Descrição
+        var (descCard, txtEditDesc) = CreateEditableDetailSectionCard(
+            "Descrição do Chamado",
+            item.Descricao ?? string.Empty,
+            isReadOnly: true);
+        contentStack.Children.Add(descCard);
+
+        // Card de Andamento / Comentários
+        var (andamentoCard, txtEditAndamento) = CreateEditableDetailSectionCard(
+            "Andamento / Comentários",
+            item.Andamento ?? string.Empty,
+            isReadOnly: true);
+        contentStack.Children.Add(andamentoCard);
+
+        scroll.Content = contentStack;
+        System.Windows.Controls.Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+
+        var footer = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+
+        var btnSave = new Wpf.Ui.Controls.Button
+        {
+            Content = "Salvar Alterações",
+            Appearance = ControlAppearance.Primary,
+            Visibility = Visibility.Collapsed,
+            Margin = new Thickness(0, 0, 8, 0),
+            Padding = new Thickness(12, 6, 12, 6)
+        };
+        var btnEnableEdit = new Wpf.Ui.Controls.Button
+        {
+            Content = "Habilitar Edição",
+            Appearance = ControlAppearance.Secondary,
+            Margin = new Thickness(0, 0, 8, 0),
+            Padding = new Thickness(12, 6, 12, 6)
+        };
+        btnEnableEdit.Click += (_, _) =>
+        {
+            cmbEditStatus.IsEnabled = true;
+            txtEditCidade.IsReadOnly = false;
+            txtEditUnidade.IsReadOnly = false;
+            txtEditLocalidade.IsReadOnly = false;
+            txtEditHostname.IsReadOnly = false;
+            cmbEditTag.IsEnabled = true;
+            txtEditDesc.IsReadOnly = false;
+            txtEditAndamento.IsReadOnly = false;
+            btnEnableEdit.Visibility = Visibility.Collapsed;
+            btnSave.Visibility = Visibility.Visible;
+        };
+        btnSave.Click += async (_, _) =>
+        {
+            btnSave.IsEnabled = false;
+            var (ok, msg) = await _chamadosService.UpdateChamadoAsync(
+                item.Id,
+                cmbEditStatus.Text,
+                txtEditHostname.Text,
+                cmbEditTag.Text,
+                txtEditCidade.Text,
+                txtEditUnidade.Text,
+                txtEditLocalidade.Text,
+                txtEditDesc.Text,
+                txtEditAndamento.Text);
+            btnSave.IsEnabled = true;
+
+            if (ok)
+            {
+                item.Status = cmbEditStatus.Text.Trim();
+                item.Hostname = txtEditHostname.Text.Trim();
+                item.Tag = cmbEditTag.Text.Trim();
+                item.CidadePredio = txtEditCidade.Text.Trim();
+                item.Unidade = txtEditUnidade.Text.Trim();
+                item.LocalidadeFisica = txtEditLocalidade.Text.Trim();
+                item.Descricao = txtEditDesc.Text.Trim();
+                item.Andamento = txtEditAndamento.Text.Trim();
+                if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
+                _ = LoadChamadosAsync();
+                System.Windows.MessageBox.Show(msg, "Salvo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(msg, "Erro ao Salvar", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        };
+        footer.Children.Add(btnEnableEdit);
+        footer.Children.Add(btnSave);
+
+        if (InputValidator.IsSafeHttpUrl(item.Link))
+        {
+            var btnLink = new Wpf.Ui.Controls.Button
+            {
+                Content = "Abrir no Firefox",
+                Appearance = ControlAppearance.Primary,
+                Margin = new Thickness(0, 0, 8, 0),
+                Padding = new Thickness(12, 6, 12, 6)
+            };
+            btnLink.Click += (_, _) =>
+            {
+                var btnSave = new Wpf.Ui.Controls.Button
+        {
+            Content = "Salvar Alterações",
+            Appearance = ControlAppearance.Primary,
+            Visibility = Visibility.Collapsed,
+            Margin = new Thickness(0, 0, 8, 0),
+            Padding = new Thickness(12, 6, 12, 6)
+        };
+        var btnEnableEdit = new Wpf.Ui.Controls.Button
+        {
+            Content = "Habilitar Edição",
+            Appearance = ControlAppearance.Secondary,
+            Margin = new Thickness(0, 0, 8, 0),
+            Padding = new Thickness(12, 6, 12, 6)
+        };
+        btnEnableEdit.Click += (_, _) =>
+        {
+            cmbEditStatus.IsEnabled = true;
+            txtEditCidade.IsReadOnly = false;
+            txtEditUnidade.IsReadOnly = false;
+            txtEditLocalidade.IsReadOnly = false;
+            txtEditHostname.IsReadOnly = false;
+            cmbEditTag.IsEnabled = true;
+            txtEditDesc.IsReadOnly = false;
+            txtEditAndamento.IsReadOnly = false;
+            btnEnableEdit.Visibility = Visibility.Collapsed;
+            btnSave.Visibility = Visibility.Visible;
+        };
+        btnSave.Click += async (_, _) =>
+        {
+            btnSave.IsEnabled = false;
+            var (ok, msg) = await _chamadosService.UpdateChamadoAsync(
+                item.Id,
+                cmbEditStatus.Text,
+                txtEditHostname.Text,
+                cmbEditTag.Text,
+                txtEditCidade.Text,
+                txtEditUnidade.Text,
+                txtEditLocalidade.Text,
+                txtEditDesc.Text,
+                txtEditAndamento.Text);
+            btnSave.IsEnabled = true;
+
+            if (ok)
+            {
+                item.Status = cmbEditStatus.Text.Trim();
+                item.Hostname = txtEditHostname.Text.Trim();
+                item.Tag = cmbEditTag.Text.Trim();
+                item.CidadePredio = txtEditCidade.Text.Trim();
+                item.Unidade = txtEditUnidade.Text.Trim();
+                item.LocalidadeFisica = txtEditLocalidade.Text.Trim();
+                item.Descricao = txtEditDesc.Text.Trim();
+                item.Andamento = txtEditAndamento.Text.Trim();
+                if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
+                _ = LoadChamadosAsync();
+                System.Windows.MessageBox.Show(msg, "Salvo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            }
+            else
+            {
+                System.Windows.MessageBox.Show(msg, "Erro ao Salvar", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        };
+        footer.Children.Add(btnEnableEdit);
+        footer.Children.Add(btnSave);
+
+        if (InputValidator.IsSafeHttpUrl(item.Link))
+                    _browserLauncherService.OpenUrlsInFirefox(new[] { item.Link });
+            };
+            footer.Children.Add(btnLink);
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.Hostname))
+        {
+            var btnRemote = new Wpf.Ui.Controls.Button
+            {
+                Content = "Acesso Remoto",
+                Appearance = ControlAppearance.Secondary,
+                Margin = new Thickness(0, 0, 8, 0),
+                Padding = new Thickness(12, 6, 12, 6)
+            };
+            btnRemote.Click += (_, _) =>
+            {
+                TxtComputerName.Text = item.Hostname.Trim();
+                NavListBox.SelectedIndex = 2;
+                win.Close();
+            };
+            footer.Children.Add(btnRemote);
+        }
+
+        var btnClose = new Wpf.Ui.Controls.Button
+        {
+            Content = "Fechar",
+            Appearance = ControlAppearance.Secondary,
+            Padding = new Thickness(12, 6, 12, 6)
+        };
+        btnClose.Click += (_, _) => win.Close();
+        footer.Children.Add(btnClose);
+
+        System.Windows.Controls.Grid.SetRow(footer, 2);
+        root.Children.Add(footer);
+
+        win.Content = root;
+        win.ShowDialog();
+    }
+
+    private static System.Windows.Controls.StackPanel CreateMetaLine(string label, string value)
+    {
+        var sp = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 6) };
+        sp.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = label,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        sp.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = string.IsNullOrWhiteSpace(value) ? "-" : value,
+            FontSize = 13,
+            FontWeight = FontWeights.Medium,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = System.Windows.Media.Brushes.White
+        });
+        return sp;
+    }
+
+    private static string FormatDateBr(string? rawDate)
+    {
+        if (string.IsNullOrWhiteSpace(rawDate)) return "-";
+        if (DateTime.TryParse(rawDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeLocal, out var dt) ||
+            DateTime.TryParse(rawDate, new System.Globalization.CultureInfo("pt-BR"), System.Globalization.DateTimeStyles.AssumeLocal, out dt))
+        {
+            return dt.ToString("dd/MM/yyyy HH:mm:ss");
+        }
+        return rawDate.Trim();
+    }
+
+    private static System.Windows.Controls.TextBox CreateEditableMetaBox(string label, string value, System.Windows.Controls.StackPanel parent, bool isReadOnly = false)
+    {
+        parent.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = label,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        var tb = new System.Windows.Controls.TextBox
+        {
+            Text = value ?? string.Empty,
+            IsReadOnly = isReadOnly,
+            FontSize = 13,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+            Foreground = System.Windows.Media.Brushes.White,
+            BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(6, 4, 6, 4),
+            Margin = new Thickness(0, 2, 0, 6)
+        };
+        parent.Children.Add(tb);
+        return tb;
+    }
+
+    private static (System.Windows.Controls.Border Card, System.Windows.Controls.TextBox Box) CreateEditableDetailSectionCard(string title, string body, bool isReadOnly = false)
+    {
+        var card = new System.Windows.Controls.Border
+        {
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+            BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(14),
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        var sp = new System.Windows.Controls.StackPanel();
+        sp.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = title,
+            FontSize = 13,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(56, 189, 248)),
+            Margin = new Thickness(0, 0, 0, 6)
+        });
+        var tb = new System.Windows.Controls.TextBox
+        {
+            Text = body,
+            IsReadOnly = isReadOnly,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            MinHeight = 80,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+            BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1),
+            Foreground = System.Windows.Media.Brushes.White,
+            FontSize = 13,
+            Padding = new Thickness(8)
+        };
+        sp.Children.Add(tb);
+        card.Child = sp;
+        return (card, tb);
+    }
+
+    private void BtnChamadoOpenLink_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is ChamadoItem item)
+        {
+            if (!InputValidator.IsSafeHttpUrl(item.Link))
+            {
+                System.Windows.MessageBox.Show("O chamado não possui uma URL http/https válida.", "Link Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
+            _browserLauncherService.OpenUrlsInFirefox(new[] { item.Link });
+        }
+    }
+
+    private void BtnChamadoRemoteHost_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is ChamadoItem item && !string.IsNullOrWhiteSpace(item.Hostname))
+        {
+            TxtComputerName.Text = item.Hostname.Trim();
+            NavListBox.SelectedIndex = 2; // Acesso Remoto
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Computador '{item.Hostname.Trim()}' carregado na aba Acesso Remoto.";
+        }
+    }
+
     #endregion
 }

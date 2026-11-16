@@ -267,7 +267,19 @@
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 12: Otimizações de Registro (Tweaks & Rollback) -->
+                            <!-- Item 12: Chamados (PostgreSQL Bancada) -->
+                            <ListBoxItem ToolTip="Consulta de Chamados OTRS &amp; CitSmart (PostgreSQL da Bancada)">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🎫" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl12" Grid.Column="1" Text="Chamados (OTRS/Cit)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 13: Otimizações de Registro (Tweaks & Rollback) -->
                             <ListBoxItem ToolTip="Otimizações do Registro do Windows (Tweaks &amp; Rollback)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -275,11 +287,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl12" Grid.Column="1" Text="Otimizações de Registro" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl13" Grid.Column="1" Text="Otimizações de Registro" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 13: Logs da Aplicação -->
+                            <!-- Item 14: Logs da Aplicação -->
                             <ListBoxItem ToolTip="Logs e Monitoramento da Aplicação (app.log)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -287,11 +299,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="📜" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl13" Grid.Column="1" Text="Logs da Aplicação" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl14" Grid.Column="1" Text="Logs da Aplicação" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 14: Configurações & Credenciais (Último item da barra) -->
+                            <!-- Item 15: Configurações & Credenciais (Último item da barra) -->
                             <ListBoxItem ToolTip="Configurações &amp; Credenciais">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -299,7 +311,7 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl14" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl15" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
                         </ListBox>
@@ -1596,6 +1608,57 @@
                                         <ui:Button x:Name="BtnCfgDownloadUsmt" Margin="0,0,0,6" Padding="10,6" Appearance="Primary" Content="Baixar / Detectar USMT" Icon="{ui:SymbolIcon Symbol=ArrowDownload24}" Click="BtnCfgDownloadUsmt_Click" ToolTip="Detecta localmente ou baixa/instala o Windows USMT e salva automaticamente no .env" />
                                     </WrapPanel>
 
+                                    <Separator Margin="0,5,0,15" />
+
+                                    <TextBlock Text="Banco de Dados PostgreSQL da Bancada (Somente Leitura)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Host PostgreSQL:" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgDbHost" Grid.Column="0" PlaceholderText="127.0.0.1" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="BANCADA_DB_HOST" />
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                            <TextBlock Text="Porta:" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgDbPort" Grid.Column="0" PlaceholderText="5432" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="BANCADA_DB_PORT" />
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="Nome do Banco (POSTGRES_DB):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgDbName" PlaceholderText="bancada_db" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,18">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="Usuário (POSTGRES_USER):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:TextBox x:Name="TxtCfgDbUser" PlaceholderText="usuario_banco" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Senha (POSTGRES_PASSWORD):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:PasswordBox x:Name="TxtCfgDbPassword" PlaceholderText="Senha do PostgreSQL local" />
+                                        </StackPanel>
+                                    </Grid>
+
                                     <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
                                 </StackPanel>
                             </Border>
@@ -1833,7 +1896,176 @@
                         </Border>
                     </Grid>
 
-                    <!-- PAINEL 12: LOGS DA APLICAÇÃO -->
+                    <!-- PAINEL 12: CHAMADOS (OTRS & CITSMART - POSTGRESQL) -->
+                    <Grid x:Name="PanelChamados" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Chamados Centralizados (OTRS &amp; CitSmart)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Consulta direta ao PostgreSQL da Bancada (somente leitura) com acesso rápido às páginas de cada chamado e sistema." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:Button Appearance="Secondary" Content="Abrir OTRS" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnChamadosOpenOtrs_Click" Margin="0,0,8,4" Padding="12,7" />
+                                <ui:Button Appearance="Secondary" Content="Abrir CitSmart" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnChamadosOpenCitSmart_Click" Margin="0,0,0,4" Padding="12,7" />
+                            </WrapPanel>
+                        </Grid>
+
+                        <!-- KPIs -->
+                        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="Total no Banco" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtChamadosKpiTotal" Text="-" FontSize="16" FontWeight="Bold" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Abertos" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtChamadosKpiAbertos" Text="-" FontSize="16" FontWeight="Bold" Foreground="#34d399" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Base OTRS" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtChamadosKpiOtrs" Text="-" FontSize="16" FontWeight="Bold" Foreground="#93c5fd" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Base CitSmart" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtChamadosKpiCitSmart" Text="-" FontSize="16" FontWeight="Bold" Foreground="#5eead4" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Barra de Filtros -->
+                        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                            <WrapPanel Orientation="Horizontal">
+                                <ui:TextBox x:Name="TxtChamadosSearch" PlaceholderText="Buscar por ID, título, usuário, unidade, tag ou hostname..." MinWidth="260" MaxWidth="380" Height="34" Margin="0,0,10,4" KeyDown="TxtChamadosSearch_KeyDown" />
+                                <ComboBox x:Name="CmbChamadosBase" Width="150" Height="34" Margin="0,0,10,4" SelectionChanged="CmbChamadosFilter_SelectionChanged">
+                                    <ComboBoxItem Content="Todas as Bases" IsSelected="True" />
+                                    <ComboBoxItem Content="OTRS" />
+                                    <ComboBoxItem Content="CitSmart" />
+                                </ComboBox>
+                                <ComboBox x:Name="CmbChamadosStatus" Width="150" Height="34" Margin="0,0,10,4" SelectionChanged="CmbChamadosFilter_SelectionChanged">
+                                    <ComboBoxItem Content="Aberto" IsSelected="True" />
+                                    <ComboBoxItem Content="Todos" />
+                                    <ComboBoxItem Content="Fechado" />
+                                </ComboBox>
+                                <ComboBox x:Name="CmbChamadosTag" Width="210" Height="34" Margin="0,0,10,4" SelectionChanged="CmbChamadosFilter_SelectionChanged">
+                                    <ComboBoxItem Content="Todas as Tags" IsSelected="True" />
+                                    <ComboBoxItem Content="BACKUP" />
+                                    <ComboBoxItem Content="EVENTO" />
+                                    <ComboBoxItem Content="FORMATAÇÃO" />
+                                    <ComboBoxItem Content="GARANTIA" />
+                                    <ComboBoxItem Content="IMPRESSORA" />
+                                    <ComboBoxItem Content="INSTALAÇÃO HARDWARE" />
+                                    <ComboBoxItem Content="INSTALAÇÃO SOFTWARE" />
+                                    <ComboBoxItem Content="MANUTENÇÃO" />
+                                    <ComboBoxItem Content="MONITOR" />
+                                    <ComboBoxItem Content="MUDANÇA" />
+                                    <ComboBoxItem Content="PREPARAÇÃO COMPUTADORES" />
+                                    <ComboBoxItem Content="REDE" />
+                                    <ComboBoxItem Content="SOLICITAÇÃO SSD" />
+                                    <ComboBoxItem Content="SUPORTE" />
+                                    <ComboBoxItem Content="TELEFONIA FIXA" />
+                                    <ComboBoxItem Content="VIAGEM" />
+                                </ComboBox>
+                                <Grid Margin="0,0,10,4">
+                                    <ui:Button x:Name="BtnChamadosLocalidades" Appearance="Secondary" Content="Localidades (Todas)" Icon="{ui:SymbolIcon Symbol=Location24}" Click="BtnChamadosLocalidades_Click" Height="34" Padding="12,6" />
+                                    <Popup x:Name="PopupChamadosLocalidades" PlacementTarget="{Binding ElementName=BtnChamadosLocalidades}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
+                                        <Border Background="#1e293b" BorderBrush="#334155" BorderThickness="1" CornerRadius="8" Padding="10" Width="320" MaxHeight="340">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="*" />
+                                                </Grid.RowDefinitions>
+                                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                                    <TextBlock Text="Localidade Física (Múltipla Seleção)" FontSize="12" FontWeight="SemiBold" Foreground="#38bdf8" VerticalAlignment="Center" />
+                                                    <ui:Button Content="Limpar" Appearance="Transparent" Click="BtnClearLocalidades_Click" HorizontalAlignment="Right" Padding="6,2" FontSize="11" />
+                                                </Grid>
+                                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                                    <StackPanel x:Name="PanelLocalidadesCheckboxes" />
+                                                </ScrollViewer>
+                                            </Grid>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                                <ui:Button x:Name="BtnRefreshChamados" Appearance="Primary" Content="Atualizar Chamados" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnRefreshChamados_Click" Margin="0,0,0,4" Padding="14,7" />
+                            </WrapPanel>
+                        </Border>
+
+                        <!-- Lista de Chamados + Paginação -->
+                        <Border Grid.Row="3" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ItemsChamados">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,10" Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                                            <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border Background="{Binding BaseBadgeBackground}" CornerRadius="4" Padding="7,2" Margin="0,2,6,2">
+                                                                    <TextBlock Text="{Binding BaseDisplay}" FontSize="11" FontWeight="Bold" Foreground="{Binding BaseBadgeForeground}" />
+                                                                </Border>
+                                                                <Border Background="{Binding StatusBadgeBackground}" CornerRadius="4" Padding="7,2" Margin="0,2,6,2">
+                                                                    <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding StatusBadgeForeground}" />
+                                                                </Border>
+                                                                <Border Background="#1e293b" CornerRadius="4" Padding="7,2" Margin="0,2,8,2">
+                                                                    <TextBlock Text="{Binding TagDisplay}" FontSize="11" Foreground="#cbd5e1" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding Id, StringFormat='#{0}'}" FontSize="13" FontWeight="Bold" Foreground="#38bdf8" VerticalAlignment="Center" Margin="0,2,8,2" />
+                                                                <TextBlock Text="{Binding TituloDisplay}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                                            </WrapPanel>
+                                                            <WrapPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding SolicitanteDisplay, StringFormat='👤 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,14,2" />
+                                                                <TextBlock Text="{Binding LocalizacaoDisplay, StringFormat='📍 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,14,2" TextWrapping="Wrap" />
+                                                                <TextBlock Text="{Binding DataCriacao, StringFormat='🕒 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                                            </WrapPanel>
+                                                        </StackPanel>
+                                                        <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <ui:Button Appearance="Secondary" Content="Detalhes" Icon="{ui:SymbolIcon Symbol=Info24}" Tag="{Binding}" Click="BtnChamadoDetails_Click" Margin="0,2,6,2" Padding="10,6" />
+                                                            <ui:Button Visibility="{Binding LinkButtonVisibility}" Appearance="Primary" Content="Abrir Chamado" Icon="{ui:SymbolIcon Symbol=Open24}" Tag="{Binding}" Click="BtnChamadoOpenLink_Click" Margin="0,2,6,2" Padding="10,6" />
+                                                            <ui:Button Visibility="{Binding HostnameButtonVisibility}" Appearance="Secondary" Content="Acesso Remoto" Icon="{ui:SymbolIcon Symbol=Window24}" Tag="{Binding}" Click="BtnChamadoRemoteHost_Click" Margin="0,2,0,2" Padding="10,6" />
+                                                        </WrapPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                    <ui:Button x:Name="BtnChamadosPrevPage" Content="← Anterior" Appearance="Secondary" Click="BtnChamadosPrevPage_Click" IsEnabled="False" Padding="12,6" Margin="0,0,10,0" />
+                                    <TextBlock x:Name="TxtChamadosPageInfo" Text="Página 1 de 1 (0 chamados)" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnChamadosNextPage" Content="Próxima →" Appearance="Secondary" Click="BtnChamadosNextPage_Click" IsEnabled="False" Padding="12,6" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 13: LOGS DA APLICAÇÃO -->
                     <Grid x:Name="PanelAppLogs" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />

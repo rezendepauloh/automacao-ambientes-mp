@@ -63,7 +63,6 @@ public partial class MainWindow : FluentWindow
         LoadSettingsIntoUi();
         InitializeSystemTray();
         RefreshPerformanceAdminStatus();
-        RefreshAppsAdminStatus();
         RefreshUsmtBinStatusBadge();
         if (CmbAdUserStatusFilter != null && CmbAdUserStatusFilter.Items.Count > 0)
         {
@@ -336,7 +335,6 @@ public partial class MainWindow : FluentWindow
                 break;
             case 6:
                 PanelApps.Visibility = Visibility.Visible;
-                RefreshAppsAdminStatus();
                 if (!_appsCatalogLoadedOnce)
                 {
                     _appsCatalogLoadedOnce = true;
@@ -1273,26 +1271,6 @@ public partial class MainWindow : FluentWindow
                 TitleBarAdminBadge.ToolTip = "Executando em Modo Usuário Padrão. Clique para reiniciar como Administrador (UAC).";
             }
         }
-
-        if (TxtPerfAdminStatus == null || BadgeAdminStatus == null || BtnReiniciarComoAdmin == null)
-            return;
-
-        if (isAdmin)
-        {
-            TxtPerfAdminStatus.Text = "Modo Administrador";
-            TxtPerfAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-            BadgeAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
-            BadgeAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 16, 185, 129));
-            BtnReiniciarComoAdmin.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            TxtPerfAdminStatus.Text = "Modo Usuário Padrão";
-            TxtPerfAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
-            BadgeAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
-            BadgeAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 245, 158, 11));
-            BtnReiniciarComoAdmin.Visibility = Visibility.Visible;
-        }
     }
 
     private void TitleBarAdminBadge_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -1500,30 +1478,6 @@ public partial class MainWindow : FluentWindow
     #endregion
 
     #region Apps Instalados & Provisionamento
-    private void RefreshAppsAdminStatus()
-    {
-        if (TxtAppsAdminStatus == null || BadgeAppsAdminStatus == null || BtnAppsReiniciarAdmin == null)
-            return;
-
-        bool isAdmin = SystemPerformanceService.IsUserAdministrator();
-        if (isAdmin)
-        {
-            TxtAppsAdminStatus.Text = "Modo Administrador";
-            TxtAppsAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
-            BadgeAppsAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 16, 185, 129));
-            BadgeAppsAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 16, 185, 129));
-            BtnAppsReiniciarAdmin.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            TxtAppsAdminStatus.Text = "Modo Usuário Padrão";
-            TxtAppsAdminStatus.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
-            BadgeAppsAdminStatus.Background = new SolidColorBrush(Color.FromArgb(40, 245, 158, 11));
-            BadgeAppsAdminStatus.BorderBrush = new SolidColorBrush(Color.FromArgb(100, 245, 158, 11));
-            BtnAppsReiniciarAdmin.Visibility = Visibility.Visible;
-        }
-    }
-
     private async Task RefreshAppsCatalogAsync()
     {
         if (BtnVerificarApps != null)

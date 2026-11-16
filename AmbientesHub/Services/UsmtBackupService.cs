@@ -413,7 +413,7 @@ public class UsmtBackupService
         Log("==========================================================");
         Log($"=== USMT {modeLabel.ToUpperInvariant()} EM: {target} ===");
         Log($"  USMT Dir : {usmtDir}");
-        Log($"  Store    : {options.StorePath.Trim()}");
+        Log($"  Store    : {result.StorePath}");
         Log($"  Usuários : {(options.SelectedUsers.Count > 0 ? string.Join(", ", options.SelectedUsers) : "Todos do pacote (Restore)")}");
         Log("  Política : Exclusão de usuários DESATIVADA (somente leitura/cópia)");
         Log("==========================================================");
@@ -423,7 +423,7 @@ public class UsmtBackupService
             return ExecuteLocalUsmt(usmtDir, exeName, args, localLogPath, result, Log);
         }
 
-        return ExecuteRemoteUsmt(target, usmtDir, exeName, args, localLogPath, isRestore, options.StorePath.Trim(), result, Log);
+        return ExecuteRemoteUsmt(target, usmtDir, exeName, args, localLogPath, isRestore, result.StorePath, result, Log);
     }
 
     private static UsmtOperationResult ExecuteLocalUsmt(

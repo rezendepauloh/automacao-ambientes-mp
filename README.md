@@ -246,50 +246,49 @@ AmbientesVirtuais/
 - **Ambiente de Desenvolvimento:** [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) instalado.
 - **Permissões:** Executar com usuário padrão ou administrador para rotinas de sistema.
 
-### 1. Clonar e Configurar o Ambiente
+### 1. Clonar o Repositório e Configurar o `.env`
 
 ```powershell
+# 1. Clonar o projeto do GitHub
+git clone https://github.com/rezendepauloh/automacao-ambientes-mp.git C:\AmbientesVirtuais
 cd C:\AmbientesVirtuais
+
+# 2. Criar seu arquivo de configuração local a partir do modelo
 Copy-Item .env.example AmbientesHub\.env
+
+# 3. Restaurar dependências NuGet do .NET 8
+dotnet restore .\AmbientesHub\AmbientesHub.csproj
 ```
 
-### 2. Executar a Aplicação Desktop
+> **Dica:** Abra `AmbientesHub\.env` (ou use a aba **Configurações & Credenciais** dentro do próprio app com os botões de preenchimento padrão) para informar seus dados locais. Nunca versione o `.env`.
 
-#### Via .NET CLI (Desenvolvimento / Debug):
+### 2. Executar Diretamente (Modo Desenvolvimento)
 
 ```powershell
 dotnet run --project C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj
 ```
 
-#### Via Executável Nativo Compilado (.exe):
+### 3. Compilar e Publicar Executável (`.exe`) para Uso Diário
+
+#### Opção A: Executável Leve (Recomendado para máquinas com .NET 8 instalado)
 
 ```powershell
-Start-Process "C:\AmbientesVirtuais\AmbientesHub\bin\Debug\net8.0-windows\AmbientesHub.exe"
+dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained false -o C:\AmbientesVirtuais\AmbientesHub\bin\Publish
 ```
 
-### 3. Publicar Executável para Uso e Distribuição
+Para executar após publicar:
 
-Existem duas formas de publicação dependendo do cenário de distribuição:
+```powershell
+Start-Process "C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe"
+```
 
-#### Opção A: Executável Autocontido e Portátil (Roda em Qualquer PC sem .NET Instalado)
-
-Empacota o runtime do .NET 8 e todas as dependências em um executável autônomo. Ideal para rodar em qualquer máquina de suporte, máquinas de bancada ou direto de um pendrive:
+#### Opção B: Executável Autocontido e Portátil (Roda em qualquer PC sem .NET instalado)
 
 ```powershell
 dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o C:\AmbientesVirtuais\AmbientesHub\bin\Portatil
 ```
 
 _Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Portatil\AmbientesHub.exe`._
-
-#### Opção B: Framework-Dependent (Executável Leve)
-
-Para máquinas corporativas que já possuem o _.NET Desktop Runtime 8.0_ instalado (distribuído via SCCM/Intune):
-
-```powershell
-dotnet publish C:\AmbientesVirtuais\AmbientesHub\AmbientesHub.csproj -c Release -r win-x64 --self-contained false -o C:\AmbientesVirtuais\AmbientesHub\bin\Publish
-```
-
-_Binário pronto em: `C:\AmbientesVirtuais\AmbientesHub\bin\Publish\AmbientesHub.exe`._
 
 ---
 

@@ -66,11 +66,13 @@ public sealed class TrayIconService : IDisposable
     public const uint NIIF_INFO = 0x00000001;
     public const uint NIIF_WARNING = 0x00000002;
     public const uint NIIF_ERROR = 0x00000003;
+    public const uint NIIF_USER = 0x00000004;
     public const uint NIIF_LARGE_ICON = 0x00000020;
 
     private readonly Window _window;
     private IntPtr _hwnd;
     private IntPtr _hIcon = IntPtr.Zero;
+    private IntPtr _hBalloonIcon = IntPtr.Zero;
     private bool _isAdded;
     private HwndSource? _hwndSource;
 
@@ -107,6 +109,7 @@ public sealed class TrayIconService : IDisposable
         if (System.IO.File.Exists(iconPath))
         {
             _hIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+            _hBalloonIcon = LoadImage(IntPtr.Zero, iconPath, IMAGE_ICON, 48, 48, LR_LOADFROMFILE);
         }
 
         var data = new NOTIFYICONDATA
@@ -125,10 +128,11 @@ public sealed class TrayIconService : IDisposable
         Shell_NotifyIcon(NIM_SETVERSION, ref data);
     }
 
-    public void ShowBalloon(string title, string message, uint infoFlags = NIIF_INFO)
+    public void ShowBalloon(string title, string message, uint infoFlags = NIIF_USER)
     {
         if (!_isAdded || _hwnd == IntPtr.Zero) return;
 
+        bool hasCustomIcon = _hBalloonIcon != IntPtr.Zero;
         var data = new NOTIFYICONDATA
         {
             cbSize = (uint)Marshal.SizeOf<NOTIFYICONDATA>(),
@@ -137,7 +141,8 @@ public sealed class TrayIconService : IDisposable
             uFlags = NIF_INFO,
             szInfoTitle = title.Length > 63 ? title[..63] : title,
             szInfo = message.Length > 255 ? message[..255] : message,
-            dwInfoFlags = infoFlags
+            dwInfoFlags = hasCustomIcon ? (NIIF_USER | NIIF_LARGE_ICON) : infoFlags,
+            hBalloonIcon = hasCustomIcon ? _hBalloonIcon : IntPtr.Zero
         };
 
         Shell_NotifyIcon(NIM_MODIFY, ref data);
@@ -307,6 +312,11 @@ public sealed class TrayIconService : IDisposable
         {
             DestroyIcon(_hIcon);
             _hIcon = IntPtr.Zero;
+        }
+        if (_hBalloonIcon != IntPtr.Zero)
+        {
+            DestroyIcon(_hBalloonIcon);
+            _hBalloonIcon = IntPtr.Zero;
         }
 
         if (_hwndSource != null)

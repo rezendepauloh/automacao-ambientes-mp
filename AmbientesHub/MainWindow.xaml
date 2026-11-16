@@ -27,31 +27,32 @@
                     <ui:TextBox x:Name="TxtGlobalSearch" 
                                 PlaceholderText="Pesquisar (máquinas, usuários, módulos)..." 
                                 Icon="{ui:SymbolIcon Symbol=Search24}"
-                                Width="380" Height="32" 
-                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                MinWidth="200" MaxWidth="380" Height="32" 
+                                HorizontalAlignment="Stretch" VerticalAlignment="Center"
                                 Background="{DynamicResource ControlFillColorDefaultBrush}"
                                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                                 KeyDown="TxtGlobalSearch_KeyDown"
                                 ToolTip="Pesquisa global: digite máquina, usuário ou módulo e pressione Enter" />
                 </ui:TitleBar.Header>
+                <ui:TitleBar.TrailingContent>
+                    <!-- Badge Indicadora de Privilégio (Admin vs Usuário Padrão) alinhada à direita, antes dos botões de controle -->
+                    <Border x:Name="TitleBarAdminBadge"
+                            WindowChrome.IsHitTestVisibleInChrome="True"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Padding="10,4"
+                            CornerRadius="12"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            MouseLeftButtonDown="TitleBarAdminBadge_MouseDown"
+                            ToolTip="Clique para alternar o modo de execução (Admin / Padrão)">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:SymbolIcon x:Name="IconTitleBarAdmin" Symbol="Shield20" FontSize="13" Margin="0,0,5,0" />
+                            <TextBlock x:Name="TxtTitleBarAdmin" Text="Usuário" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </ui:TitleBar.TrailingContent>
             </ui:TitleBar>
-
-            <!-- Badge Indicadora de Privilégio (Admin vs Usuário Padrão) alinhada à direita, antes dos botões de controle -->
-            <Border x:Name="TitleBarAdminBadge"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Margin="0,0,145,0"
-                    Padding="10,4"
-                    CornerRadius="12"
-                    BorderThickness="1"
-                    Cursor="Hand"
-                    MouseDown="TitleBarAdminBadge_MouseDown"
-                    ToolTip="Clique para alternar o modo de execução (Admin / Padrão)">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <ui:SymbolIcon x:Name="IconTitleBarAdmin" Symbol="Shield20" FontSize="13" Margin="0,0,5,0" />
-                    <TextBlock x:Name="TxtTitleBarAdmin" Text="Usuário" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
-                </StackPanel>
-            </Border>
         </Grid>
 
         <!-- Layout com Menu Lateral Vertical Responsivo (Expandido / Recolhido com Splitter) -->
@@ -321,8 +322,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                            <TextBlock Text="Selecione o Ambiente de Trabalho" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Fecha as tarefas anteriores e carrega o novo fluxo limpo no Firefox." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Selecione o Ambiente de Trabalho" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Fecha as tarefas anteriores e carrega o novo fluxo limpo no Firefox." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -374,8 +375,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Text="Central de Acesso Remoto &amp; Diagnóstico" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Pesquise por nome da máquina (ex: 80600) ou usuário logado (ex: usuario.sobrenome) com correspondência ampla." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Central de Acesso Remoto &amp; Diagnóstico" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Pesquise por nome da máquina (ex: 80600) ou usuário logado (ex: usuario.sobrenome) com correspondência ampla." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <!-- Barra de Consulta Ampla -->
@@ -426,29 +427,21 @@
                                                     </Grid.RowDefinitions>
 
                                                     <!-- Cabeçalho do Card: Badge, Nome, Ações Rápidas -->
-                                                    <Grid Grid.Row="0" Margin="0,0,0,14">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="Auto" />
-                                                        </Grid.ColumnDefinitions>
-
-                                                        <StackPanel Grid.Column="0">
-                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                                <Border CornerRadius="4" Padding="8,3" Margin="0,0,10,0" Background="{Binding OnlineBadgeBackground}">
-                                                                    <TextBlock Text="{Binding OnlineBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding OnlineBadgeForeground}" />
-                                                                </Border>
-                                                                <TextBlock Text="{Binding ComputerName}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
-                                                                <ui:Button Appearance="Transparent" ToolTip="Copiar Nome da Máquina" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyMachine_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" />
-                                                            </StackPanel>
-                                                            <TextBlock Text="{Binding DnsHostName}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                                        </StackPanel>
-
-                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <ui:Button Appearance="Primary" Content="Acessar CmRcViewer" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnCardConnectSccm_Click" Margin="0,0,8,0" Padding="14,8" />
-                                                            <ui:Button Appearance="Secondary" Content="Acessar RDP" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnCardConnectRdp_Click" Margin="0,0,8,0" Padding="14,8" />
-                                                            <ui:Button Appearance="Secondary" Content="Explorador (C$)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnCardOpenExplorer_Click" ToolTip="Abrir \\máquina\c$ diretamente com credencial Admin" Padding="14,8" />
-                                                        </StackPanel>
-                                                    </Grid>
+                                                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                            <Border CornerRadius="4" Padding="8,3" Margin="0,2,10,2" Background="{Binding OnlineBadgeBackground}" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding OnlineBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding OnlineBadgeForeground}" />
+                                                            </Border>
+                                                            <TextBlock Text="{Binding ComputerName}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                                            <ui:Button Appearance="Transparent" ToolTip="Copiar Nome da Máquina" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyMachine_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                        </WrapPanel>
+                                                        <TextBlock Text="{Binding DnsHostName}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                                                        <WrapPanel Orientation="Horizontal">
+                                                            <ui:Button Appearance="Primary" Content="Acessar CmRcViewer" Icon="{ui:SymbolIcon Symbol=Headset24}" Click="BtnCardConnectSccm_Click" Margin="0,0,8,6" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Acessar RDP" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnCardConnectRdp_Click" Margin="0,0,8,6" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Explorador (C$)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnCardOpenExplorer_Click" ToolTip="Abrir \\máquina\c$ diretamente com credencial Admin" Margin="0,0,0,6" Padding="14,8" />
+                                                        </WrapPanel>
+                                                    </StackPanel>
 
                                                     <Separator Grid.Row="1" Margin="0,0,0,14" />
 
@@ -561,24 +554,18 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-                            <TextBlock Text="Consulta &amp; Desprovisionamento (AD &amp; SCCM)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Consulte se a máquina está cadastrada nas bases (busca por nome ou parte, ex: 80600) ou efetue a exclusão direta para permitir reformatação via PXE." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Consulta &amp; Desprovisionamento (AD &amp; SCCM)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Consulte se a máquina está cadastrada nas bases (busca por nome ou parte, ex: 80600) ou efetue a exclusão direta para permitir reformatação via PXE." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
                             <StackPanel>
                                 <TextBlock Text="Máquina Alvo:" FontWeight="Medium" Margin="0,0,0,8" />
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <ui:TextBox x:Name="TxtAdTargetComputer" Grid.Column="0" PlaceholderText="Ex: 80600 ou DOMINIO-80600" Margin="0,0,10,0" KeyDown="TxtAdTargetComputer_KeyDown" />
-                                    <ui:Button x:Name="BtnAdQuery" Grid.Column="1" Appearance="Secondary" Content="Consultar Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAdQuery_Click" Margin="0,0,10,0" />
-                                    <ui:Button x:Name="BtnAdClean" Grid.Column="2" Appearance="Danger" Content="Excluir do AD &amp; SCCM" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnAdClean_Click" />
-                                </Grid>
+                                <ui:TextBox x:Name="TxtAdTargetComputer" PlaceholderText="Ex: 80600 ou DOMINIO-80600" Margin="0,0,0,10" KeyDown="TxtAdTargetComputer_KeyDown" />
+                                <WrapPanel Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnAdQuery" Appearance="Secondary" Content="Consultar Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAdQuery_Click" Margin="0,0,10,4" />
+                                    <ui:Button x:Name="BtnAdClean" Appearance="Danger" Content="Excluir do AD &amp; SCCM" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnAdClean_Click" Margin="0,0,0,4" />
+                                </WrapPanel>
                             </StackPanel>
                         </Border>
 
@@ -598,8 +585,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                            <TextBlock Text="Selecione o que Fechar e Otimizar" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Defina exatamente o que deve ser encerrado ou mantido durante o saneamento." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Selecione o que Fechar e Otimizar" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Defina exatamente o que deve ser encerrado ou mantido durante o saneamento." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="20">
@@ -643,23 +630,11 @@
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
-                        <!-- Cabeçalho + Aviso Admin -->
-                        <Grid Grid.Row="0" Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Auditoria de Lentidão &amp; Otimização (Debloat)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="Diagnóstico nativo de RAM, bloatwares, TRIM, hibernação e WSL/Docker com aplicação direta em C#." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Border x:Name="BadgeAdminStatus" CornerRadius="6" Padding="10,6" Margin="0,0,8,0" Background="#33f59e0b" BorderBrush="#66f59e0b" BorderThickness="1">
-                                    <TextBlock x:Name="TxtPerfAdminStatus" Text="Modo Usuário" FontSize="12" FontWeight="SemiBold" Foreground="#fbbf24" />
-                                </Border>
-                                <ui:Button x:Name="BtnReiniciarComoAdmin" Content="Reiniciar como Admin" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Appearance="Secondary" Click="BtnReiniciarComoAdmin_Click" Padding="12,6" />
-                            </StackPanel>
-                        </Grid>
+                        <!-- Cabeçalho -->
+                        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                            <TextBlock Text="Auditoria de Lentidão &amp; Otimização (Debloat)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Diagnóstico nativo de RAM, bloatwares, TRIM, hibernação e WSL/Docker com aplicação direta em C#." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
 
                         <!-- Cartões de Resumo Rápido (KPIs da Auditoria) -->
                         <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
@@ -722,9 +697,9 @@
                                 <Separator Grid.Row="1" Margin="0,4,0,12" />
 
                                 <WrapPanel Grid.Row="2" Orientation="Horizontal">
-                                    <ui:Button x:Name="BtnExecutarAuditoria" Appearance="Primary" Content="Executar Auditoria Completa" Icon="{ui:SymbolIcon Symbol=Pulse24}" Click="BtnExecutarAuditoria_Click" Margin="0,0,10,0" Padding="16,9" />
-                                    <ui:Button x:Name="BtnAplicarOtimizacao" Appearance="Success" Content="Aplicar Otimizações Selecionadas" Icon="{ui:SymbolIcon Symbol=Flash24}" Click="BtnAplicarOtimizacao_Click" Margin="0,0,10,0" Padding="16,9" />
-                                    <ui:Button x:Name="BtnReverterServicos" Appearance="Secondary" Content="Reverter Serviços (Rollback)" Icon="{ui:SymbolIcon Symbol=ArrowUndo24}" Click="BtnReverterServicos_Click" Padding="14,9" />
+                                    <ui:Button x:Name="BtnExecutarAuditoria" Appearance="Primary" Content="Executar Auditoria Completa" Icon="{ui:SymbolIcon Symbol=Pulse24}" Click="BtnExecutarAuditoria_Click" Margin="0,0,10,6" Padding="16,9" />
+                                    <ui:Button x:Name="BtnAplicarOtimizacao" Appearance="Success" Content="Aplicar Otimizações Selecionadas" Icon="{ui:SymbolIcon Symbol=Flash24}" Click="BtnAplicarOtimizacao_Click" Margin="0,0,10,6" Padding="16,9" />
+                                    <ui:Button x:Name="BtnReverterServicos" Appearance="Secondary" Content="Reverter Serviços (Rollback)" Icon="{ui:SymbolIcon Symbol=ArrowUndo24}" Click="BtnReverterServicos_Click" Margin="0,0,0,6" Padding="14,9" />
                                 </WrapPanel>
                             </Grid>
                         </Border>
@@ -746,23 +721,11 @@
                             <RowDefinition Height="170" />
                         </Grid.RowDefinitions>
 
-                        <!-- Cabeçalho + Admin + Atualizar -->
-                        <Grid Grid.Row="0" Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Apps Instalados &amp; Provisionamento Pós-Formatação" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="Detecta consoles administrativos corporativos (AD MMC / SCCM) e prepara futuros pacotes via winget (source winget)." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Border x:Name="BadgeAppsAdminStatus" CornerRadius="6" Padding="10,6" Margin="0,0,8,0" Background="#33f59e0b" BorderBrush="#66f59e0b" BorderThickness="1">
-                                    <TextBlock x:Name="TxtAppsAdminStatus" Text="Modo Usuário" FontSize="12" FontWeight="SemiBold" Foreground="#fbbf24" />
-                                </Border>
-                                <ui:Button x:Name="BtnAppsReiniciarAdmin" Content="Reiniciar como Admin" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Appearance="Secondary" Click="BtnReiniciarComoAdmin_Click" Padding="12,6" />
-                            </StackPanel>
-                        </Grid>
+                        <!-- Cabeçalho -->
+                        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                            <TextBlock Text="Apps Instalados &amp; Provisionamento Pós-Formatação" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Detecta consoles administrativos corporativos (AD MMC / SCCM) e prepara futuros pacotes via winget (source winget)." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
 
                         <!-- Barra de Opções -->
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
@@ -771,7 +734,7 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <CheckBox x:Name="ChkInstallSilent" Grid.Column="0" Content="Instalação Silenciosa automática (/q /quiet --silent)" IsChecked="True" VerticalAlignment="Center" />
+                                <CheckBox x:Name="ChkInstallSilent" Grid.Column="0" Content="Instalação Silenciosa automática (/q /quiet --silent)" IsChecked="True" VerticalAlignment="Center" Margin="0,0,12,0" />
                                 <ui:Button x:Name="BtnVerificarApps" Grid.Column="1" Appearance="Primary" Content="Atualizar Status dos Apps" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnVerificarApps_Click" Padding="14,8" />
                             </Grid>
                         </Border>
@@ -790,24 +753,24 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <!-- Ícone Emoji do App no canto esquerdo -->
-                                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" Background="#1e293b" BorderBrush="#334155" BorderThickness="1" Margin="0,0,16,0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <Border Grid.Column="0" Width="44" Height="44" CornerRadius="8" Background="#1e293b" BorderBrush="#334155" BorderThickness="1" Margin="0,0,14,0" VerticalAlignment="Center" HorizontalAlignment="Center">
                                                     <TextBlock Text="{Binding IconEmoji}" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center" />
                                                 </Border>
 
                                                 <!-- Detalhes do Software -->
-                                                <StackPanel Grid.Column="1" Margin="0,0,16,0" VerticalAlignment="Center">
-                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                                        <Border Background="#1e293b" CornerRadius="4" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                <StackPanel Grid.Column="1" Margin="0,0,14,0" VerticalAlignment="Center">
+                                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" Margin="0,0,10,2" VerticalAlignment="Center" />
+                                                        <Border Background="#1e293b" CornerRadius="4" Padding="8,2" VerticalAlignment="Center" Margin="0,2,0,2">
                                                             <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94a3b8" />
                                                         </Border>
-                                                    </StackPanel>
+                                                    </WrapPanel>
                                                     <TextBlock Text="{Binding Description}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,0,0,6" />
-                                                    <TextBlock Text="{Binding StatusDetail}" FontSize="12" Foreground="#94a3b8" TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock Text="{Binding StatusDetail}" FontSize="12" Foreground="#94a3b8" TextWrapping="Wrap" />
                                                 </StackPanel>
 
                                                 <!-- Ações no canto direito -->
-                                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                <WrapPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
                                                     <!-- Badge Instalado (Versão Atual) -->
                                                     <Border Visibility="{Binding InstalledBadgeVisibility}" Background="#1a34d399" BorderBrush="#4d34d399" BorderThickness="1" CornerRadius="6" Padding="12,7" Margin="0,0,8,0">
                                                         <StackPanel Orientation="Horizontal">
@@ -824,7 +787,7 @@
 
                                                     <!-- Botão Desinstalar (Casos extremos) -->
                                                     <ui:Button Visibility="{Binding UninstallButtonVisibility}" IsEnabled="{Binding CanClickInstall}" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=Delete24}" Tag="{Binding}" Click="BtnUninstallSoftware_Click" Padding="10,7" ToolTip="Desinstalar este software da máquina" />
-                                                </StackPanel>
+                                                </WrapPanel>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -850,34 +813,28 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                            <TextBlock Text="Analisador Completo de Dispositivos (HTML, PDF &amp; Excel)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Coleta completa de Hardware, BIOS, RAM (JEDEC), Monitores (EDID), Discos, Impressoras, Perfis, Programas, Serviços, Processos e Drivers em C# nativo." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Analisador Completo de Dispositivos (HTML, PDF &amp; Excel)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Coleta completa de Hardware, BIOS, RAM (JEDEC), Monitores (EDID), Discos, Impressoras, Perfis, Programas, Serviços, Processos e Drivers em C# nativo." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Máquina Alvo (use '.' para analisar a máquina local):" FontWeight="Medium" Margin="0,0,0,8" />
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <ui:TextBox x:Name="TxtAnalyzerComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local), DOMINIO-80600 ou 10.x.x.x" Margin="0,0,10,0" KeyDown="TxtAnalyzerComputer_KeyDown" />
-                                    <ui:Button x:Name="BtnRunAnalyzer" Grid.Column="1" Appearance="Primary" Content="Analisar &amp; Gerar Relatórios" Icon="{ui:SymbolIcon Symbol=DataHistogram24}" Click="BtnRunAnalyzer_Click" Margin="0,0,8,0" />
-                                    <ui:Button x:Name="BtnOpenReportFolder" Grid.Column="2" Appearance="Secondary" Content="Abrir Pasta DeviceReports" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenReportFolder_Click" />
-                                </Grid>
+                                <ui:TextBox x:Name="TxtAnalyzerComputer" Text="." PlaceholderText="Ex: . (local), DOMINIO-80600 ou 10.x.x.x" Margin="0,0,0,10" KeyDown="TxtAnalyzerComputer_KeyDown" />
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <ui:Button x:Name="BtnRunAnalyzer" Appearance="Primary" Content="Analisar &amp; Gerar Relatórios" Icon="{ui:SymbolIcon Symbol=DataHistogram24}" Click="BtnRunAnalyzer_Click" Margin="0,0,8,6" />
+                                    <ui:Button x:Name="BtnOpenReportFolder" Appearance="Secondary" Content="Abrir Pasta DeviceReports" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenReportFolder_Click" Margin="0,0,0,6" />
+                                </WrapPanel>
 
                                 <WrapPanel Orientation="Horizontal" Margin="0,2,0,8">
-                                    <CheckBox x:Name="ChkAnalyzerOpenFirefox" Content="Abrir relatório HTML automaticamente no Firefox" IsChecked="True" Margin="0,0,20,0" />
-                                    <CheckBox x:Name="ChkAnalyzerSkipMajor" Content="Modo Rápido (pular Programas, Serviços, Processos e Drivers)" IsChecked="False" />
+                                    <CheckBox x:Name="ChkAnalyzerOpenFirefox" Content="Abrir relatório HTML automaticamente no Firefox" IsChecked="True" Margin="0,0,20,4" />
+                                    <CheckBox x:Name="ChkAnalyzerSkipMajor" Content="Modo Rápido (pular Programas, Serviços, Processos e Drivers)" IsChecked="False" Margin="0,0,0,4" />
                                 </WrapPanel>
 
                                 <WrapPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                    <ui:Button x:Name="BtnOpenReportHtml" Appearance="Secondary" Content="🌐 Abrir Último HTML no Firefox" Click="BtnOpenReportHtml_Click" IsEnabled="False" Margin="0,0,8,0" Padding="10,6" />
-                                    <ui:Button x:Name="BtnOpenReportPdf" Appearance="Secondary" Content="📄 Abrir Último PDF" Click="BtnOpenReportPdf_Click" IsEnabled="False" Margin="0,0,8,0" Padding="10,6" />
-                                    <ui:Button x:Name="BtnOpenReportExcel" Appearance="Secondary" Content="📊 Abrir Último Excel (.xlsx)" Click="BtnOpenReportExcel_Click" IsEnabled="False" Padding="10,6" />
+                                    <ui:Button x:Name="BtnOpenReportHtml" Appearance="Secondary" Content="🌐 Abrir Último HTML no Firefox" Click="BtnOpenReportHtml_Click" IsEnabled="False" Margin="0,0,8,6" Padding="10,6" />
+                                    <ui:Button x:Name="BtnOpenReportPdf" Appearance="Secondary" Content="📄 Abrir Último PDF" Click="BtnOpenReportPdf_Click" IsEnabled="False" Margin="0,0,8,6" Padding="10,6" />
+                                    <ui:Button x:Name="BtnOpenReportExcel" Appearance="Secondary" Content="📊 Abrir Último Excel (.xlsx)" Click="BtnOpenReportExcel_Click" IsEnabled="False" Margin="0,0,0,6" Padding="10,6" />
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -927,42 +884,36 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                            <TextBlock Text="Manutenção &amp; Limpeza de Caches (Local ou Remota)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Inspecione primeiro o espaço ocupado pelos caches na máquina alvo e execute a limpeza seletiva e reparo de sistema em C# nativo." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Manutenção &amp; Limpeza de Caches (Local ou Remota)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Inspecione primeiro o espaço ocupado pelos caches na máquina alvo e execute a limpeza seletiva e reparo de sistema em C# nativo." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
                             <StackPanel>
-                                <TextBlock Text="Máquina Alvo (use '.' para local ou informe o hostname/IP remoto):" FontWeight="Medium" Margin="0,0,0,8" />
-                                <Grid Margin="0,0,0,12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                                <TextBlock Text="Máquina Alvo (use '.' para local ou informe o hostname/IP remoto):" FontWeight="Medium" Margin="0,0,0,8" TextWrapping="Wrap" />
+                                <ui:TextBox x:Name="TxtRemoteMaintComputer" Text="." PlaceholderText="Ex: . (local) ou NOME-DA-MAQUINA" Margin="0,0,0,10" KeyDown="TxtRemoteMaintComputer_KeyDown" />
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <ui:Button x:Name="BtnAnalyzeRemoteMaint" Appearance="Secondary" Content="Analisar Espaço &amp; Caches" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAnalyzeRemoteMaint_Click" Margin="0,0,10,6" />
+                                    <ui:Button x:Name="BtnExecuteRemoteMaint" Appearance="Primary" Content="Executar Limpeza &amp; Manutenção" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnExecuteRemoteMaint_Click" Margin="0,0,0,6" />
+                                </WrapPanel>
 
-                                    <ui:TextBox x:Name="TxtRemoteMaintComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou NOME-DA-MAQUINA" Margin="0,0,10,0" KeyDown="TxtRemoteMaintComputer_KeyDown" />
-                                    <ui:Button x:Name="BtnAnalyzeRemoteMaint" Grid.Column="1" Appearance="Secondary" Content="Analisar Espaço &amp; Caches" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnAnalyzeRemoteMaint_Click" Margin="0,0,10,0" />
-                                    <ui:Button x:Name="BtnExecuteRemoteMaint" Grid.Column="2" Appearance="Primary" Content="Executar Limpeza &amp; Manutenção" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnExecuteRemoteMaint_Click" />
-                                </Grid>
-
-                                <UniformGrid Columns="3">
-                                    <CheckBox x:Name="ChkRmTemp" Content="Arquivos Temp (Usuários &amp; Windows)" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmPrefetch" Content="Cache Prefetch (C:\Windows\Prefetch)" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmRecycle" Content="Esvaziar Lixeira ($Recycle.Bin)" IsChecked="True" Margin="0,2,0,2" />
-                                    <CheckBox x:Name="ChkRmWuCache" Content="Cache Windows Update (Download)" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmCbs" Content="Truncar Logs CBS (C:\Windows\Logs\CBS)" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmThumbnails" Content="Cache de Miniaturas (thumbcache)" IsChecked="True" Margin="0,2,0,2" />
-                                    <CheckBox x:Name="ChkRmDeliveryOpt" Content="Cache Delivery Optimization" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmCrashDumps" Content="Relatórios WER &amp; CrashDumps" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmStore" Content="Cache Microsoft Store (LocalCache)" IsChecked="True" Margin="0,2,0,2" />
-                                    <CheckBox x:Name="ChkRmEventLogs" Content="Logs de Eventos (Admin/Operational)" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmDns" Content="Flush DNS (ipconfig /flushdns)" IsChecked="True" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmWinSxS" Content="Limpeza WinSxS (DISM Cleanup)" IsChecked="False" Margin="0,2,0,2" />
-                                    <CheckBox x:Name="ChkRmWindowsOld" Content="Remover Windows.old / $Windows.~BT" IsChecked="False" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmRepairVol" Content="Reparar Volume C: (Repair-Volume)" IsChecked="False" Margin="0,2,8,2" />
-                                    <CheckBox x:Name="ChkRmDefragHdd" Content="Desfragmentar C: (somente se HDD)" IsChecked="False" Margin="0,2,0,2" />
-                                </UniformGrid>
+                                <WrapPanel Orientation="Horizontal">
+                                    <CheckBox x:Name="ChkRmTemp" Content="Arquivos Temp (Usuários &amp; Windows)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmPrefetch" Content="Cache Prefetch (C:\Windows\Prefetch)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmRecycle" Content="Esvaziar Lixeira ($Recycle.Bin)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmWuCache" Content="Cache Windows Update (Download)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmCbs" Content="Truncar Logs CBS (C:\Windows\Logs\CBS)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmThumbnails" Content="Cache de Miniaturas (thumbcache)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmDeliveryOpt" Content="Cache Delivery Optimization" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmCrashDumps" Content="Relatórios WER &amp; CrashDumps" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmStore" Content="Cache Microsoft Store (LocalCache)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmEventLogs" Content="Logs de Eventos (Admin/Operational)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmDns" Content="Flush DNS (ipconfig /flushdns)" IsChecked="True" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmWinSxS" Content="Limpeza WinSxS (DISM Cleanup)" IsChecked="False" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmWindowsOld" Content="Remover Windows.old / $Windows.~BT" IsChecked="False" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmRepairVol" Content="Reparar Volume C: (Repair-Volume)" IsChecked="False" Margin="0,2,18,4" />
+                                    <CheckBox x:Name="ChkRmDefragHdd" Content="Desfragmentar C: (somente se HDD)" IsChecked="False" Margin="0,2,18,4" />
+                                </WrapPanel>
                                 <CheckBox x:Name="ChkRmSfc" Content="Verificar Corrupção de Imagem (DISM CheckHealth + SFC /scannow se necessário)" IsChecked="False" Margin="0,4,0,0" />
                             </StackPanel>
                         </Border>
@@ -1006,34 +957,29 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                            <TextBlock Text="Análise &amp; Limpeza de Perfis de Usuários (Local ou Remota)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Analise os perfis gravados em C:\Users (com consulta AD, último uso e espaço em GB) e remova com segurança perfis inativos." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Análise &amp; Limpeza de Perfis de Usuários (Local ou Remota)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Analise os perfis gravados em C:\Users (com consulta AD, último uso e espaço em GB) e remova com segurança perfis inativos." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,12">
                             <StackPanel>
                                 <TextBlock Text="Máquina Alvo:" FontWeight="Medium" Margin="0,0,0,8" />
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <ui:TextBox x:Name="TxtRemoteProfilesComputer" Grid.Column="0" Text="." PlaceholderText="Ex: . (local) ou DOMINIO-80600" Margin="0,0,10,0" KeyDown="TxtRemoteProfilesComputer_KeyDown" />
-                                    <ui:Button x:Name="BtnQueryRemoteProfiles" Grid.Column="1" Appearance="Secondary" Content="Analisar Perfis na Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnQueryRemoteProfiles_Click" Margin="0,0,10,0" />
-                                    <ui:Button x:Name="BtnPurgeRemoteProfiles" Grid.Column="2" Appearance="Danger" Content="Remover Perfis Selecionados" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnPurgeRemoteProfiles_Click" />
-                                </Grid>
+                                <ui:TextBox x:Name="TxtRemoteProfilesComputer" Text="." PlaceholderText="Ex: . (local) ou DOMINIO-80600" Margin="0,0,0,10" KeyDown="TxtRemoteProfilesComputer_KeyDown" />
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <ui:Button x:Name="BtnQueryRemoteProfiles" Appearance="Secondary" Content="Analisar Perfis na Máquina" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnQueryRemoteProfiles_Click" Margin="0,0,10,6" />
+                                    <ui:Button x:Name="BtnPurgeRemoteProfiles" Appearance="Danger" Content="Remover Perfis Selecionados" Icon="{ui:SymbolIcon Symbol=Delete24}" Click="BtnPurgeRemoteProfiles_Click" Margin="0,0,0,6" />
+                                </WrapPanel>
 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <ui:TextBox x:Name="TxtManualProfilesToPurge" Grid.Column="0" PlaceholderText="Opcional: digite usuários adicionais separados por vírgula (ex: usuario.sobrenome)" Margin="0,0,10,0" />
-                                    <ui:Button x:Name="BtnSelectAllInactiveProfiles" Grid.Column="1" Appearance="Secondary" Content="Marcar Inativos" Click="BtnSelectAllInactiveProfiles_Click" Margin="0,0,8,0" Padding="10,6" />
-                                    <ui:Button x:Name="BtnClearProfileSelection" Grid.Column="2" Appearance="Secondary" Content="Desmarcar Todos" Click="BtnClearProfileSelection_Click" Padding="10,6" />
+                                    <ui:TextBox x:Name="TxtManualProfilesToPurge" Grid.Column="0" PlaceholderText="Opcional: digite usuários adicionais separados por vírgula" Margin="0,0,10,0" />
+                                    <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:Button x:Name="BtnSelectAllInactiveProfiles" Appearance="Secondary" Content="Marcar Inativos" Click="BtnSelectAllInactiveProfiles_Click" Margin="0,0,8,0" Padding="10,6" />
+                                        <ui:Button x:Name="BtnClearProfileSelection" Appearance="Secondary" Content="Desmarcar Todos" Click="BtnClearProfileSelection_Click" Padding="10,6" />
+                                    </WrapPanel>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -1054,11 +1000,11 @@
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto" />
-                                                            <ColumnDefinition Width="170" />
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="150" />
-                                                            <ColumnDefinition Width="95" />
+                                                            <ColumnDefinition Width="1.2*" />
+                                                            <ColumnDefinition Width="1.5*" />
                                                             <ColumnDefinition Width="130" />
+                                                            <ColumnDefinition Width="75" />
+                                                            <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
 
                                                         <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanBeRemoved}" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -1109,8 +1055,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-                            <TextBlock Text="Consulta de Usuários no Active Directory" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Pesquise por login (ex: usuario.sobrenome), nome completo, e-mail, setor, cargo ou matrícula com carregamento assíncrono completo." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Consulta de Usuários no Active Directory" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Pesquise por login (ex: usuario.sobrenome), nome completo, e-mail, setor, cargo ou matrícula com carregamento assíncrono completo." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <!-- Barra de Consulta Ampla de Usuários AD -->
@@ -1136,35 +1082,18 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- Linha 0: Controles de Filtros Rápidos Locais (Departamento, Status da Conta e Pesquisa Instantânea) -->
-                                <Grid Grid.Row="0" Margin="0,0,0,10">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="220" />
-                                        <ColumnDefinition Width="180" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <!-- Filtro textual instantâneo -->
-                                    <ui:TextBox x:Name="TxtAdUserLocalFilter" Grid.Column="0" PlaceholderText="Filtrar por nome, cargo, matrícula, e-mail..." TextChanged="TxtAdUserLocalFilter_TextChanged" Margin="0,0,8,0" Height="34" />
-
-                                    <!-- Filtro por Departamento / Setor -->
-                                    <ComboBox x:Name="CmbAdUserDeptFilter" Grid.Column="1" SelectionChanged="CmbAdUserFilter_SelectionChanged" Margin="0,0,8,0" Height="34" />
-
-                                    <!-- Filtro por Status da Conta (Todas, Ativas, Bloqueadas, Desativadas) -->
-                                    <ComboBox x:Name="CmbAdUserStatusFilter" Grid.Column="2" SelectionChanged="CmbAdUserFilter_SelectionChanged" Margin="0,0,8,0" Height="34">
+                                <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                                    <ui:TextBox x:Name="TxtAdUserLocalFilter" PlaceholderText="Filtrar por nome, cargo, matrícula, e-mail..." TextChanged="TxtAdUserLocalFilter_TextChanged" MinWidth="220" Margin="0,0,8,6" Height="34" />
+                                    <ComboBox x:Name="CmbAdUserDeptFilter" SelectionChanged="CmbAdUserFilter_SelectionChanged" MinWidth="180" MaxWidth="230" Margin="0,0,8,6" Height="34" />
+                                    <ComboBox x:Name="CmbAdUserStatusFilter" SelectionChanged="CmbAdUserFilter_SelectionChanged" Width="170" Margin="0,0,8,6" Height="34">
                                         <ComboBoxItem Content="Todos os Status" />
                                         <ComboBoxItem Content="🟢 Apenas Ativas" />
                                         <ComboBoxItem Content="🔒 Apenas Bloqueadas" />
                                         <ComboBoxItem Content="🔴 Apenas Desativadas" />
                                         <ComboBoxItem Content="🟡 Troca de Senha" />
                                     </ComboBox>
-
-                                    <!-- Limpar Filtros -->
-                                    <ui:Button x:Name="BtnClearAdUserFilters" Grid.Column="3" Content="Limpar Filtros" Icon="{ui:SymbolIcon Symbol=Dismiss24}" Click="BtnClearAdUserFilters_Click" Padding="10,6" />
-                                </Grid>
+                                    <ui:Button x:Name="BtnClearAdUserFilters" Content="Limpar Filtros" Icon="{ui:SymbolIcon Symbol=Dismiss24}" Click="BtnClearAdUserFilters_Click" Margin="0,0,0,6" Padding="10,6" />
+                                </WrapPanel>
 
                                 <Separator Grid.Row="1" Margin="0,0,0,8" />
 
@@ -1219,29 +1148,22 @@
                                                     </Grid.RowDefinitions>
 
                                                     <!-- Cabeçalho do Card: Badge de Status, Nome Completo, Login/UPN e Ações Rápidas -->
-                                                    <Grid Grid.Row="0" Margin="0,0,0,14">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="Auto" />
-                                                        </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                            <Border CornerRadius="4" Padding="8,3" Margin="0,2,10,2" Background="{Binding StatusBadgeBackground}" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding StatusBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
+                                                            </Border>
+                                                            <TextBlock Text="{Binding HeaderNameDisplay}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                                            <ui:Button Appearance="Transparent" ToolTip="Copiar Login (sAMAccountName)" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyLogin_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                                        </WrapPanel>
+                                                        <TextBlock Text="{Binding SamAndUpnDisplay}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
 
-                                                        <StackPanel Grid.Column="0">
-                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                                <Border CornerRadius="4" Padding="8,3" Margin="0,0,10,0" Background="{Binding StatusBadgeBackground}">
-                                                                    <TextBlock Text="{Binding StatusBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
-                                                                </Border>
-                                                                <TextBlock Text="{Binding HeaderNameDisplay}" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                                                <ui:Button Appearance="Transparent" ToolTip="Copiar Login (sAMAccountName)" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyLogin_Click" Width="30" Height="30" Padding="0" Margin="6,0,0,0" />
-                                                            </StackPanel>
-                                                            <TextBlock Text="{Binding SamAndUpnDisplay}" FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                                        </StackPanel>
-
-                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <ui:Button Appearance="Primary" Content="Buscar Máquinas deste Usuário" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnAdUserFindMachines_Click" ToolTip="Pesquisar estações onde este usuário está conectado no módulo de Acesso Remoto" Margin="0,0,8,0" Padding="14,8" />
-                                                            <ui:Button Appearance="Secondary" Content="Copiar Ficha Completa" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyFullDossier_Click" ToolTip="Copiar todos os dados do usuário para a Área de Transferência" Margin="0,0,8,0" Padding="14,8" />
-                                                            <ui:Button Appearance="Secondary" Content="Copiar Grupos" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyGroups_Click" ToolTip="Copiar lista de grupos (memberOf) do usuário" Padding="14,8" />
-                                                        </StackPanel>
-                                                    </Grid>
+                                                        <WrapPanel Orientation="Horizontal">
+                                                            <ui:Button Appearance="Primary" Content="Buscar Máquinas deste Usuário" Icon="{ui:SymbolIcon Symbol=Window24}" Click="BtnAdUserFindMachines_Click" ToolTip="Pesquisar estações onde este usuário está conectado no módulo de Acesso Remoto" Margin="0,0,8,6" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Copiar Ficha Completa" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyFullDossier_Click" ToolTip="Copiar todos os dados do usuário para a Área de Transferência" Margin="0,0,8,6" Padding="14,8" />
+                                                            <ui:Button Appearance="Secondary" Content="Copiar Grupos" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnAdUserCopyGroups_Click" ToolTip="Copiar lista de grupos (memberOf) do usuário" Margin="0,0,0,6" Padding="14,8" />
+                                                        </WrapPanel>
+                                                    </StackPanel>
 
                                                     <Separator Grid.Row="1" Margin="0,0,0,14" />
 
@@ -1372,8 +1294,8 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                            <TextBlock Text="Parâmetros do Sistema &amp; Credenciais" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Gerencie cofres DPAPI seguros, URLs corporativas, servidores do SCCM e tipografia." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <TextBlock Text="Parâmetros do Sistema &amp; Credenciais" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Gerencie cofres DPAPI seguros, URLs corporativas, servidores do SCCM e tipografia." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -1381,12 +1303,12 @@
                                 <StackPanel>
                                     <!-- Seção de Cofres e Credenciais XML -->
                                     <TextBlock Text="Cofre de Credenciais (DPAPI .xml)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,6" />
-                                    <TextBlock Text="Geração e teste das credenciais seguras usadas nos scripts e rotinas administrativas." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,12" />
+                                    <TextBlock Text="Geração e teste das credenciais seguras usadas nos scripts e rotinas administrativas." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,12" TextWrapping="Wrap" />
 
-                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <ui:Button x:Name="BtnCheckAdminXml" Appearance="Secondary" Content="Verificar Credencial Local (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminXml_Click" Margin="0,0,12,0" Padding="14,10" />
-                                        <ui:Button x:Name="BtnCheckAdminAdXml" Appearance="Secondary" Content="Verificar Credencial AD (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminAdXml_Click" Margin="0,0,12,0" Padding="14,10" />
-                                        <ui:Button x:Name="BtnCriarAdminAdXml" Appearance="Primary" Content="Criar/Atualizar Cofre AD (XML)" Icon="{ui:SymbolIcon Symbol=Key24}" Click="BtnCriarAdminAdXml_Click" Padding="14,10" />
+                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <ui:Button x:Name="BtnCheckAdminXml" Appearance="Secondary" Content="Verificar Credencial Local (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminXml_Click" Margin="0,0,10,8" Padding="14,10" />
+                                        <ui:Button x:Name="BtnCheckAdminAdXml" Appearance="Secondary" Content="Verificar Credencial AD (XML)" Icon="{ui:SymbolIcon Symbol=ShieldKeyhole24}" Click="BtnCheckAdminAdXml_Click" Margin="0,0,10,8" Padding="14,10" />
+                                        <ui:Button x:Name="BtnCriarAdminAdXml" Appearance="Primary" Content="Criar/Atualizar Cofre AD (XML)" Icon="{ui:SymbolIcon Symbol=Key24}" Click="BtnCriarAdminAdXml_Click" Margin="0,0,0,8" Padding="14,10" />
                                     </WrapPanel>
 
                                     <!-- Console de Log para operações com o cofre -->
@@ -1660,19 +1582,19 @@
                                         </StackPanel>
                                     </Grid>
 
-                                    <TextBlock Text="Diretório do Windows USMT (scanstate.exe / loadstate.exe):" FontWeight="Medium" Margin="0,0,0,4" />
-                                    <Grid Margin="0,0,0,14">
+                                    <TextBlock Text="Diretório do Windows USMT (scanstate.exe / loadstate.exe):" FontWeight="Medium" Margin="0,0,0,4" TextWrapping="Wrap" />
+                                    <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <ui:TextBox x:Name="TxtCfgUsmtPath" Grid.Column="0" PlaceholderText="C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\amd64" />
-                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="10,6" Appearance="Secondary" Content="Procurar" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnCfgBrowseUsmt_Click" />
-                                        <ui:Button x:Name="BtnCfgDownloadUsmt" Grid.Column="2" Margin="6,0,0,0" Padding="10,6" Appearance="Primary" Content="Baixar / Detectar USMT" Icon="{ui:SymbolIcon Symbol=ArrowDownload24}" Click="BtnCfgDownloadUsmt_Click" ToolTip="Detecta localmente ou baixa/instala o Windows USMT e salva automaticamente no .env" />
-                                        <ui:Button Grid.Column="3" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="USMT_PATH" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="USMT_PATH" />
                                     </Grid>
+                                    <WrapPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                        <ui:Button Margin="0,0,8,6" Padding="10,6" Appearance="Secondary" Content="Procurar Pasta USMT" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnCfgBrowseUsmt_Click" />
+                                        <ui:Button x:Name="BtnCfgDownloadUsmt" Margin="0,0,0,6" Padding="10,6" Appearance="Primary" Content="Baixar / Detectar USMT" Icon="{ui:SymbolIcon Symbol=ArrowDownload24}" Click="BtnCfgDownloadUsmt_Click" ToolTip="Detecta localmente ou baixa/instala o Windows USMT e salva automaticamente no .env" />
+                                    </WrapPanel>
 
                                     <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
                                 </StackPanel>
@@ -1696,8 +1618,8 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Backup &amp; Restore de Perfis de Usuários (Windows USMT)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Backup &amp; Restore de Perfis de Usuários (Windows USMT)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
                                 <TextBlock Text="Migração segura de dados de usuários via ScanState / LoadState em máquinas locais (.) ou remotas, com seleção individual e zero exclusão de perfis." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <Border x:Name="BadgeUsmtBinStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b" Margin="0,0,8,0">
@@ -1711,9 +1633,8 @@
                             <StackPanel>
                                 <Grid Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="260" />
+                                        <ColumnDefinition Width="1.2*" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                         <TextBlock Text="Computador Alvo (. = Local ou Hostname/IP):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
@@ -1727,43 +1648,37 @@
                                         </Grid>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                                        <TextBlock Text="Pasta do Pacote USMT (Destino do Backup / Origem do Restore):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <ui:TextBox x:Name="TxtUsmtStorePath" Grid.Column="0" PlaceholderText="C:\Backups\USMT_Estacao ou \\servidor\backups\USMT_Estacao" Height="34" />
-                                            <ui:Button x:Name="BtnUsmtBrowseStore" Grid.Column="1" Appearance="Secondary" Content="Procurar..." Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnUsmtBrowseStore_Click" Margin="6,0,0,0" Padding="10,7" />
-                                        </Grid>
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="2" Width="170">
-                                        <TextBlock Text="Chave / Senha (Opcional):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
-                                        <ui:TextBox x:Name="TxtUsmtEncryptKey" PlaceholderText="Vazio = sem senha" Height="34" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Chave / Senha de Criptografia (Opcional):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
+                                        <ui:TextBox x:Name="TxtUsmtEncryptKey" PlaceholderText="Deixe vazio para pacote sem senha" Height="34" />
                                     </StackPanel>
                                 </Grid>
 
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <CheckBox x:Name="ChkUsmtMigApp" Content="MigApp.xml (Apps)" IsChecked="True" Margin="0,0,14,0" />
-                                        <CheckBox x:Name="ChkUsmtMigDocs" Content="MigDocs.xml (Documentos)" IsChecked="True" Margin="0,0,14,0" />
-                                        <CheckBox x:Name="ChkUsmtMigUser" Content="MigUser.xml (Perfil Clássico)" IsChecked="False" Margin="0,0,14,0" />
-                                        <CheckBox x:Name="ChkUsmtCompress" Content="Compactar Pacote" IsChecked="True" Margin="0,0,14,0" />
-                                        <CheckBox x:Name="ChkUsmtCreateLocalAccounts" Content="Criar Contas Locais no Restore (/lac /lae)" IsChecked="False" />
-                                    </WrapPanel>
+                                <StackPanel Margin="0,0,0,10">
+                                    <TextBlock Text="Pasta do Pacote USMT (Destino do Backup / Origem do Restore):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtUsmtStorePath" Grid.Column="0" PlaceholderText="C:\Backups\USMT_Estacao ou \\servidor\backups\USMT_Estacao" Height="34" />
+                                        <ui:Button x:Name="BtnUsmtBrowseStore" Grid.Column="1" Appearance="Secondary" Content="Procurar..." Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnUsmtBrowseStore_Click" Margin="6,0,0,0" Padding="10,7" />
+                                    </Grid>
+                                </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                        <ui:Button x:Name="BtnUsmtRunBackup" Appearance="Primary" Content="Iniciar Backup (ScanState)" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnUsmtRunBackup_Click" Margin="0,0,8,0" Padding="14,8" />
-                                        <ui:Button x:Name="BtnUsmtRunRestore" Appearance="Secondary" Content="Restaurar Backup (LoadState)" Icon="{ui:SymbolIcon Symbol=ArrowUpload24}" Click="BtnUsmtRunRestore_Click" Margin="0,0,8,0" Padding="14,8" />
-                                        <ui:Button x:Name="BtnUsmtOpenStore" Appearance="Transparent" Content="Abrir Pasta" Icon="{ui:SymbolIcon Symbol=Folder24}" Click="BtnUsmtOpenStore_Click" Padding="10,8" />
-                                    </StackPanel>
-                                </Grid>
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <CheckBox x:Name="ChkUsmtMigApp" Content="MigApp.xml (Apps)" IsChecked="True" Margin="0,0,14,4" />
+                                    <CheckBox x:Name="ChkUsmtMigDocs" Content="MigDocs.xml (Documentos)" IsChecked="True" Margin="0,0,14,4" />
+                                    <CheckBox x:Name="ChkUsmtMigUser" Content="MigUser.xml (Perfil Clássico)" IsChecked="False" Margin="0,0,14,4" />
+                                    <CheckBox x:Name="ChkUsmtCompress" Content="Compactar Pacote" IsChecked="True" Margin="0,0,14,4" />
+                                    <CheckBox x:Name="ChkUsmtCreateLocalAccounts" Content="Criar Contas Locais no Restore (/lac /lae)" IsChecked="False" Margin="0,0,0,4" />
+                                </WrapPanel>
+
+                                <WrapPanel Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnUsmtRunBackup" Appearance="Primary" Content="Iniciar Backup (ScanState)" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnUsmtRunBackup_Click" Margin="0,0,8,4" Padding="14,8" />
+                                    <ui:Button x:Name="BtnUsmtRunRestore" Appearance="Secondary" Content="Restaurar Backup (LoadState)" Icon="{ui:SymbolIcon Symbol=ArrowUpload24}" Click="BtnUsmtRunRestore_Click" Margin="0,0,8,4" Padding="14,8" />
+                                    <ui:Button x:Name="BtnUsmtOpenStore" Appearance="Transparent" Content="Abrir Pasta" Icon="{ui:SymbolIcon Symbol=Folder24}" Click="BtnUsmtOpenStore_Click" Margin="0,0,0,4" Padding="10,8" />
+                                </WrapPanel>
                             </StackPanel>
                         </Border>
 
@@ -1780,9 +1695,7 @@
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock x:Name="TxtUsmtUsersHeader" Text="Clique em 'Listar Perfis' para escolher os usuários do backup (nenhum usuário será excluído):" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                    </StackPanel>
+                                    <TextBlock x:Name="TxtUsmtUsersHeader" Grid.Column="0" Text="Clique em 'Listar Perfis' para escolher os usuários do backup (nenhum usuário será excluído):" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,10,0" />
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                                         <ui:Button x:Name="BtnUsmtSelectAllUsers" Appearance="Secondary" Content="Marcar Todos" Click="BtnUsmtSelectAllUsers_Click" Padding="10,5" Margin="0,0,6,0" />
                                         <ui:Button x:Name="BtnUsmtClearUsers" Appearance="Transparent" Content="Desmarcar" Click="BtnUsmtClearUsers_Click" Padding="10,5" />
@@ -1797,11 +1710,11 @@
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="34" />
-                                                            <ColumnDefinition Width="180" />
-                                                            <ColumnDefinition Width="*" />
-                                                            <ColumnDefinition Width="150" />
-                                                            <ColumnDefinition Width="100" />
-                                                            <ColumnDefinition Width="140" />
+                                                            <ColumnDefinition Width="1.2*" />
+                                                            <ColumnDefinition Width="1.5*" />
+                                                            <ColumnDefinition Width="130" />
+                                                            <ColumnDefinition Width="75" />
+                                                            <ColumnDefinition Width="Auto" />
                                                         </Grid.ColumnDefinitions>
                                                         <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -1863,9 +1776,9 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Sistema Bancada STI (Streamlit Docker / WSL)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="Gerenciamento de containers Docker, inicialização do Streamlit (localhost:8501) e monitoramento de logs em tempo real." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Sistema Bancada STI (Streamlit Docker / WSL)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Gerenciamento de containers Docker, inicialização do Streamlit (localhost:8501) e monitoramento de logs em tempo real." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <Border x:Name="BadgeBancadaStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b">
                                 <TextBlock x:Name="TxtBancadaStatus" Text="⚪ Verificando..." FontSize="12" FontWeight="Bold" Foreground="#94a3b8" />
@@ -1934,9 +1847,9 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Central de Logs da Aplicação" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="Histórico consolidado e monitoramento em tempo real dos logs operacionais e de segurança gravados em AmbientesHub\logs\app.log." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Central de Logs da Aplicação" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Histórico consolidado e monitoramento em tempo real dos logs operacionais e de segurança gravados em AmbientesHub\logs\app.log." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <Border x:Name="BadgeAppLogsCount" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b">
                                 <TextBlock x:Name="TxtAppLogsCount" Text="0 registros" FontSize="12" FontWeight="Bold" Foreground="#38bdf8" />
@@ -1945,16 +1858,10 @@
 
                         <!-- Barra de Filtros e Ações Rápidas -->
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <!-- Filtros: Nível e Busca por Texto -->
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Nível:" VerticalAlignment="Center" FontWeight="Medium" Margin="0,0,8,0" />
-                                    <ComboBox x:Name="CmbAppLogLevelFilter" SelectionChanged="CmbAppLogLevelFilter_SelectionChanged" Width="150" Height="34" Margin="0,0,14,0">
+                            <StackPanel>
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Nível:" VerticalAlignment="Center" FontWeight="Medium" Margin="0,0,8,4" />
+                                    <ComboBox x:Name="CmbAppLogLevelFilter" SelectionChanged="CmbAppLogLevelFilter_SelectionChanged" Width="155" Height="34" Margin="0,0,12,4">
                                         <ComboBoxItem Content="Todos os Níveis" IsSelected="True" />
                                         <ComboBoxItem Content="[INFO] Informações" />
                                         <ComboBoxItem Content="[WARNING] Avisos" />
@@ -1962,16 +1869,15 @@
                                         <ComboBoxItem Content="[SUCCESS] Sucessos" />
                                     </ComboBox>
 
-                                    <ui:TextBox x:Name="TxtAppLogSearch" PlaceholderText="Filtrar por texto nos logs..." Width="280" Height="34" Icon="{ui:SymbolIcon Symbol=Filter24}" TextChanged="TxtAppLogSearch_TextChanged" Margin="0,0,14,0" />
-                                </StackPanel>
+                                    <ui:TextBox x:Name="TxtAppLogSearch" PlaceholderText="Filtrar por texto nos logs..." MinWidth="220" MaxWidth="360" Height="34" Icon="{ui:SymbolIcon Symbol=Filter24}" TextChanged="TxtAppLogSearch_TextChanged" Margin="0,0,12,4" />
+                                </WrapPanel>
 
-                                <!-- Botões de Ação -->
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <ui:Button x:Name="BtnReloadAppLogs" Appearance="Primary" Content="Recarregar" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnReloadAppLogs_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Recarrega as entradas do arquivo de log em disco" />
-                                    <ui:Button x:Name="BtnClearAppLogsView" Appearance="Secondary" Content="Limpar Tela" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnClearAppLogsView_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Limpa apenas a visualização atual na tela" />
-                                    <ui:Button x:Name="BtnOpenAppLogsFolder" Appearance="Transparent" Content="Abrir Pasta" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenAppLogsFolder_Click" Padding="10,7" ToolTip="Abre a pasta AmbientesHub\logs no Windows Explorer" />
-                                </StackPanel>
-                            </Grid>
+                                <WrapPanel Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnReloadAppLogs" Appearance="Primary" Content="Recarregar" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnReloadAppLogs_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Recarrega as entradas do arquivo de log em disco" />
+                                    <ui:Button x:Name="BtnClearAppLogsView" Appearance="Secondary" Content="Limpar Tela" Icon="{ui:SymbolIcon Symbol=Broom24}" Click="BtnClearAppLogsView_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Limpa apenas a visualização atual na tela" />
+                                    <ui:Button x:Name="BtnOpenAppLogsFolder" Appearance="Transparent" Content="Abrir Pasta" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenAppLogsFolder_Click" Margin="0,0,0,4" Padding="10,7" ToolTip="Abre a pasta AmbientesHub\logs no Windows Explorer" />
+                                </WrapPanel>
+                            </StackPanel>
                         </Border>
 
                         <!-- Terminal de Logs em Cores -->
@@ -2009,9 +1915,9 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Otimizações do Registro do Windows (Tweaks &amp; Rollback)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="Ajustes cirúrgicos no Windows Registry para redução de latência, aceleração de menus e eliminação de bloatware em background, com backup automático (.reg) e restauração segura." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" />
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Otimizações do Registro do Windows (Tweaks &amp; Rollback)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Ajustes cirúrgicos no Windows Registry para redução de latência, aceleração de menus e eliminação de bloatware em background, com backup automático (.reg) e restauração segura." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <Border x:Name="BadgeRegistryOptStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b">
                                 <TextBlock x:Name="TxtRegistryOptBadge" Text="0 / 12 Otimizados" FontSize="12" FontWeight="Bold" Foreground="#38bdf8" />
@@ -2020,16 +1926,11 @@
 
                         <!-- Barra de Filtros e Ações Rápidas -->
                         <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
+                            <StackPanel>
                                 <!-- Filtros: Categoria e Seleção -->
-                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Categoria:" VerticalAlignment="Center" FontWeight="Medium" Margin="0,0,8,0" />
-                                    <ComboBox x:Name="CmbRegistryCategoryFilter" SelectionChanged="CmbRegistryCategoryFilter_SelectionChanged" Width="190" Height="34" Margin="0,0,12,0">
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Categoria:" VerticalAlignment="Center" FontWeight="Medium" Margin="0,0,8,4" />
+                                    <ComboBox x:Name="CmbRegistryCategoryFilter" SelectionChanged="CmbRegistryCategoryFilter_SelectionChanged" Width="195" Height="34" Margin="0,0,12,4">
                                         <ComboBoxItem Content="Todas as Categorias" IsSelected="True" />
                                         <ComboBoxItem Content="Responsividade &amp; UI" />
                                         <ComboBoxItem Content="Inicialização &amp; Encerramento" />
@@ -2037,18 +1938,18 @@
                                         <ComboBoxItem Content="Rede &amp; Multimídia" />
                                     </ComboBox>
 
-                                    <ui:Button x:Name="BtnSelectAllRegistryTweaks" Appearance="Secondary" Content="Marcar Todos" Click="BtnSelectAllRegistryTweaks_Click" Margin="0,0,6,0" Padding="10,6" />
-                                    <ui:Button x:Name="BtnDeselectAllRegistryTweaks" Appearance="Transparent" Content="Desmarcar" Click="BtnDeselectAllRegistryTweaks_Click" Margin="0,0,12,0" Padding="10,6" />
-                                </StackPanel>
+                                    <ui:Button x:Name="BtnSelectAllRegistryTweaks" Appearance="Secondary" Content="Marcar Todos" Click="BtnSelectAllRegistryTweaks_Click" Margin="0,0,6,4" Padding="10,6" />
+                                    <ui:Button x:Name="BtnDeselectAllRegistryTweaks" Appearance="Transparent" Content="Desmarcar" Click="BtnDeselectAllRegistryTweaks_Click" Margin="0,0,0,4" Padding="10,6" />
+                                </WrapPanel>
 
                                 <!-- Ações Principais -->
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <ui:Button x:Name="BtnScanRegistryTweaks" Appearance="Secondary" Content="Escanear Registro" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnScanRegistryTweaks_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Verifica o estado atual das chaves no registro do Windows" />
-                                    <ui:Button x:Name="BtnApplySelectedRegistryTweaks" Appearance="Primary" Content="Aplicar Selecionados" Icon="{ui:SymbolIcon Symbol=Checkmark24}" Click="BtnApplySelectedRegistryTweaks_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Gera backup automático e aplica as otimizações marcadas" />
-                                    <ui:Button x:Name="BtnRollbackSelectedRegistryTweaks" Appearance="Danger" Content="Restaurar / Rollback" Icon="{ui:SymbolIcon Symbol=ArrowUndo24}" Click="BtnRollbackSelectedRegistryTweaks_Click" Margin="0,0,8,0" Padding="12,7" ToolTip="Restaura os valores anteriores ou padrão das chaves selecionadas" />
-                                    <ui:Button x:Name="BtnOpenRegistryBackupFolder" Appearance="Transparent" Content="Backups (.reg)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenRegistryBackupFolder_Click" Padding="10,7" ToolTip="Abre a pasta de backups de registro C:\AmbientesVirtuais\Backups" />
-                                </StackPanel>
-                            </Grid>
+                                <WrapPanel Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnScanRegistryTweaks" Appearance="Secondary" Content="Escanear Registro" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnScanRegistryTweaks_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Verifica o estado atual das chaves no registro do Windows" />
+                                    <ui:Button x:Name="BtnApplySelectedRegistryTweaks" Appearance="Primary" Content="Aplicar Selecionados" Icon="{ui:SymbolIcon Symbol=Checkmark24}" Click="BtnApplySelectedRegistryTweaks_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Gera backup automático e aplica as otimizações marcadas" />
+                                    <ui:Button x:Name="BtnRollbackSelectedRegistryTweaks" Appearance="Danger" Content="Restaurar / Rollback" Icon="{ui:SymbolIcon Symbol=ArrowUndo24}" Click="BtnRollbackSelectedRegistryTweaks_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Restaura os valores anteriores ou padrão das chaves selecionadas" />
+                                    <ui:Button x:Name="BtnOpenRegistryBackupFolder" Appearance="Transparent" Content="Backups (.reg)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenRegistryBackupFolder_Click" Margin="0,0,0,4" Padding="10,7" ToolTip="Abre a pasta de backups de registro C:\AmbientesVirtuais\Backups" />
+                                </WrapPanel>
+                            </StackPanel>
                         </Border>
 
                         <!-- Lista de Tweaks (ScrollViewer + ItemsControl estilizado) -->
@@ -2069,48 +1970,56 @@
                                                     <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,12,0" />
 
                                                     <!-- Detalhes do Tweak -->
-                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="{Binding Emoji}" FontSize="15" Margin="0,0,6,0" VerticalAlignment="Center" />
-                                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                        <WrapPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Emoji}" FontSize="15" Margin="0,2,6,2" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" Margin="0,2,10,2" TextWrapping="Wrap" />
 
                                                             <!-- Badge de Categoria -->
-                                                            <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,0,6,0">
+                                                            <Border Background="#1e293b" CornerRadius="4" Padding="6,2" Margin="0,2,6,2">
                                                                 <TextBlock Text="{Binding Category}" FontSize="11" Foreground="#94a3b8" />
                                                             </Border>
 
                                                             <!-- Badge de Privilégio (HKCU vs HKLM) -->
-                                                            <Border CornerRadius="4" Padding="6,2" Margin="0,0,6,0" Background="{Binding PrivilegeBadgeBackground}">
+                                                            <Border CornerRadius="4" Padding="6,2" Margin="0,2,6,2" Background="{Binding PrivilegeBadgeBackground}">
                                                                 <TextBlock Text="{Binding PrivilegeTag}" FontSize="11" FontWeight="Medium" Foreground="{Binding PrivilegeBadgeForeground}" />
                                                             </Border>
 
                                                             <!-- Badge de Status Atual -->
-                                                            <Border CornerRadius="4" Padding="8,2" Background="{Binding StatusBadgeBackground}">
+                                                            <Border CornerRadius="4" Padding="8,2" Margin="0,2,0,2" Background="{Binding StatusBadgeBackground}">
                                                                 <TextBlock Text="{Binding StatusBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
                                                             </Border>
-                                                        </StackPanel>
+                                                        </WrapPanel>
 
                                                         <!-- Descrição -->
-                                                        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="21,3,0,4" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{Binding Description}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="21,4,0,4" TextWrapping="Wrap" />
 
                                                         <!-- Informações Técnicas da Chave -->
-                                                        <StackPanel Orientation="Horizontal" Margin="21,0,0,0">
-                                                            <TextBlock Text="Chave: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
-                                                            <TextBlock Text="{Binding FullRegistryPath}" FontSize="11" FontFamily="Consolas" Foreground="#94a3b8" Margin="0,0,14,0" />
-                                                            <TextBlock Text="Atual: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
-                                                            <TextBlock Text="{Binding CurrentValueDisplay}" FontSize="11" FontFamily="Consolas" FontWeight="Bold" Foreground="#f8fafc" Margin="0,0,14,0" />
-                                                            <TextBlock Text="Recomendado: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
-                                                            <TextBlock Text="{Binding RecommendedValueDisplay}" FontSize="11" FontFamily="Consolas" FontWeight="Bold" Foreground="#38bdf8" Margin="0,0,14,0" />
-                                                            <TextBlock Text="Padrão: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
-                                                            <TextBlock Text="{Binding DefaultValueDisplay}" FontSize="11" FontFamily="Consolas" Foreground="#94a3b8" />
-                                                        </StackPanel>
+                                                        <WrapPanel Orientation="Horizontal" Margin="21,0,0,0">
+                                                            <StackPanel Orientation="Horizontal" Margin="0,1,14,1">
+                                                                <TextBlock Text="Chave: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                                <TextBlock Text="{Binding FullRegistryPath}" FontSize="11" FontFamily="Consolas" Foreground="#94a3b8" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,1,14,1">
+                                                                <TextBlock Text="Atual: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                                <TextBlock Text="{Binding CurrentValueDisplay}" FontSize="11" FontFamily="Consolas" FontWeight="Bold" Foreground="#f8fafc" />
+                                                            </StackPanel>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,1,14,1">
+                                                                <TextBlock Text="Recomendado: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                                <TextBlock Text="{Binding RecommendedValueDisplay}" FontSize="11" FontFamily="Consolas" FontWeight="Bold" Foreground="#38bdf8" />
+                                                            </StackPanel>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,1,0,1">
+                                                                <TextBlock Text="Padrão: " FontSize="11" FontWeight="SemiBold" Foreground="#64748b" />
+                                                                <TextBlock Text="{Binding DefaultValueDisplay}" FontSize="11" FontFamily="Consolas" Foreground="#94a3b8" />
+                                                            </StackPanel>
+                                                        </WrapPanel>
                                                     </StackPanel>
 
                                                     <!-- Botões de Ação Rápida por Item -->
-                                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
-                                                        <ui:Button Content="Aplicar" Appearance="Primary" Padding="10,5" Margin="0,0,6,0" Tag="{Binding}" Click="BtnApplySingleTweak_Click" ToolTip="Aplica este tweak individualmente" />
-                                                        <ui:Button Content="Restaurar" Appearance="Secondary" Padding="10,5" Tag="{Binding}" Click="BtnRollbackSingleTweak_Click" ToolTip="Restaura o valor original/padrão deste tweak" />
-                                                    </StackPanel>
+                                                    <WrapPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <ui:Button Content="Aplicar" Appearance="Primary" Padding="10,5" Margin="0,2,6,2" Tag="{Binding}" Click="BtnApplySingleTweak_Click" ToolTip="Aplica este tweak individualmente" />
+                                                        <ui:Button Content="Restaurar" Appearance="Secondary" Padding="10,5" Margin="0,2,0,2" Tag="{Binding}" Click="BtnRollbackSingleTweak_Click" ToolTip="Restaura o valor original/padrão deste tweak" />
+                                                    </WrapPanel>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

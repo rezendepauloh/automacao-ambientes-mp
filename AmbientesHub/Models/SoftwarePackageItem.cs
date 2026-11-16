@@ -9,7 +9,8 @@ public enum SoftwareInstallMethod
     RsatAdConsole,
     SccmConsole,
     Winget,
-    DirectMsi
+    DirectMsi,
+    WindowsAdkUsmt
 }
 
 public class SoftwarePackageItem : INotifyPropertyChanged

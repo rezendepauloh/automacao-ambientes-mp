@@ -114,12 +114,26 @@ public static class ConfigService
 
             string safeValue = InputValidator.SanitizeEnvValue(kvp.Value);
             Configs[kvp.Key] = safeValue;
-            lines.Add($"{kvp.Key}={safeValue}");
+        }
+
+        // Persiste o dicionário consolidado para evitar perda de outras configurações ao salvar parcialmente.
+        foreach (var kvp in Configs)
+        {
+            if (!InputValidator.IsValidEnvKey(kvp.Key))
+                continue;
+
+            lines.Add($"{kvp.Key}={kvp.Value}");
         }
 
         File.WriteAllLines(envFile, lines);
         HardenFilePermissions(envFile);
         AppLoggerService.Success("Arquivo .env atualizado com sucesso.", nameof(ConfigService));
+    }
+
+    /// <summary>Atualiza e persiste uma única chave no .env mantendo todas as demais configurações intactas.</summary>
+    public static void SetAndSave(string key, string value)
+    {
+        SaveConfig(new Dictionary<string, string> { [key] = value });
     }
 
     public static string Get(string key, string defaultValue = "")
@@ -143,6 +157,7 @@ public static class ConfigService
     public static string DeviceReportsDir => Get("DEVICE_REPORTS_DIR", "");
     public static string CmRcViewerCustomPath => Get("CMRCVIEWER_PATH", "");
     public static string FirefoxBinaryPath => Get("FIREFOX_PATH", "");
+    public static string UsmtPath => Get("USMT_PATH", "");
     public static string ProtectedProfiles => Get("PROTECTED_PROFILES", "");
     public static int PingTimeoutMs => int.TryParse(Get("PING_TIMEOUT_MS", "2500"), out int t) && t > 100 ? t : 2500;
     public static bool MinimizeToTray => bool.TryParse(Get("MINIMIZE_TO_TRAY", "true"), out bool min) ? min : true;
@@ -165,12 +180,13 @@ public static class ConfigService
             "URL_CITSMART" => "https://suporte.empresa.gov.br/",
             "URL_BANCADA_LOCAL" => "http://localhost:8501/",
             "BANCADA_WSL_DIR" => $"/home/{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}/projetos/bancada",
-            "BANCADA_WSL_DISTRO" => "Ubuntu-24.04",
-            "BANCADA_WINDOWS_DIR" => $@"\\wsl.localhost\Ubuntu-24.04\home\{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}\projetos\bancada",
+            "BANCADA_WSL_DISTRO" => "Ubuntu-26.04",
+            "BANCADA_WINDOWS_DIR" => $@"\\wsl.localhost\Ubuntu-26.04\home\{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}\projetos\bancada",
             "WHATSAPP_PWA_ARGS" => "\"-taskbar-tab\" \"uuid\" \"-new-window\" \"https://web.whatsapp.com/\" \"-container\" \"0\"",
             "DEVICE_REPORTS_DIR" => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DeviceReports"),
             "CMRCVIEWER_PATH" => @"C:\Program Files (x86)\Microsoft Endpoint Manager\AdminConsole\bin\i386\CmRcViewer.exe",
             "FIREFOX_PATH" => @"C:\Program Files\Mozilla Firefox\firefox.exe",
+            "USMT_PATH" => @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\amd64",
             "PROTECTED_PROFILES" => "Public, Default, Default User, All Users, Administrator, Administrador",
             "PING_TIMEOUT_MS" => "2500",
             _ => string.Empty

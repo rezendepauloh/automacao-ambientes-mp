@@ -179,6 +179,18 @@ public class SoftwareProvisioningService
                 UninstallMatchName = "Artcraft Launcher",
                 IconEmoji = "🎨",
                 RequiresAdmin = false
+            },
+            new SoftwarePackageItem
+            {
+                Id = "windows-adk-usmt",
+                Name = "Windows ADK — USMT (User State Migration Tool)",
+                Category = "Migração & Backup • USMT",
+                Description = "Baixa e instala o recurso USMT (scanstate.exe / loadstate.exe) do Windows ADK oficial e preenche automaticamente USMT_PATH nas Configurações.",
+                Method = SoftwareInstallMethod.WindowsAdkUsmt,
+                WingetId = "Microsoft.WindowsADK",
+                DownloadUrl = UsmtBackupService.AdkOfficialDownloadUrl,
+                IconEmoji = "💾",
+                RequiresAdmin = true
             }
         ];
     }
@@ -388,6 +400,16 @@ public class SoftwareProvisioningService
                 item.StatusDetail = installed
                     ? "Instalado no sistema (Artcraft Launcher)."
                     : "Não instalado (disponível via .msi oficial do GitHub).";
+                break;
+            }
+            case SoftwareInstallMethod.WindowsAdkUsmt:
+            {
+                string? usmtDir = UsmtBackupService.FindUsmtDirectory();
+                item.IsInstalled = usmtDir != null;
+                item.HasUpdate = false;
+                item.StatusDetail = usmtDir != null
+                    ? $"Detectado em: {usmtDir}"
+                    : "USMT (scanstate.exe / loadstate.exe) não encontrado na estação.";
                 break;
             }
         }
@@ -657,6 +679,15 @@ public class SoftwareProvisioningService
                 ok = UninstallMsiDirectCore(item, silent, Log);
                 break;
             }
+            case SoftwareInstallMethod.WindowsAdkUsmt:
+            {
+                string args = $"uninstall --id \"{item.WingetId}\" --exact --source winget";
+                if (silent) args += " --silent";
+                Log($"-> Executando: winget {args}");
+                var res = RunProcess("winget.exe", args, 300000, Log);
+                ok = res.exitCode == 0;
+                break;
+            }
         }
 
         RefreshSingleItem(item);
@@ -682,6 +713,7 @@ public class SoftwareProvisioningService
             SoftwareInstallMethod.SccmConsole => InstallSccmConsoleCore(silent, Log),
             SoftwareInstallMethod.Winget => InstallWingetCore(item.WingetId, silent, Log),
             SoftwareInstallMethod.DirectMsi => InstallMsiDirectCore(item, silent, Log),
+            SoftwareInstallMethod.WindowsAdkUsmt => new UsmtBackupService().DownloadAndInstallUsmtAsync(silent, Log).GetAwaiter().GetResult().Success,
             _ => false
         };
 

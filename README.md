@@ -32,8 +32,9 @@
   - [3.5 Saneamento de Recursos & Limpeza de Memória (Teams, Navegadores & Explorer Nuclear)](#35-saneamento-de-recursos--limpeza-de-memória-teams-navegadores--explorer-nuclear)
   - [3.6 Inicialização com Windows & Bandeja do Sistema (Tray Icon)](#36-inicialização-com-windows--bandeja-do-sistema-tray-icon)
   - [3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)](#37-cofre-seguro-de-credenciais-dpapi--configurações-env)
-  - [3.8 Terminal de Logs em Cores e Monitoramento em Tempo Real](#38-terminal-de-logs-em-cores-e-monitoramento-em-tempo-real)
+  - [3.8 Terminal de Logs, Central de Logs & Notificações Toast](#38-terminal-de-logs-central-de-logs--notificações-toast)
   - [3.9 Escudo de Processos & Proteção de Segurança](#39-escudo-de-processos--proteção-de-segurança)
+  - [3.10 Backup & Restore USMT, Tweaks de Registro e Bancada Docker](#310-backup--restore-usmt-tweaks-de-registro-e-bancada-docker)
 - [4. Estrutura de Diretórios](#-4-estrutura-de-diretórios)
 - [5. Como Executar & Compilar](#-5-como-executar--compilar)
 - [6. Suíte de Testes Automatizados (xUnit + Runner ANSI)](#-6-suíte-de-testes-automatizados-xunit--runner-ansi)
@@ -131,27 +132,34 @@ graph TD
 - **Supressão de Telemetria:** Neutraliza processos de coleta de métricas em segundo plano (`CompatTelRunner`).
 - **Modo Nuclear do Explorer:** Encerramento seguro do `explorer.exe`, expurgo de cache de ícones/miniaturas bloqueados e reinício limpo do shell do Windows em C# nativo.
 
-### 3.6 Inicialização com Windows & Bandeja do Sistema (Tray Icon)
+### 3.6 Inicialização com Windows, Bandeja do Sistema (Tray Icon) & Notificações Toast
 
 - **Boot & Logon Automático:** Opção ativada diretamente no painel de configurações para iniciar o Ambientes Hub junto com o Windows via registro (`HKCU\...\Run`).
 - **Atalho no Menu Iniciar:** Criação/remoção com um clique do atalho `.lnk` com ícone oficial na lista de programas do usuário (`Environment.SpecialFolder.Programs`).
-- **Bandeja do Sistema (Tray):** Ícone oficial na área de notificação perto do relógio com suporte a balões informativos, duplo clique para restaurar a janela e menu de contexto com opções para abrir ou encerrar o aplicativo.
-- **Identidade Visual no Gerenciador de Tarefas:** Metadados e ícone integrados no binário com título oficial e identidade corporativa.
+- **Menu de Contexto Produtivo na Bandeja (Tray):** Submenus para alternância de modos de trabalho, saneamento rápido de RAM, controle completo da Bancada Docker (Start/Stop/Rebuild/Browser/Status/Pasta), conexões RDP/SCCM inteligentes com leitura do Clipboard, acesso direto aos logs e alternância entre Modo Comum e Modo Administrador (com badge indicativo no cabeçalho da janela).
+- **Notificações Toast do Windows:** Alertas nativos ao lado do relógio ao finalizar tarefas demoradas (USMT, Manutenção Remota, Perfis, Analisador, Provisionamento de Softwares, AD/SCCM, Tweaks de Registro e tarefas da Bancada Docker).
 
 ### 3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)
 
 - **Criptografia DPAPI de Alta Segurança:** Senhas criptografadas usando a API de Proteção de Dados do Windows (`DataProtectionScope.CurrentUser`), garantindo que o cofre só possa ser lido na sessão do próprio operador.
-- **Zero Credenciais Hardcoded:** Todas as chaves e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência).
+- **Zero Credenciais Hardcoded:** Todas as chaves e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência), incluindo botões de reset para valores recomendados dinâmicos e configuração automática de `USMT_PATH`.
 
-### 3.7 Terminal de Logs em Cores e Monitoramento em Tempo Real
+### 3.8 Terminal de Logs, Central de Logs & Notificações Toast
 
 - **Colorização Sintática Automática:** Destaque em tempo real de mensagens de sucesso (Emerald 400), erros/falhas (Red 400), avisos (Amber 400) e etapas de progresso (Sky 400).
-- **Assincronismo Total:** Despacho de logs em prioridade `Background` para evitar bloqueios ou atrasos na interface visual.
+- **Central de Logs Integrada (`app.log`):** Aba dedicada com filtros por severidade (`[INFO]`, `[WARNING]`, `[DANGER]`, `[SUCCESS]`), busca textual em tempo real e rolagem automática.
 
-### 3.8 Escudo de Processos & Proteção de Segurança
+### 3.9 Escudo de Processos & Proteção de Segurança
 
 - **Imunidade de PIDs:** O próprio processo do `AmbientesHub` e seu processo-pai (terminal/launcher) são imunes a encerramento nas rotinas de limpeza.
 - **Escudo por Título `"🛠️ Modo"`:** Qualquer janela ou aplicativo ativo pertencente a um modo de trabalho ativo é preservado contra encerramentos acidentais.
+- **Hardening SecOps:** Validação whitelist + *fail-closed* em `InputValidator`, `ProcessStartInfo.ArgumentList` e ACL 600 em arquivos sensíveis.
+
+### 3.10 Backup & Restore USMT, Tweaks de Registro e Bancada Docker
+
+- **Backup & Restore de Perfis (Windows USMT):** Execução local ou remota (`ScanState` / `LoadState`) com seleção granular de usuários por checkbox, **zero exclusão de perfis**, suporte a criptografia opcional e download/configuração automática do recurso USMT do Windows ADK.
+- **Otimizações de Registro (Tweaks & Rollback):** Ajustes cirúrgicos no Windows Registry com backup `.reg` automático pré-gravação e reversão em 1 clique.
+- **Bancada Docker (WSL):** Inicialização, parada, reconstrução (`build --no-cache`) e streaming contínuo desbufferizado (`PYTHONUNBUFFERED=1`) dos logs do Streamlit.
 
 ---
 
@@ -169,19 +177,36 @@ AmbientesVirtuais/
 │   │   └── app.svg                           # Versão vetorial
 │   │
 │   ├── Models/                               # Modelos de dados e contratos
+│   │   ├── AdUserDetails.cs                  # Ficha completa de usuário no Active Directory
+│   │   ├── BancadaModels.cs                  # Modelos da Bancada e Diagnóstico/Perfis Remotos
+│   │   ├── CleanupOptions.cs                 # Opções e perfis de saneamento de processos
 │   │   ├── MachineDetails.cs                 # Ficha completa da máquina (AD, SCCM, IP, Status)
-│   │   └── EnvironmentConfig.cs              # Opções e perfis de saneamento
+│   │   ├── PerformanceAuditModels.cs         # Relatórios e opções de auditoria de sistema
+│   │   ├── RegistryTweakItem.cs              # Definição e status de tweaks do Registro
+│   │   ├── SoftwarePackageItem.cs            # Catálogo de provisionamento de softwares/USMT
+│   │   └── UsmtBackupModels.cs               # Opções e resultados de Backup/Restore USMT
 │   │
 │   ├── Services/                             # Camada de serviços autônomos em C#
 │   │   ├── AdSccmService.cs                  # Conexão híbrida AD LDAP + SCCM WMI/CMSite + Ping
-│   │   ├── RemoteToolsService.cs             # Orquestrador do CmRcViewer e RDP Oficial (mstsc)
+│   │   ├── AppLoggerService.cs               # Sistema de logs com rotação e stream em tempo real
+│   │   ├── BancadaDockerService.cs           # Controle Docker/WSL com stream desbufferizado
+│   │   ├── BrowserLauncherService.cs         # Orquestração segura de Firefox e WhatsApp PWA
 │   │   ├── CleanupService.cs                 # Saneamento de memória, COM Office e Explorer Nuclear
-│   │   ├── EnvironmentLauncherService.cs     # Inicializador de modos e automação de navegadores
-│   │   ├── FolderLauncherService.cs          # Disparador agrupado de diretórios do Windows
+│   │   ├── ClipboardHelper.cs                # Utilitário com retry para a Área de Transferência
+│   │   ├── ConfigService.cs                  # Parser .env, merge seguro de chaves e ACL 600
 │   │   ├── CredentialService.cs              # Gerador e validador nativo de cofre DPAPI
-│   │   ├── ConfigService.cs                  # Carregamento e sincronização com arquivo .env
-│   │   ├── AppLoggerService.cs               # Sistema de logs com rotação e gravação em disco
-│   │   └── ClipboardHelper.cs                # Utilitário com retry para a Área de Transferência
+│   │   ├── DeviceAnalyzerService.cs          # Inventário completo e exportação HTML/PDF/Excel
+│   │   ├── EnvironmentLauncherService.cs     # Inicializador de modos de trabalho
+│   │   ├── FolderLauncherService.cs          # Disparador agrupado de diretórios do Windows
+│   │   ├── InputValidator.cs                 # Whitelists estritas e proteção fail-closed
+│   │   ├── RegistryOptimizerService.cs       # Tweaks de registro com backup .reg e rollback
+│   │   ├── RemoteMaintenanceService.cs       # Limpeza remota de disco e caches Windows
+│   │   ├── RemoteManagementHelper.cs         # WMI, DCOM, StdRegProv, Win32_Process e SMB
+│   │   ├── RemoteToolsService.cs             # Orquestrador do CmRcViewer e RDP Oficial (mstsc)
+│   │   ├── RemoteUserProfileService.cs       # Auditoria e gerenciamento de perfis remotos
+│   │   ├── SoftwareProvisioningService.cs    # Provisionamento RSAT, SCCM, Winget, MSI e USMT
+│   │   ├── TrayIconService.cs                # Bandeja do sistema, menu produtivo e toasts Win32
+│   │   └── UsmtBackupService.cs              # Backup/Restore USMT local/remoto e setup ADK
 │   │
 │   ├── Views/                                # Janelas de diálogo e modais auxiliares
 │   │   └── CredentialDialog.xaml / .xaml.cs  # Formulário Fluent para criação segura de credenciais

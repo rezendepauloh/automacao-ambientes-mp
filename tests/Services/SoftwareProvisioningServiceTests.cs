@@ -27,6 +27,7 @@ public class SoftwareProvisioningServiceTests
         Assert.Contains(catalog, p => p.WingetId == "KandoMenu.Kando");
         Assert.Contains(catalog, p => p.WingetId == "AltSnap.AltSnap");
         Assert.Contains(catalog, p => p.Method == SoftwareInstallMethod.DirectMsi && p.Id == "artcraft-launcher");
+        Assert.Contains(catalog, p => p.Method == SoftwareInstallMethod.WindowsAdkUsmt && p.Id == "windows-adk-usmt");
 
         // Todos os itens devem ter um ícone/emoji configurado
         Assert.All(catalog, p => Assert.False(string.IsNullOrWhiteSpace(p.IconEmoji)));

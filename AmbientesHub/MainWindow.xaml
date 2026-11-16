@@ -242,7 +242,19 @@
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 10: Bancada Streamlit (Docker WSL) -->
+                            <!-- Item 10: Backup & Restore de Usuários (USMT) -->
+                            <ListBoxItem ToolTip="Backup e Restauração de Perfis (Windows USMT - Local e Remoto)">
+                                <Grid Height="26">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="34" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="💾" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl10" Grid.Column="1" Text="Backup &amp; Restore (USMT)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </ListBoxItem>
+
+                            <!-- Item 11: Bancada Streamlit (Docker WSL) -->
                             <ListBoxItem ToolTip="Bancada Streamlit (Docker WSL - localhost:8501)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -250,11 +262,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="🐳" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl10" Grid.Column="1" Text="Bancada Docker (8501)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl11" Grid.Column="1" Text="Bancada Docker (8501)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 11: Otimizações de Registro (Tweaks & Rollback) -->
+                            <!-- Item 12: Otimizações de Registro (Tweaks & Rollback) -->
                             <ListBoxItem ToolTip="Otimizações do Registro do Windows (Tweaks &amp; Rollback)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -262,11 +274,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl11" Grid.Column="1" Text="Otimizações de Registro" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl12" Grid.Column="1" Text="Otimizações de Registro" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 12: Logs da Aplicação -->
+                            <!-- Item 13: Logs da Aplicação -->
                             <ListBoxItem ToolTip="Logs e Monitoramento da Aplicação (app.log)">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -274,11 +286,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="📜" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl12" Grid.Column="1" Text="Logs da Aplicação" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl13" Grid.Column="1" Text="Logs da Aplicação" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
 
-                            <!-- Item 13: Configurações & Credenciais (Último item da barra) -->
+                            <!-- Item 14: Configurações & Credenciais (Último item da barra) -->
                             <ListBoxItem ToolTip="Configurações &amp; Credenciais">
                                 <Grid Height="26">
                                     <Grid.ColumnDefinitions>
@@ -286,7 +298,7 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl13" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="NavLbl14" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
                                 </Grid>
                             </ListBoxItem>
                         </ListBox>
@@ -1648,10 +1660,193 @@
                                         </StackPanel>
                                     </Grid>
 
+                                    <TextBlock Text="Diretório do Windows USMT (scanstate.exe / loadstate.exe):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgUsmtPath" Grid.Column="0" PlaceholderText="C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\amd64" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="10,6" Appearance="Secondary" Content="Procurar" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnCfgBrowseUsmt_Click" />
+                                        <ui:Button x:Name="BtnCfgDownloadUsmt" Grid.Column="2" Margin="6,0,0,0" Padding="10,6" Appearance="Primary" Content="Baixar / Detectar USMT" Icon="{ui:SymbolIcon Symbol=ArrowDownload24}" Click="BtnCfgDownloadUsmt_Click" ToolTip="Detecta localmente ou baixa/instala o Windows USMT e salva automaticamente no .env" />
+                                        <ui:Button Grid.Column="3" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="USMT_PATH" />
+                                    </Grid>
+
                                     <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
                                 </StackPanel>
                             </Border>
                         </ScrollViewer>
+                    </Grid>
+
+                    <!-- PAINEL 10: BACKUP & RESTORE DE USUÁRIOS (USMT) -->
+                    <Grid x:Name="PanelUsmtBackup" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="175" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho + Status do USMT -->
+                        <Grid Grid.Row="0" Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Backup &amp; Restore de Perfis de Usuários (Windows USMT)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                <TextBlock Text="Migração segura de dados de usuários via ScanState / LoadState em máquinas locais (.) ou remotas, com seleção individual e zero exclusão de perfis." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Border x:Name="BadgeUsmtBinStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="4" Padding="10,5" Background="#1e293b" Margin="0,0,8,0">
+                                <TextBlock x:Name="TxtUsmtBinStatus" Text="⚪ Verificando USMT..." FontSize="12" FontWeight="Bold" Foreground="#94a3b8" />
+                            </Border>
+                            <ui:Button x:Name="BtnUsmtDownloadBin" Grid.Column="2" Appearance="Secondary" Content="Baixar / Detectar USMT" Icon="{ui:SymbolIcon Symbol=ArrowDownload24}" Click="BtnUsmtDownloadBin_Click" VerticalAlignment="Center" Padding="12,6" ToolTip="Localiza o USMT instalado ou baixa/instala o Windows ADK USMT salvando em Configurações" />
+                        </Grid>
+
+                        <!-- Configuração de Máquina Alvo, Destino/Origem e Opções USMT -->
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="260" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="Computador Alvo (. = Local ou Hostname/IP):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox x:Name="TxtUsmtTargetComputer" Grid.Column="0" Text="." PlaceholderText=". ou DOMINIO-PC01" KeyDown="TxtUsmtTargetComputer_KeyDown" Height="34" />
+                                            <ui:Button x:Name="BtnUsmtQueryUsers" Grid.Column="1" Appearance="Primary" Content="Listar Perfis" Icon="{ui:SymbolIcon Symbol=Search24}" Click="BtnUsmtQueryUsers_Click" Margin="6,0,0,0" Padding="12,7" />
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                        <TextBlock Text="Pasta do Pacote USMT (Destino do Backup / Origem do Restore):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox x:Name="TxtUsmtStorePath" Grid.Column="0" PlaceholderText="C:\Backups\USMT_Estacao ou \\servidor\backups\USMT_Estacao" Height="34" />
+                                            <ui:Button x:Name="BtnUsmtBrowseStore" Grid.Column="1" Appearance="Secondary" Content="Procurar..." Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnUsmtBrowseStore_Click" Margin="6,0,0,0" Padding="10,7" />
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Width="170">
+                                        <TextBlock Text="Chave / Senha (Opcional):" FontSize="12" FontWeight="Medium" Margin="0,0,0,4" />
+                                        <ui:TextBox x:Name="TxtUsmtEncryptKey" PlaceholderText="Vazio = sem senha" Height="34" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <CheckBox x:Name="ChkUsmtMigApp" Content="MigApp.xml (Apps)" IsChecked="True" Margin="0,0,14,0" />
+                                        <CheckBox x:Name="ChkUsmtMigDocs" Content="MigDocs.xml (Documentos)" IsChecked="True" Margin="0,0,14,0" />
+                                        <CheckBox x:Name="ChkUsmtMigUser" Content="MigUser.xml (Perfil Clássico)" IsChecked="False" Margin="0,0,14,0" />
+                                        <CheckBox x:Name="ChkUsmtCompress" Content="Compactar Pacote" IsChecked="True" Margin="0,0,14,0" />
+                                        <CheckBox x:Name="ChkUsmtCreateLocalAccounts" Content="Criar Contas Locais no Restore (/lac /lae)" IsChecked="False" />
+                                    </WrapPanel>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <ui:Button x:Name="BtnUsmtRunBackup" Appearance="Primary" Content="Iniciar Backup (ScanState)" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnUsmtRunBackup_Click" Margin="0,0,8,0" Padding="14,8" />
+                                        <ui:Button x:Name="BtnUsmtRunRestore" Appearance="Secondary" Content="Restaurar Backup (LoadState)" Icon="{ui:SymbolIcon Symbol=ArrowUpload24}" Click="BtnUsmtRunRestore_Click" Margin="0,0,8,0" Padding="14,8" />
+                                        <ui:Button x:Name="BtnUsmtOpenStore" Appearance="Transparent" Content="Abrir Pasta" Icon="{ui:SymbolIcon Symbol=Folder24}" Click="BtnUsmtOpenStore_Click" Padding="10,8" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Lista Selecionável de Usuários para Backup / Restore -->
+                        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtUsmtUsersHeader" Text="Clique em 'Listar Perfis' para escolher os usuários do backup (nenhum usuário será excluído):" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <ui:Button x:Name="BtnUsmtSelectAllUsers" Appearance="Secondary" Content="Marcar Todos" Click="BtnUsmtSelectAllUsers_Click" Padding="10,5" Margin="0,0,6,0" />
+                                        <ui:Button x:Name="BtnUsmtClearUsers" Appearance="Transparent" Content="Desmarcar" Click="BtnUsmtClearUsers_Click" Padding="10,5" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ItemsUsmtUsers">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="34" />
+                                                            <ColumnDefinition Width="180" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="150" />
+                                                            <ColumnDefinition Width="100" />
+                                                            <ColumnDefinition Width="140" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Usuario}" FontWeight="SemiBold" FontSize="13" />
+                                                            <TextBlock Text="{Binding CaminhoPerfil}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="8,0">
+                                                            <TextBlock Text="{Binding Nome}" FontWeight="Medium" FontSize="12" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding Sid}" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                                            <TextBlock Text="Último Uso:" FontSize="10" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                            <TextBlock Text="{Binding UltimoUso}" FontSize="11" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="4" Text="{Binding EspacoDiscoTexto}" FontWeight="Bold" FontSize="13" Foreground="#38bdf8" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,12,0" />
+                                                        <StackPanel Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                            <Border Visibility="{Binding ActiveBadgeVisibility}" Background="#1410b981" BorderBrush="#10b981" BorderThickness="1" CornerRadius="4" Padding="8,3">
+                                                                <TextBlock Text="🟢 Logado Agora" FontSize="11" Foreground="#10b981" FontWeight="SemiBold" />
+                                                            </Border>
+                                                            <Border Visibility="{Binding RemovableBadgeVisibility}" Background="#1438bdf8" BorderBrush="#38bdf8" BorderThickness="1" CornerRadius="4" Padding="8,3">
+                                                                <TextBlock Text="Perfil Offline" FontSize="11" Foreground="#38bdf8" />
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+
+                        <!-- Terminal de Execução USMT -->
+                        <Border Grid.Row="3" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Console de Execução USMT (ScanState / LoadState — Sem Exclusão de Perfis)" FontSize="11" FontWeight="SemiBold" Foreground="#38bdf8" Margin="0,0,0,4" />
+                                <RichTextBox x:Name="RichUsmtLogs" Grid.Row="1" IsReadOnly="True" Background="Transparent" BorderThickness="0" FontSize="12" VerticalScrollBarVisibility="Auto">
+                                    <FlowDocument />
+                                </RichTextBox>
+                            </Grid>
+                        </Border>
                     </Grid>
 
                     <!-- PAINEL 11: BANCADA STREAMLIT (DOCKER WSL) -->

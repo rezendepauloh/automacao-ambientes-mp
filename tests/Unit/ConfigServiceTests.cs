@@ -11,10 +11,12 @@ public class ConfigServiceTests
         string wslDir = ConfigService.GetRecommendedDefault("BANCADA_WSL_DIR");
         string sccm = ConfigService.GetRecommendedDefault("SCCM_SITE_SERVER");
         string ping = ConfigService.GetRecommendedDefault("PING_TIMEOUT_MS");
+        string usmt = ConfigService.GetRecommendedDefault("USMT_PATH");
 
         Assert.False(string.IsNullOrWhiteSpace(wslDir));
         Assert.False(string.IsNullOrWhiteSpace(sccm));
         Assert.Equal("2500", ping);
+        Assert.Contains("User State Migration Tool", usmt, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("paulogoncalves", wslDir, StringComparison.OrdinalIgnoreCase);
     }
 

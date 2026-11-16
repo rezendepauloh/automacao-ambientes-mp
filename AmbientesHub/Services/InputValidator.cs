@@ -107,6 +107,16 @@ public static class InputValidator
         return value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Aceita diretórios absolutos locais (C:\...) ou UNC (\\servidor\share\...), sem metacaracteres de shell nem "..".</summary>
+    public static bool IsSafeDirectoryPath(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string trimmed = value.Trim();
+        if (trimmed.IndexOfAny(['"', '\'', '\r', '\n', '\0', '<', '>', '|', '*', '?', '&', ';', '`', '$']) >= 0) return false;
+        if (trimmed.Contains("..", StringComparison.Ordinal)) return false;
+        return Path.IsPathFullyQualified(trimmed);
+    }
+
     /// <summary>Escapa literal WQL (barra invertida e aspa simples).</summary>
     public static string EscapeWql(string value)
         => (value ?? string.Empty).Replace(@"\", @"\\").Replace("'", @"\'");

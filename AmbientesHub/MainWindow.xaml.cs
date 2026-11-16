@@ -46,6 +46,8 @@ public partial class MainWindow : FluentWindow
     private readonly ObservableCollection<RegistryTweakItem> _allRegistryTweaks = [];
     private readonly ObservableCollection<RegistryTweakItem> _filteredRegistryTweaks = [];
     private bool _registryTweaksScannedOnce = false;
+    private readonly UsmtBackupService _usmtService = new();
+    private readonly ObservableCollection<RemoteUserProfileItem> _usmtUsersList = [];
 
     public MainWindow()
     {
@@ -54,6 +56,7 @@ public partial class MainWindow : FluentWindow
         AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;
         ItemsRemoteProfiles.ItemsSource = _remoteProfilesList;
+        ItemsUsmtUsers.ItemsSource = _usmtUsersList;
         LstRegistryTweaks.ItemsSource = _filteredRegistryTweaks;
         InitializeRegistryTweaks();
         PopulateFontList();
@@ -61,6 +64,7 @@ public partial class MainWindow : FluentWindow
         InitializeSystemTray();
         RefreshPerformanceAdminStatus();
         RefreshAppsAdminStatus();
+        RefreshUsmtBinStatusBadge();
         if (CmbAdUserStatusFilter != null && CmbAdUserStatusFilter.Items.Count > 0)
         {
             CmbAdUserStatusFilter.SelectedIndex = 0;
@@ -89,6 +93,7 @@ public partial class MainWindow : FluentWindow
             NavLbl11.Visibility = Visibility.Visible;
             NavLbl12.Visibility = Visibility.Visible;
             NavLbl13.Visibility = Visibility.Visible;
+            NavLbl14.Visibility = Visibility.Visible;
         }
         else
         {
@@ -108,6 +113,7 @@ public partial class MainWindow : FluentWindow
             NavLbl11.Visibility = Visibility.Collapsed;
             NavLbl12.Visibility = Visibility.Collapsed;
             NavLbl13.Visibility = Visibility.Collapsed;
+            NavLbl14.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -216,30 +222,37 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
+        if (lower is "usmt" or "backup" or "restore" or "backup usuarios" or "backup usuários" or "migracao" or "migração")
         {
             NavListBox.SelectedIndex = 10;
+            TxtFooterStatus.Text = "Navegado para: Backup & Restore de Perfis (USMT)";
+            return;
+        }
+
+        if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
+        {
+            NavListBox.SelectedIndex = 11;
             TxtFooterStatus.Text = "Navegado para: Bancada Streamlit (Docker WSL)";
             return;
         }
 
         if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
         {
-            NavListBox.SelectedIndex = 11;
+            NavListBox.SelectedIndex = 12;
             TxtFooterStatus.Text = "Navegado para: Otimizações de Registro (Tweaks & Rollback)";
             return;
         }
 
         if (lower is "logs" or "log" or "eventos" or "historico" or "histórico" or "console" or "app.log")
         {
-            NavListBox.SelectedIndex = 12;
+            NavListBox.SelectedIndex = 13;
             TxtFooterStatus.Text = "Navegado para: Logs da Aplicação";
             return;
         }
 
         if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
         {
-            NavListBox.SelectedIndex = 13;
+            NavListBox.SelectedIndex = 14;
             TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
             return;
         }
@@ -293,6 +306,7 @@ public partial class MainWindow : FluentWindow
         PanelAnalisador.Visibility = Visibility.Collapsed;
         PanelLimpezaRemota.Visibility = Visibility.Collapsed;
         PanelPerfisRemotos.Visibility = Visibility.Collapsed;
+        PanelUsmtBackup.Visibility = Visibility.Collapsed;
         PanelUsuariosAd.Visibility = Visibility.Collapsed;
         PanelBancada.Visibility = Visibility.Collapsed;
         PanelRegistryTweaks.Visibility = Visibility.Collapsed;
@@ -339,18 +353,22 @@ public partial class MainWindow : FluentWindow
                 PanelPerfisRemotos.Visibility = Visibility.Visible;
                 break;
             case 10:
+                PanelUsmtBackup.Visibility = Visibility.Visible;
+                RefreshUsmtBinStatusBadge();
+                break;
+            case 11:
                 PanelBancada.Visibility = Visibility.Visible;
                 _ = CheckBancadaStatusAsync();
                 break;
-            case 11:
+            case 12:
                 PanelRegistryTweaks.Visibility = Visibility.Visible;
                 RefreshRegistryTweaksStatus();
                 break;
-            case 12:
+            case 13:
                 PanelAppLogs.Visibility = Visibility.Visible;
                 LoadAppLogsToUi();
                 break;
-            case 13:
+            case 14:
                 PanelConfig.Visibility = Visibility.Visible;
                 break;
         }
@@ -419,6 +437,7 @@ public partial class MainWindow : FluentWindow
             RichRemoteLogs.FontFamily = font;
             RichAppLogs.FontFamily = font;
             RichRegistryLogs.FontFamily = font;
+            RichUsmtLogs.FontFamily = font;
 
             foreach (var block in RichAdLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;
@@ -433,6 +452,7 @@ public partial class MainWindow : FluentWindow
             foreach (var block in RichRemoteLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichAppLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichRegistryLogs.Document.Blocks) block.FontFamily = font;
+            foreach (var block in RichUsmtLogs.Document.Blocks) block.FontFamily = font;
         }
         catch { }
     }
@@ -471,6 +491,7 @@ public partial class MainWindow : FluentWindow
         TxtCfgDeviceReportsDir.Text = ConfigService.DeviceReportsDir;
         TxtCfgCmRcViewer.Text = ConfigService.CmRcViewerCustomPath;
         TxtCfgFirefoxPath.Text = ConfigService.FirefoxBinaryPath;
+        TxtCfgUsmtPath.Text = ConfigService.UsmtPath;
         TxtCfgProtectedProfiles.Text = ConfigService.ProtectedProfiles;
         TxtCfgPingTimeout.Text = ConfigService.PingTimeoutMs.ToString();
     }
@@ -568,7 +589,7 @@ public partial class MainWindow : FluentWindow
             _trayIconService.OnOpenAppLogsRequested += () =>
             {
                 RestoreFromTray();
-                NavListBox.SelectedIndex = 12;
+                NavListBox.SelectedIndex = 13;
             };
             _trayIconService.Initialize(iconPath, "Ambientes Hub — Produtividade & Performance");
         }
@@ -713,12 +734,14 @@ public partial class MainWindow : FluentWindow
                 ["DEVICE_REPORTS_DIR"] = TxtCfgDeviceReportsDir.Text.Trim(),
                 ["CMRCVIEWER_PATH"] = TxtCfgCmRcViewer.Text.Trim(),
                 ["FIREFOX_PATH"] = TxtCfgFirefoxPath.Text.Trim(),
+                ["USMT_PATH"] = TxtCfgUsmtPath.Text.Trim(),
                 ["PROTECTED_PROFILES"] = TxtCfgProtectedProfiles.Text.Trim(),
                 ["PING_TIMEOUT_MS"] = TxtCfgPingTimeout.Text.Trim()
             };
 
             ConfigService.SaveConfig(dict);
             ApplyTerminalFont(chosenFont);
+            RefreshUsmtBinStatusBadge();
 
             TxtFooterStatus.Text = "Configurações salvas no arquivo .env com sucesso!";
             System.Windows.MessageBox.Show("Configurações atualizadas com sucesso!", "Sucesso", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
@@ -750,6 +773,7 @@ public partial class MainWindow : FluentWindow
                 case "DEVICE_REPORTS_DIR": TxtCfgDeviceReportsDir.Text = defVal; break;
                 case "CMRCVIEWER_PATH": TxtCfgCmRcViewer.Text = defVal; break;
                 case "FIREFOX_PATH": TxtCfgFirefoxPath.Text = defVal; break;
+                case "USMT_PATH": TxtCfgUsmtPath.Text = defVal; break;
                 case "PROTECTED_PROFILES": TxtCfgProtectedProfiles.Text = defVal; break;
                 case "PING_TIMEOUT_MS": TxtCfgPingTimeout.Text = defVal; break;
             }
@@ -1561,6 +1585,11 @@ public partial class MainWindow : FluentWindow
 
             if (success)
             {
+                if (pkg.Method == SoftwareInstallMethod.WindowsAdkUsmt)
+                {
+                    TxtCfgUsmtPath.Text = ConfigService.UsmtPath;
+                    RefreshUsmtBinStatusBadge();
+                }
                 _trayIconService?.ShowBalloon("Apps & Provisionamento", $"{pkg.Name} instalado com sucesso!", TrayIconService.NIIF_INFO);
             }
         }
@@ -3098,6 +3127,266 @@ public partial class MainWindow : FluentWindow
         {
             System.Windows.MessageBox.Show($"Nenhum backup gerado ainda em:\n{dir}", "Backups de Registro", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
         }
+    }
+    #endregion
+
+    #region Painel 10: Backup & Restore de Usuários (USMT)
+    private void RefreshUsmtBinStatusBadge()
+    {
+        if (TxtUsmtBinStatus == null || BadgeUsmtBinStatus == null)
+            return;
+
+        string? usmtDir = UsmtBackupService.FindUsmtDirectory();
+        if (usmtDir != null)
+        {
+            TxtUsmtBinStatus.Text = "🟢 USMT Pronto";
+            TxtUsmtBinStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 211, 153));
+            BadgeUsmtBinStatus.Background = new SolidColorBrush(Color.FromRgb(6, 78, 59));
+            BadgeUsmtBinStatus.ToolTip = $"Detectado em: {usmtDir}";
+
+            if (string.IsNullOrWhiteSpace(ConfigService.UsmtPath) && TxtCfgUsmtPath != null)
+            {
+                ConfigService.SetAndSave("USMT_PATH", usmtDir);
+                TxtCfgUsmtPath.Text = usmtDir;
+            }
+        }
+        else
+        {
+            TxtUsmtBinStatus.Text = "🟡 USMT Não Detectado";
+            TxtUsmtBinStatus.Foreground = new SolidColorBrush(Color.FromRgb(251, 191, 36));
+            BadgeUsmtBinStatus.Background = new SolidColorBrush(Color.FromRgb(69, 26, 3));
+            BadgeUsmtBinStatus.ToolTip = "Configure USMT_PATH ou clique em 'Baixar / Detectar USMT'";
+        }
+    }
+
+    private void BtnCfgBrowseUsmt_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Selecione a pasta contendo scanstate.exe e loadstate.exe (USMT)"
+        };
+        if (dlg.ShowDialog() == true)
+        {
+            TxtCfgUsmtPath.Text = dlg.FolderName;
+        }
+    }
+
+    private async void BtnCfgDownloadUsmt_Click(object sender, RoutedEventArgs e)
+    {
+        BtnCfgDownloadUsmt.IsEnabled = false;
+        BtnUsmtDownloadBin.IsEnabled = false;
+        TxtFooterStatus.Text = "Verificando / baixando Windows ADK USMT...";
+
+        try
+        {
+            var (success, usmtPath, message) = await _usmtService.DownloadAndInstallUsmtAsync(
+                silent: true,
+                msg => Dispatcher.Invoke(() => AppendColoredLog(RichUsmtLogs, msg)));
+
+            if (success && !string.IsNullOrWhiteSpace(usmtPath))
+            {
+                TxtCfgUsmtPath.Text = usmtPath;
+                RefreshUsmtBinStatusBadge();
+                TxtFooterStatus.Text = $"USMT configurado em: {usmtPath}";
+                _trayIconService?.ShowBalloon("USMT Pronto", $"USMT detectado/instalado e salvo em USMT_PATH: {usmtPath}", TrayIconService.NIIF_INFO);
+                System.Windows.MessageBox.Show($"USMT pronto e salvo automaticamente no .env:\n{usmtPath}", "USMT Configurado", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                TxtFooterStatus.Text = "Falha ao baixar/detectar USMT.";
+                System.Windows.MessageBox.Show(message, "USMT", System.Windows.MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        finally
+        {
+            BtnCfgDownloadUsmt.IsEnabled = true;
+            BtnUsmtDownloadBin.IsEnabled = true;
+        }
+    }
+
+    private void BtnUsmtDownloadBin_Click(object sender, RoutedEventArgs e)
+    {
+        RichUsmtLogs.Document.Blocks.Clear();
+        BtnCfgDownloadUsmt_Click(sender, e);
+    }
+
+    private void TxtUsmtTargetComputer_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+            BtnUsmtQueryUsers_Click(this, new RoutedEventArgs());
+    }
+
+    private async void BtnUsmtQueryUsers_Click(object sender, RoutedEventArgs e)
+    {
+        string target = string.IsNullOrWhiteSpace(TxtUsmtTargetComputer.Text) ? "." : TxtUsmtTargetComputer.Text.Trim();
+        BtnUsmtQueryUsers.IsEnabled = false;
+        _usmtUsersList.Clear();
+        RichUsmtLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Listando perfis de usuário em '{target}'...";
+
+        try
+        {
+            var profiles = await Task.Run(() => _usmtService.QueryUsersForBackup(
+                target,
+                msg => Dispatcher.Invoke(() => AppendColoredLog(RichUsmtLogs, msg)),
+                calculateDiskSize: true));
+
+            foreach (var p in profiles)
+                _usmtUsersList.Add(p);
+
+            TxtUsmtUsersHeader.Text = $"Perfis em '{RemoteManagementHelper.NormalizeTargetHost(target)}': {profiles.Count} usuário(s) — marque os perfis desejados (nenhum será excluído)";
+            TxtFooterStatus.Text = $"{profiles.Count} perfil(is) listado(s) para Backup/Restore USMT.";
+        }
+        catch (Exception ex)
+        {
+            AppendColoredLog(RichUsmtLogs, $"[ERRO] Falha ao listar perfis: {ex.Message}");
+        }
+        finally
+        {
+            BtnUsmtQueryUsers.IsEnabled = true;
+        }
+    }
+
+    private void BtnUsmtBrowseStore_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = "Selecione a pasta de Destino do Backup ou Origem do Restore USMT"
+        };
+        if (dlg.ShowDialog() == true)
+        {
+            TxtUsmtStorePath.Text = dlg.FolderName;
+        }
+    }
+
+    private void BtnUsmtSelectAllUsers_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var p in _usmtUsersList)
+            p.IsSelected = true;
+    }
+
+    private void BtnUsmtClearUsers_Click(object sender, RoutedEventArgs e)
+    {
+        foreach (var p in _usmtUsersList)
+            p.IsSelected = false;
+    }
+
+    private UsmtBackupOptions BuildUsmtOptionsFromUi()
+    {
+        return new UsmtBackupOptions
+        {
+            TargetComputer = string.IsNullOrWhiteSpace(TxtUsmtTargetComputer.Text) ? "." : TxtUsmtTargetComputer.Text.Trim(),
+            StorePath = TxtUsmtStorePath.Text.Trim(),
+            SelectedUsers = _usmtUsersList.Where(u => u.IsSelected).Select(u => u.Usuario).ToList(),
+            IncludeMigApp = ChkUsmtMigApp.IsChecked == true,
+            IncludeMigDocs = ChkUsmtMigDocs.IsChecked == true,
+            IncludeMigUser = ChkUsmtMigUser.IsChecked == true,
+            Compress = ChkUsmtCompress.IsChecked == true,
+            CreateLocalAccountsOnRestore = ChkUsmtCreateLocalAccounts.IsChecked == true,
+            EncryptionKey = string.IsNullOrWhiteSpace(TxtUsmtEncryptKey.Text) ? null : TxtUsmtEncryptKey.Text.Trim(),
+            CustomUsmtPath = ConfigService.UsmtPath
+        };
+    }
+
+    private async void BtnUsmtRunBackup_Click(object sender, RoutedEventArgs e)
+    {
+        var opts = BuildUsmtOptionsFromUi();
+        if (string.IsNullOrWhiteSpace(opts.StorePath))
+        {
+            System.Windows.MessageBox.Show("Informe a pasta de destino para salvar o pacote de backup USMT.", "Destino Obrigatório", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        if (opts.SelectedUsers.Count == 0)
+        {
+            System.Windows.MessageBox.Show("Clique em 'Listar Perfis' e marque pelo menos um usuário para fazer backup.", "Nenhum Usuário Marcado", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Iniciar Backup USMT (ScanState) na máquina '{opts.TargetComputer}'?\n\nUsuários selecionados ({opts.SelectedUsers.Count}): {string.Join(", ", opts.SelectedUsers)}\nDestino: {opts.StorePath}\n\n(Nenhum perfil ou arquivo será excluído da máquina.)",
+            "Confirmar Backup USMT",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes) return;
+
+        SetUsmtButtonsEnabled(false);
+        RichUsmtLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Executando Backup USMT em '{opts.TargetComputer}'...";
+
+        try
+        {
+            var res = await _usmtService.ExecuteBackupAsync(opts, msg => Dispatcher.Invoke(() => AppendColoredLog(RichUsmtLogs, msg)));
+            TxtFooterStatus.Text = res.Message;
+            _trayIconService?.ShowBalloon(
+                res.Success ? "Backup USMT Concluído" : "Backup USMT — Alerta",
+                res.Message,
+                res.Success ? TrayIconService.NIIF_INFO : TrayIconService.NIIF_WARNING);
+        }
+        finally
+        {
+            SetUsmtButtonsEnabled(true);
+        }
+    }
+
+    private async void BtnUsmtRunRestore_Click(object sender, RoutedEventArgs e)
+    {
+        var opts = BuildUsmtOptionsFromUi();
+        if (string.IsNullOrWhiteSpace(opts.StorePath))
+        {
+            System.Windows.MessageBox.Show("Informe a pasta onde o pacote de backup USMT está armazenado para restaurar.", "Origem Obrigatória", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        string userInfo = opts.SelectedUsers.Count > 0
+            ? $"Usuários filtrados ({opts.SelectedUsers.Count}): {string.Join(", ", opts.SelectedUsers)}"
+            : "Todos os usuários presentes no pacote USMT";
+
+        var confirm = System.Windows.MessageBox.Show(
+            $"Iniciar Restore USMT (LoadState) para a máquina '{opts.TargetComputer}'?\n\nOrigem: {opts.StorePath}\nEscopo: {userInfo}",
+            "Confirmar Restore USMT",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (confirm != System.Windows.MessageBoxResult.Yes) return;
+
+        SetUsmtButtonsEnabled(false);
+        RichUsmtLogs.Document.Blocks.Clear();
+        TxtFooterStatus.Text = $"Executando Restore USMT em '{opts.TargetComputer}'...";
+
+        try
+        {
+            var res = await _usmtService.ExecuteRestoreAsync(opts, msg => Dispatcher.Invoke(() => AppendColoredLog(RichUsmtLogs, msg)));
+            TxtFooterStatus.Text = res.Message;
+            _trayIconService?.ShowBalloon(
+                res.Success ? "Restore USMT Concluído" : "Restore USMT — Alerta",
+                res.Message,
+                res.Success ? TrayIconService.NIIF_INFO : TrayIconService.NIIF_WARNING);
+        }
+        finally
+        {
+            SetUsmtButtonsEnabled(true);
+        }
+    }
+
+    private void BtnUsmtOpenStore_Click(object sender, RoutedEventArgs e)
+    {
+        string path = TxtUsmtStorePath.Text.Trim();
+        if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
+        {
+            Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
+        }
+        else
+        {
+            System.Windows.MessageBox.Show("Informe um caminho existente para abrir.", "USMT", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private void SetUsmtButtonsEnabled(bool enabled)
+    {
+        BtnUsmtQueryUsers.IsEnabled = enabled;
+        BtnUsmtRunBackup.IsEnabled = enabled;
+        BtnUsmtRunRestore.IsEnabled = enabled;
     }
     #endregion
 }

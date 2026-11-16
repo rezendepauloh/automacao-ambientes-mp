@@ -89,26 +89,36 @@ _Executável leve disponível em:_
   - Imuniza o próprio Hub, seu processo pai e janelas rotuladas com `"🛠️ Modo"` através do escudo de processos.
   - Modo Nuclear do Explorer para zerar caches bloqueados de ícones e arquivos temporários.
 
-### E. Aba "Otimizações de Registro (Tweaks & Rollback)" (Item 11)
+### E. Aba "Backup & Restore (USMT)" (Item 10)
+
+- **Migração Local ou Remota (`UsmtBackupService`):** Permite fazer backup (`scanstate.exe`) e restauração (`loadstate.exe`) de perfis de usuários tanto na máquina local (`.`) quanto em estações remotas via compartilhamento administrativo + WMI (`Win32_Process.Create`) com streaming do log em tempo real.
+- **Seleção Individual & Segurança Total:** Lista os perfis presentes na máquina para marcação individual por checkbox (`MigApp.xml`, `MigDocs.xml`, `MigUser.xml`, compactação e criptografia opcional com `/encrypt` / `/key`), **sem nunca excluir nenhum perfil de usuário**.
+- **Detecção & Download Automático do USMT:** Localiza `USMT_PATH` (ADK ou pasta local) e oferece botão de download/instalação automatizada do recurso `OptionId.UserStateMigrationTool` do Windows ADK oficial, preenchendo `USMT_PATH` automaticamente no `.env`.
+
+### F. Aba "Bancada Docker (8501)" (Item 11)
+
+- **Controle da Stack WSL/Docker (`BancadaDockerService`):** Inicia, para (`down`), reinicia e reconstrói (`build --no-cache`) containers com `PYTHONUNBUFFERED=1` e reconexão automática aos logs do `docker compose`, além de disparar notificações toast do Windows ao concluir tarefas em segundo plano.
+
+### G. Aba "Otimizações de Registro (Tweaks & Rollback)" (Item 12)
 
 - **Ajustes Cirúrgicos de Performance:** Lista curada de tweaks no Windows Registry focados em redução de latência (`MenuShowDelay`), eliminação do atraso de boot (`StartupDelayInMSec`), priorização de foreground em multitarefa (`SystemResponsiveness`), desativação de throttling de rede TCP (`NetworkThrottlingIndex`) e supressão de bloatware em segundo plano.
 - **Backup Obrigatório Pré-Gravação:** Gera automaticamente arquivos `.reg` (compatíveis com o Editor de Registro do Windows) e snapshot JSON em `C:\AmbientesVirtuais\Backups\RegBackup_yyyyMMdd_HHmmss.reg` antes de qualquer alteração.
 - **Restauração em 1 Clique (Rollback):** Permite reverter valores anteriores ou padrões da Microsoft individualmente ou em lote.
 - **Segurança e Privilégios:** Separação visual clara entre chaves em espaço de usuário (`HKCU` - seguras e sem elevação) e chaves do sistema (`HKLM` - com badge indicando necessidade de execução como Administrador).
 
-### F. Aba "Logs da Aplicação" (Item 12)
+### H. Aba "Logs da Aplicação" (Item 13)
 
 - **Observabilidade em Tempo Real:** Visualizador integrado dos logs gravados em `AmbientesHub\logs\app.log`.
 - **Destaque Sintático Colorido:** Formatação rica no console WPF com identificação visual instantânea por cores para carimbos de data/hora, níveis (`INFO`, `WARNING`, `DANGER`, `SUCCESS`) e classes chamadoras.
 - **Filtros Dinâmicos:** Filtro por nível e busca por texto em tempo real com rolagem automática.
 
-### G. Aba "Configurações & Credenciais" (Item 13 - Último da Barra Lateral)
+### I. Aba "Configurações & Credenciais" (Item 14 - Último da Barra Lateral)
 
-- **Centralização Unificada:** Módulo posicionado estrategicamente como o último item da navegação, consolidando todas as variáveis de ambiente (`.env`), seleção tipográfica, arranque com o Windows e cofres seguros DPAPI.
+- **Centralização Unificada:** Módulo posicionado como o último item da navegação, consolidando todas as variáveis de ambiente (`.env`), caminho do USMT (`USMT_PATH`) com detecção/download, botões de preenchimento padrão por campo, seleção tipográfica, arranque com o Windows e cofres seguros DPAPI.
 
-### H. Inicialização com Windows & Bandeja do Sistema
+### J. Inicialização com Windows, Bandeja do Sistema & Notificações Toast
 
 - **Iniciar com o Windows:** Alternador (ToggleSwitch) nas Configurações para habilitar ou desabilitar o arranque automático do aplicativo após login (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
 - **Atalho no Menu Iniciar:** Alternador nas Configurações que cria e remove o atalho `Ambientes Hub.lnk` na pasta de Programas do Menu Iniciar (`AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) com metadados e ícone corporativo.
-- **Minimizar para a Bandeja (Tray Icon):** Mantém o aplicativo acessível próximo ao relógio. Suporta duplo clique para restaurar a janela e menu de contexto com opções de alternância entre Modo Comum e Modo Administrador (com badge indicativo no cabeçalho da janela).
-- **Identidade Visual:** Exibe o ícone e a descrição oficiais no Gerenciador de Tarefas do Windows.
+- **Menu de Contexto Produtivo na Bandeja (Tray Icon):** Acesso rápido com submenus para alternar ambientes de trabalho, saneamento imediato de RAM, controle completo da Bancada Docker (Start/Stop/Rebuild/Browser/Status/Pasta), conexões remotas RDP/SCCM com leitura inteligente do Clipboard, acesso aos logs e alternância entre Modo Comum e Modo Administrador (com badge indicativo no cabeçalho da janela).
+- **Notificações Toast do Windows:** Balões informativos ao concluir tarefas assíncronas demoradas (Backup/Restore USMT, Manutenção Remota, Expurgo de Perfis, Diagnóstico de Dispositivo, Instalação de Softwares, Desprovisionamento AD/SCCM, Otimizações de Registro e eventos da Bancada Docker).

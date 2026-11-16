@@ -81,3 +81,14 @@
   - `CreateBackup(IEnumerable<RegistryTweakItem> tweaks, string? customPath = null)`: Gera arquivo `.reg` (Windows Registry Editor Version 5.00) e snapshot JSON com permissões ACL 600 em `C:\AmbientesVirtuais\Backups`.
   - `ApplyTweak(RegistryTweakItem tweak)` / `ApplyBatch()`: Salva o estado anterior para rollback e aplica o valor otimizado, validando privilégios de Administrador em chaves `HKLM`.
   - `RollbackTweak(RegistryTweakItem tweak)` / `RollbackBatch()`: Reverte o valor ao estado original gravado no ponto de restauração ou ao padrão Windows.
+
+---
+
+## 8. `UsmtBackupService` (Backup & Restore USMT Local/Remoto)
+
+- **Objetivo:** Orquestrar migrações de perfis de usuários com `scanstate.exe` (Backup) e `loadstate.exe` (Restore) do Windows USMT em máquinas locais ou remotas, sem exclusão de dados de usuário.
+- **Métodos Principais:**
+  - `FindUsmtDirectory(string? configuredPath)`: Localiza `scanstate.exe` / `loadstate.exe` no `USMT_PATH` (`.env`), pasta `Tools\USMT` local ou instalações padrão do Windows ADK.
+  - `DownloadAndInstallUsmtAsync()`: Baixa e instala o recurso `OptionId.UserStateMigrationTool` do Windows ADK (com fallback via `winget Microsoft.WindowsADK`) e grava `USMT_PATH` automaticamente no `.env`.
+  - `BuildScanStateArgumentList()` / `BuildLoadStateArgumentList()`: Constrói listas seguras de argumentos para `ProcessStartInfo.ArgumentList`, validando `StorePath` (`InputValidator.IsSafeDirectoryPath`) e usuários selecionados (`InputValidator.IsValidUserName`), com suporte a `/encrypt`, `/decrypt`, `/lac /lae` e seleção restrita por `/ue:*\* /ui:...`.
+  - `ExecuteBackupAsync()` / `ExecuteRestoreAsync()`: Executa localmente como Administrador ou remotamente via staging temporário em `\\host\C$\Windows\Temp\AmbientesHub_USMT` + `Win32_Process.Create` com streaming de log em tempo real e remoção apenas da pasta temporária de staging no `finally`.

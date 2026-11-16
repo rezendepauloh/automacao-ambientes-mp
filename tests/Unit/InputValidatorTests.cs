@@ -168,5 +168,18 @@ public class InputValidatorTests
     [Fact]
     public void EscapePowerShellSingleQuoted_DoublesQuotes()
         => Assert.Equal("a''b", InputValidator.EscapePowerShellSingleQuoted("a'b"));
+
+    [Theory]
+    [InlineData(@"C:\Backups\USMT", true)]
+    [InlineData(@"\\srv-arquivos\backups$\usmt", true)]
+    [InlineData(@"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\amd64", true)]
+    [InlineData(@"C:\Backups\..\..\Windows\System32", false)]
+    [InlineData("relativo\\pasta", false)]
+    [InlineData(@"C:\Backups & calc.exe", false)]
+    [InlineData("C:\\Backups\" /evil", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void IsSafeDirectoryPath_Whitelist(string? path, bool expected)
+        => Assert.Equal(expected, InputValidator.IsSafeDirectoryPath(path));
 }
 

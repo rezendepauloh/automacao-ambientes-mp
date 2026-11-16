@@ -55,6 +55,20 @@ public partial class MainWindow : FluentWindow
     private bool _isUpdatingChamadosFilters = false;
     private int _chamadosCurrentPage = 1;
     private const int ChamadosPageSize = 10;
+    private readonly BancadaOxeService _oxeService = new();
+    private readonly ObservableCollection<OxeRamalItem> _oxeList = [];
+    private readonly List<OxeRamalItem> _allOxeRaw = [];
+    private readonly List<OxeRamalItem> _allOxeFound = [];
+    private bool _isUpdatingOxeFilters = false;
+    private int _oxeCurrentPage = 1;
+    private const int OxePageSize = 15;
+    private readonly BancadaImpressorasService _impressorasService = new();
+    private readonly ObservableCollection<ImpressoraItem> _impressorasList = [];
+    private readonly List<ImpressoraItem> _allImpressorasRaw = [];
+    private readonly List<ImpressoraItem> _allImpressorasFound = [];
+    private bool _isUpdatingImpressorasFilters = false;
+    private int _impressorasCurrentPage = 1;
+    private const int ImpressorasPageSize = 15;
 
     public MainWindow()
     {
@@ -63,8 +77,11 @@ public partial class MainWindow : FluentWindow
         AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;
         ItemsRemoteProfiles.ItemsSource = _remoteProfilesList;
+        LoadMachineInfoIntoSettings();
         ItemsUsmtUsers.ItemsSource = _usmtUsersList;
         ItemsChamados.ItemsSource = _chamadosList;
+        ItemsOxe.ItemsSource = _oxeList;
+        ItemsImpressoras.ItemsSource = _impressorasList;
         LstRegistryTweaks.ItemsSource = _filteredRegistryTweaks;
         InitializeRegistryTweaks();
         PopulateFontList();
@@ -102,6 +119,7 @@ public partial class MainWindow : FluentWindow
             NavLbl13.Visibility = Visibility.Visible;
             NavLbl14.Visibility = Visibility.Visible;
             NavLbl15.Visibility = Visibility.Visible;
+            NavLbl16.Visibility = Visibility.Visible;
         }
         else
         {
@@ -123,6 +141,7 @@ public partial class MainWindow : FluentWindow
             NavLbl13.Visibility = Visibility.Collapsed;
             NavLbl14.Visibility = Visibility.Collapsed;
             NavLbl15.Visibility = Visibility.Collapsed;
+            NavLbl16.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -252,23 +271,37 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
+        if (lower is "oxe" or "telefone" or "telefones" or "ramal" or "ramais" or "central" or "telefonia")
         {
             NavListBox.SelectedIndex = 13;
+            TxtFooterStatus.Text = "Navegado para: Telefonia OXE (Ramais)";
+            return;
+        }
+
+        if (lower is "impressora" or "impressoras" or "papercut" or "print" or "multifuncional")
+        {
+            NavListBox.SelectedIndex = 17;
+            TxtFooterStatus.Text = "Navegado para: Impressoras PaperCut";
+            return;
+        }
+
+        if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
+        {
+            NavListBox.SelectedIndex = 14;
             TxtFooterStatus.Text = "Navegado para: Otimizações de Registro (Tweaks & Rollback)";
             return;
         }
 
         if (lower is "logs" or "log" or "eventos" or "historico" or "histórico" or "console" or "app.log")
         {
-            NavListBox.SelectedIndex = 14;
+            NavListBox.SelectedIndex = 15;
             TxtFooterStatus.Text = "Navegado para: Logs da Aplicação";
             return;
         }
 
         if (lower is "config" or "configuração" or "configurações" or "cofre" or "credenciais" or "ajustes" or "fonte")
         {
-            NavListBox.SelectedIndex = 15;
+            NavListBox.SelectedIndex = 16;
             TxtFooterStatus.Text = "Navegado para: Configurações & Credenciais";
             return;
         }
@@ -309,9 +342,40 @@ public partial class MainWindow : FluentWindow
         TxtFooterStatus.Text = $"Filtro ativo: '{query}' (Pressione Enter para executar)";
     }
 
+    private void NavGroupHeader_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not string groupName) return;
+        if (FindName(groupName) is System.Windows.Controls.StackPanel panel)
+        {
+            bool willOpen = panel.Visibility != Visibility.Visible;
+            panel.Visibility = willOpen ? Visibility.Visible : Visibility.Collapsed;
+            string chevName = groupName.Replace("Grp", "GrpChev");
+            if (FindName(chevName) is System.Windows.Controls.TextBlock chev)
+                chev.Text = willOpen ? "⌃" : "⌄";
+        }
+    }
+
+    private void NavMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is string tagStr && int.TryParse(tagStr, out int idx))
+        {
+            NavListBox.SelectedIndex = idx;
+        }
+    }
+
+    private void HighlightActiveNavMenuItem(int activeIndex)
+    {
+        for (int i = 0; i <= 17; i++)
+        {
+            if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
+                btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
+        }
+    }
+
     private void NavListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (PanelAmbientes == null) return;
+        HighlightActiveNavMenuItem(NavListBox.SelectedIndex);
 
         PanelAmbientes.Visibility = Visibility.Collapsed;
         PanelRemoto.Visibility = Visibility.Collapsed;
@@ -326,6 +390,8 @@ public partial class MainWindow : FluentWindow
         PanelUsuariosAd.Visibility = Visibility.Collapsed;
         PanelBancada.Visibility = Visibility.Collapsed;
         PanelChamados.Visibility = Visibility.Collapsed;
+        PanelOxe.Visibility = Visibility.Collapsed;
+        PanelImpressoras.Visibility = Visibility.Collapsed;
         PanelRegistryTweaks.Visibility = Visibility.Collapsed;
         PanelAppLogs.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
@@ -381,15 +447,23 @@ public partial class MainWindow : FluentWindow
                 _ = LoadChamadosAsync();
                 break;
             case 13:
+                PanelOxe.Visibility = Visibility.Visible;
+                _ = LoadOxeAsync();
+                break;
+            case 14:
                 PanelRegistryTweaks.Visibility = Visibility.Visible;
                 RefreshRegistryTweaksStatus();
                 break;
-            case 14:
+            case 15:
                 PanelAppLogs.Visibility = Visibility.Visible;
                 LoadAppLogsToUi();
                 break;
-            case 15:
+            case 16:
                 PanelConfig.Visibility = Visibility.Visible;
+                break;
+            case 17:
+                PanelImpressoras.Visibility = Visibility.Visible;
+                _ = LoadImpressorasAsync();
                 break;
         }
     }
@@ -504,11 +578,14 @@ public partial class MainWindow : FluentWindow
         TxtCfgSccmCode.Text = ConfigService.SccmSiteCode;
         TxtCfgOtrs.Text = ConfigService.UrlOtrs;
         TxtCfgCitsmart.Text = ConfigService.UrlCitsmart;
+        TxtCfgOxe.Text = ConfigService.UrlOxe;
+        TxtCfgPapercut.Text = ConfigService.UrlPapercut;
         TxtCfgBancada.Text = ConfigService.UrlBancadaLocal;
         TxtCfgBancadaWslDir.Text = ConfigService.BancadaWslDir;
         TxtCfgBancadaWslDistro.Text = ConfigService.BancadaWslDistro;
         TxtCfgWhatsapp.Text = ConfigService.WhatsappPwaArgs;
         TxtCfgDeviceReportsDir.Text = ConfigService.DeviceReportsDir;
+        TxtCfgChamadosReportsDir.Text = ConfigService.ChamadosReportsDir;
         TxtCfgCmRcViewer.Text = ConfigService.CmRcViewerCustomPath;
         TxtCfgFirefoxPath.Text = ConfigService.FirefoxBinaryPath;
         TxtCfgUsmtPath.Text = ConfigService.UsmtPath;
@@ -614,7 +691,7 @@ public partial class MainWindow : FluentWindow
             _trayIconService.OnOpenAppLogsRequested += () =>
             {
                 RestoreFromTray();
-                NavListBox.SelectedIndex = 14;
+                NavListBox.SelectedIndex = 15;
             };
             _trayIconService.Initialize(iconPath, "Ambientes Hub — Produtividade & Performance");
         }
@@ -752,11 +829,14 @@ public partial class MainWindow : FluentWindow
                 ["SCCM_SITE_CODE"] = TxtCfgSccmCode.Text.Trim(),
                 ["URL_OTRS"] = TxtCfgOtrs.Text.Trim(),
                 ["URL_CITSMART"] = TxtCfgCitsmart.Text.Trim(),
+                ["URL_OXE"] = TxtCfgOxe.Text.Trim(),
+                ["URL_PAPERCUT"] = TxtCfgPapercut.Text.Trim(),
                 ["URL_BANCADA_LOCAL"] = TxtCfgBancada.Text.Trim(),
                 ["BANCADA_WSL_DIR"] = TxtCfgBancadaWslDir.Text.Trim(),
                 ["BANCADA_WSL_DISTRO"] = TxtCfgBancadaWslDistro.Text.Trim(),
                 ["WHATSAPP_PWA_ARGS"] = TxtCfgWhatsapp.Text.Trim(),
                 ["DEVICE_REPORTS_DIR"] = TxtCfgDeviceReportsDir.Text.Trim(),
+                ["CHAMADOS_REPORTS_DIR"] = TxtCfgChamadosReportsDir.Text.Trim(),
                 ["CMRCVIEWER_PATH"] = TxtCfgCmRcViewer.Text.Trim(),
                 ["FIREFOX_PATH"] = TxtCfgFirefoxPath.Text.Trim(),
                 ["USMT_PATH"] = TxtCfgUsmtPath.Text.Trim(),
@@ -796,11 +876,14 @@ public partial class MainWindow : FluentWindow
                 case "SCCM_SITE_CODE": TxtCfgSccmCode.Text = defVal; break;
                 case "URL_OTRS": TxtCfgOtrs.Text = defVal; break;
                 case "URL_CITSMART": TxtCfgCitsmart.Text = defVal; break;
+                case "URL_OXE": TxtCfgOxe.Text = defVal; break;
+                case "URL_PAPERCUT": TxtCfgPapercut.Text = defVal; break;
                 case "URL_BANCADA_LOCAL": TxtCfgBancada.Text = defVal; break;
                 case "BANCADA_WSL_DIR": TxtCfgBancadaWslDir.Text = defVal; break;
                 case "BANCADA_WSL_DISTRO": TxtCfgBancadaWslDistro.Text = defVal; break;
                 case "WHATSAPP_PWA_ARGS": TxtCfgWhatsapp.Text = defVal; break;
                 case "DEVICE_REPORTS_DIR": TxtCfgDeviceReportsDir.Text = defVal; break;
+                case "CHAMADOS_REPORTS_DIR": TxtCfgChamadosReportsDir.Text = defVal; break;
                 case "CMRCVIEWER_PATH": TxtCfgCmRcViewer.Text = defVal; break;
                 case "FIREFOX_PATH": TxtCfgFirefoxPath.Text = defVal; break;
                 case "USMT_PATH": TxtCfgUsmtPath.Text = defVal; break;
@@ -3581,6 +3664,221 @@ public partial class MainWindow : FluentWindow
         _ = LoadChamadosAsync();
     }
 
+    private async void BtnExportChamados_Click(object sender, RoutedEventArgs e)
+    {
+        if (_allChamadosFound.Count == 0)
+        {
+            System.Windows.MessageBox.Show("Nenhum chamado filtrado para exportar.", "Exportar Chamados", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            return;
+        }
+
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = "Gerando relatório HTML responsivo com comentários...";
+        var comentariosPorChamado = await _chamadosService.GetComentariosPorChamadosAsync(_allChamadosFound.Select(c => c.Id));
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("""
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Relatório de Chamados - AmbientesHub</title>
+            <style>
+              :root { --bg: #f1f5f9; --card: #ffffff; --border: #cbd5e1; --text: #0f172a; --muted: #475569; --accent: #0284c7; --loc-bg: #fef3c7; --loc-border: #f59e0b; --loc-text: #92400e; }
+              * { box-sizing: border-box; }
+              body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 14px; line-height: 1.45; }
+              .container { max-width: 1020px; margin: 0 auto; }
+              .header { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+              h1 { font-size: 1.25rem; margin: 0 0 4px 0; }
+              .meta { color: var(--muted); font-size: 0.85rem; }
+              .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+              .toolbar input { flex: 1 1 220px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+              .btn { border: 1px solid var(--border); background: #fff; color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+              .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+              details.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: opacity 0.2s ease; }
+              details.card.done { opacity: 0.58; border-left: 5px solid #10b981; }
+              summary.card-head { list-style: none; padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; user-select: none; }
+              summary.card-head::-webkit-details-marker { display: none; }
+              .head-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+              .badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+              .badge { font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #e2e8f0; color: #1e293b; text-transform: uppercase; }
+              .badge-otrs { background: #dbeafe; color: #1e40af; }
+              .badge-cit { background: #ccfbf1; color: #0f766e; }
+              .badge-open { background: #dcfce7; color: #166534; }
+              .id-tag { font-weight: 800; color: var(--accent); font-size: 0.95rem; }
+              .done-wrap { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 600; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 4px 8px; border-radius: 8px; white-space: nowrap; }
+              .title { font-size: 1.05rem; font-weight: 700; color: var(--text); word-break: break-word; }
+              .loc-banner { background: var(--loc-bg); border: 1px solid var(--loc-border); color: var(--loc-text); padding: 7px 11px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 6px; word-break: break-word; }
+              .card-body { padding: 0 16px 16px 16px; border-top: 1px solid #e2e8f0; }
+              .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 14px; margin: 12px 0; font-size: 0.84rem; color: #334155; }
+              .info-item b { color: #0f172a; }
+              .sec { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-size: 0.86rem; white-space: pre-wrap; word-break: break-word; }
+              .sec-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; letter-spacing: 0.03em; }
+              .comment { background: #ffffff; border: 1px solid #cbd5e1; border-left: 4px solid #10b981; border-radius: 8px; padding: 9px 12px; margin-top: 8px; font-size: 0.85rem; white-space: pre-wrap; word-break: break-word; }
+              .comment-meta { font-size: 0.76rem; font-weight: 700; color: #047857; margin-bottom: 4px; }
+              @media (max-width: 600px) {
+                body { padding: 8px; }
+                summary.card-head { padding: 12px; }
+                .card-body { padding: 0 12px 12px 12px; }
+                .head-top { flex-direction: column; }
+                .title { font-size: 1rem; }
+              }
+              @media print {
+                @page { margin: 10mm; }
+                body { background: #fff; padding: 0; font-size: 11px; }
+                .container { max-width: 100%; }
+                .no-print { display: none !important; }
+                details.card { box-shadow: none; break-inside: avoid; page-break-inside: avoid; border: 1px solid #94a3b8; margin-bottom: 8px; }
+                details.card.done { display: none; }
+                .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; }
+                .loc-banner { background: #fffbeb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              }
+            </style>
+            </head>
+            <body>
+            <div class="container">
+            """);
+
+        sb.AppendLine("<div class='header'>");
+        sb.AppendLine($"<h1>Relatório de Chamados (<span id='visibleCount'>{_allChamadosFound.Count}</span> de {_allChamadosFound.Count})</h1>");
+        sb.AppendLine($"<div class='meta'>Gerado em {DateTime.Now:dd/MM/yyyy HH:mm:ss} • Toque em qualquer chamado para expandir/recolher</div>");
+        sb.AppendLine("""
+              <div class="toolbar no-print">
+                <input id="quickSearch" type="search" placeholder="Filtrar rápido por localidade, nome, ID ou título..." oninput="filterCards()" />
+                <button class="btn" onclick="toggleAll(true)">Expandir Todos</button>
+                <button class="btn" onclick="toggleAll(false)">Recolher Todos</button>
+                <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir / PDF</button>
+              </div>
+            </div>
+            """);
+
+        static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
+
+        foreach (var c in _allChamadosFound)
+        {
+            string baseCls = c.BaseDisplay.Contains("OTRS", StringComparison.OrdinalIgnoreCase) ? "badge badge-otrs" : "badge badge-cit";
+            string statusCls = c.Status.Equals("Aberto", StringComparison.OrdinalIgnoreCase) ? "badge badge-open" : "badge";
+            string safeIdAttr = H(c.Id);
+
+            sb.AppendLine($"<details class='card' open data-id='{safeIdAttr}' data-search='{H((c.Id + " " + c.TituloDisplay + " " + c.LocalizacaoDisplay + " " + c.SolicitanteDisplay + " " + c.TagDisplay + " " + c.Hostname).ToLowerInvariant())}'>");
+            sb.AppendLine("<summary class='card-head'>");
+            sb.AppendLine("<div class='head-top'>");
+            sb.AppendLine($"<div class='badges'><span class='{baseCls}'>{H(c.BaseDisplay)}</span><span class='{statusCls}'>{H(c.Status)}</span><span class='badge'>{H(c.TagDisplay)}</span><span class='id-tag'>#{safeIdAttr}</span></div>");
+            sb.AppendLine($"<label class='done-wrap no-print' onclick='event.stopPropagation()'><input type='checkbox' onchange='toggleDone(\"{safeIdAttr}\", this)' /> Concluído</label>");
+            sb.AppendLine("</div>");
+            sb.AppendLine($"<div class='title'>{H(c.TituloDisplay)}</div>");
+            sb.AppendLine($"<div class='loc-banner'>📍 Localidade: {H(c.LocalizacaoDisplay)}</div>");
+            sb.AppendLine("</summary>");
+
+            sb.AppendLine("<div class='card-body'>");
+            sb.AppendLine("<div class='info-grid'>");
+            sb.AppendLine($"<div class='info-item'><b>👤 Solicitante:</b> {H(c.SolicitanteDisplay)}</div>");
+            sb.AppendLine($"<div class='info-item'><b>🕒 Criado:</b> {H(c.DataCriacaoBr)}</div>");
+            if (!string.IsNullOrWhiteSpace(c.DataAtualizacao))
+                sb.AppendLine($"<div class='info-item'><b>🔄 Atualizado:</b> {H(FormatDateBr(c.DataAtualizacao))}</div>");
+            if (!string.IsNullOrWhiteSpace(c.Hostname))
+                sb.AppendLine($"<div class='info-item'><b>💻 Hostname:</b> {H(c.Hostname)}</div>");
+            if (!string.IsNullOrWhiteSpace(c.IpOrigem))
+                sb.AppendLine($"<div class='info-item'><b>🌐 IP:</b> {H(c.IpOrigem)}</div>");
+            if (InputValidator.IsSafeHttpUrl(c.Link))
+                sb.AppendLine($"<div class='info-item no-print'><b>🔗 Link:</b> <a href='{H(c.Link)}' target='_blank' rel='noopener'>Abrir no sistema</a></div>");
+            sb.AppendLine("</div>");
+
+            if (!string.IsNullOrWhiteSpace(c.Descricao))
+                sb.AppendLine($"<div class='sec'><div class='sec-title'>Descrição</div>{H(c.Descricao.Trim())}</div>");
+            if (!string.IsNullOrWhiteSpace(c.Andamento))
+                sb.AppendLine($"<div class='sec'><div class='sec-title'>Andamento</div>{H(c.Andamento.Trim())}</div>");
+
+            if (comentariosPorChamado.TryGetValue(c.Id.Trim(), out var coms) && coms.Count > 0)
+            {
+                sb.AppendLine("<div class='sec'><div class='sec-title'>Comentários / Histórico</div>");
+                foreach (var cm in coms)
+                {
+                    string autor = string.IsNullOrWhiteSpace(cm.Autor) ? "Sistema" : cm.Autor;
+                    sb.AppendLine($"<div class='comment'><div class='comment-meta'>{H(autor)} • {H(FormatDateBr(cm.Data))}</div>{H(cm.Texto.Trim())}</div>");
+                }
+                sb.AppendLine("</div>");
+            }
+
+            sb.AppendLine("</div></details>");
+        }
+
+        sb.AppendLine("""
+            </div>
+            <script>
+              const KEY = 'ambienteshub_chamados_done_v1';
+              function loadDone() {
+                try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; }
+              }
+              function saveDone(map) {
+                try { localStorage.setItem(KEY, JSON.stringify(map)); } catch {}
+              }
+              function toggleDone(id, cb) {
+                const map = loadDone();
+                const card = cb.closest('details.card');
+                if (cb.checked) {
+                  map[id] = true;
+                  card.classList.add('done');
+                  card.open = false;
+                } else {
+                  delete map[id];
+                  card.classList.remove('done');
+                  card.open = true;
+                }
+                saveDone(map);
+              }
+              function toggleAll(openState) {
+                document.querySelectorAll('details.card').forEach(d => {
+                  if (d.style.display !== 'none') d.open = openState;
+                });
+              }
+              function filterCards() {
+                const q = (document.getElementById('quickSearch').value || '').toLowerCase().trim();
+                let count = 0;
+                document.querySelectorAll('details.card').forEach(d => {
+                  const hay = d.getAttribute('data-search') || '';
+                  const show = !q || hay.includes(q);
+                  d.style.display = show ? '' : 'none';
+                  if (show) count++;
+                });
+                document.getElementById('visibleCount').textContent = count;
+              }
+              window.addEventListener('DOMContentLoaded', () => {
+                const map = loadDone();
+                document.querySelectorAll('details.card').forEach(d => {
+                  const id = d.getAttribute('data-id');
+                  if (id && map[id]) {
+                    d.classList.add('done');
+                    d.open = false;
+                    const cb = d.querySelector('input[type="checkbox"]');
+                    if (cb) cb.checked = true;
+                  }
+                });
+              });
+            </script>
+            </body></html>
+            """);
+
+        string outDir = string.IsNullOrWhiteSpace(ConfigService.ChamadosReportsDir)
+            ? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ChamadosReports")
+            : ConfigService.ChamadosReportsDir;
+        System.IO.Directory.CreateDirectory(outDir);
+        string outPath = System.IO.Path.Combine(outDir, $"chamados_relatorio_{DateTime.Now:yyyyMMdd_HHmmss}.html");
+        System.IO.File.WriteAllText(outPath, sb.ToString(), System.Text.Encoding.UTF8);
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Relatório HTML gerado com {_allChamadosFound.Count} chamado(s): {outPath}";
+        Process.Start(new ProcessStartInfo(outPath) { UseShellExecute = true });
+    }
+
+    private void BtnOpenChamadosReportsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        string outDir = string.IsNullOrWhiteSpace(ConfigService.ChamadosReportsDir)
+            ? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ChamadosReports")
+            : ConfigService.ChamadosReportsDir;
+        System.IO.Directory.CreateDirectory(outDir);
+        Process.Start(new ProcessStartInfo("explorer.exe", outDir) { UseShellExecute = true });
+    }
+
     private void BtnChamadosOpenOtrs_Click(object sender, RoutedEventArgs e)
     {
         string url = ConfigService.UrlOtrs;
@@ -3731,12 +4029,33 @@ public partial class MainWindow : FluentWindow
             isReadOnly: true);
         contentStack.Children.Add(descCard);
 
-        // Card de Andamento / Comentários
+        // Card de Andamento
         var (andamentoCard, txtEditAndamento) = CreateEditableDetailSectionCard(
-            "Andamento / Comentários",
+            "Andamento",
             item.Andamento ?? string.Empty,
             isReadOnly: true);
         contentStack.Children.Add(andamentoCard);
+
+        // Seção de Comentários (tabela comentarios no PostgreSQL)
+        var comentariosHeader = new System.Windows.Controls.TextBlock
+        {
+            Text = "Comentários do Chamado",
+            FontSize = 14,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(56, 189, 248)),
+            Margin = new Thickness(0, 4, 0, 8)
+        };
+        contentStack.Children.Add(comentariosHeader);
+
+        var comentariosPanel = new System.Windows.Controls.StackPanel();
+        comentariosPanel.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Carregando comentários...",
+            FontSize = 12,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184)),
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+        contentStack.Children.Add(comentariosPanel);
 
         scroll.Content = contentStack;
         System.Windows.Controls.Grid.SetRow(scroll, 1);
@@ -3927,7 +4246,84 @@ public partial class MainWindow : FluentWindow
         root.Children.Add(footer);
 
         win.Content = root;
+        _ = LoadComentariosIntoPanelAsync(item.Id, comentariosPanel);
         win.ShowDialog();
+    }
+
+    private void LoadMachineInfoIntoSettings()
+    {
+        if (TxtCfgMachineHostname != null) TxtCfgMachineHostname.Text = Environment.MachineName;
+        if (TxtCfgMachineUser != null) TxtCfgMachineUser.Text = $"{Environment.UserDomainName}\\{Environment.UserName}";
+        if (TxtCfgMachineOs != null) TxtCfgMachineOs.Text = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+        if (TxtCfgMachineIp != null)
+        {
+            try
+            {
+                var ips = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName())
+                    .AddressList
+                    .Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !System.Net.IPAddress.IsLoopback(a))
+                    .Select(a => a.ToString());
+                string ipText = string.Join(", ", ips);
+                TxtCfgMachineIp.Text = string.IsNullOrWhiteSpace(ipText) ? "127.0.0.1" : ipText;
+            }
+            catch
+            {
+                TxtCfgMachineIp.Text = "Indisponível";
+            }
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadComentariosIntoPanelAsync(string chamadoId, System.Windows.Controls.StackPanel panel)
+    {
+        var comentarios = await _chamadosService.GetComentariosChamadoAsync(chamadoId);
+        panel.Children.Clear();
+
+        if (comentarios.Count == 0)
+        {
+            panel.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = "Nenhum comentário registrado para este chamado.",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184)),
+                Margin = new Thickness(0, 0, 0, 12)
+            });
+            return;
+        }
+
+        foreach (var c in comentarios)
+        {
+            var card = new System.Windows.Controls.Border
+            {
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            var sp = new System.Windows.Controls.StackPanel();
+            sp.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = $"{(string.IsNullOrWhiteSpace(c.Autor) ? "Sistema" : c.Autor)}  •  {FormatDateBr(c.Data)}",
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 211, 153)),
+                Margin = new Thickness(0, 0, 0, 4)
+            });
+            sp.Children.Add(new System.Windows.Controls.TextBox
+            {
+                Text = c.Texto,
+                IsReadOnly = true,
+                TextWrapping = TextWrapping.Wrap,
+                Background = System.Windows.Media.Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Foreground = System.Windows.Media.Brushes.White,
+                FontSize = 13,
+                Padding = new Thickness(0)
+            });
+            card.Child = sp;
+            panel.Children.Add(card);
+        }
     }
 
     private static System.Windows.Controls.StackPanel CreateMetaLine(string label, string value)
@@ -4045,6 +4441,823 @@ public partial class MainWindow : FluentWindow
             NavListBox.SelectedIndex = 2; // Acesso Remoto
             if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Computador '{item.Hostname.Trim()}' carregado na aba Acesso Remoto.";
         }
+    }
+
+    #endregion
+
+    #region Painel 13: Telefonia OXE
+
+    private async System.Threading.Tasks.Task LoadOxeAsync()
+    {
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando ramais da Central Telefônica OXE...";
+        if (BtnRefreshOxe != null) BtnRefreshOxe.IsEnabled = false;
+
+        try
+        {
+            var (success, items, summary, message) = await _oxeService.QueryRamaisAsync(null);
+            if (success)
+            {
+                _allOxeRaw.Clear();
+                _allOxeRaw.AddRange(items);
+                PopulateOxeFilterCombos();
+                ApplyOxeFilters();
+
+                if (TxtOxeKpiTotal != null) TxtOxeKpiTotal.Text = summary.Total.ToString();
+                if (TxtOxeKpiComNome != null) TxtOxeKpiComNome.Text = summary.ComNome.ToString();
+                if (TxtOxeKpiComIpMac != null) TxtOxeKpiComIpMac.Text = summary.ComIpOuMac.ToString();
+            }
+
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = message;
+        }
+        catch (Exception ex)
+        {
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar ramais OXE: {ex.Message}";
+        }
+        finally
+        {
+            if (BtnRefreshOxe != null) BtnRefreshOxe.IsEnabled = true;
+        }
+    }
+
+    private static string GetOxeField(OxeRamalItem item, params string[] keys)
+    {
+        foreach (string k in keys)
+        {
+            if (item.AllFields.TryGetValue(k, out string? v) && !string.IsNullOrWhiteSpace(v))
+                return v;
+        }
+        return string.Empty;
+    }
+
+    private void PopulateOxeFilterCombos()
+    {
+        _isUpdatingOxeFilters = true;
+        try
+        {
+            FillOxeCombo(CmbOxeCategoria, "Categoria: Todas", new[] { "categoria_do_dispositivo", "categoria_dispositivo", "categoria" });
+            FillOxeCombo(CmbOxeTipoEstacao, "Estação: Todas", new[] { "tipo_de_estacao", "tipo_estacao", "station_type", "tipo" });
+            FillOxeCombo(CmbOxeGrupoCaptura, "Captura: Todos", new[] { "grupo_de_captura", "grupo_captura", "pickup_group" });
+            FillOxeCombo(CmbOxeRedePublica, "Rede Pública: Todas", new[] { "cat_rede_pública", "cat_rede_publica", "categoria_rede_publica", "rede_publica", "public_network_category" });
+            FillOxeCombo(CmbOxeFuncao, "Função: Todas", new[] { "funcao_role", "funcao", "role" });
+        }
+        finally
+        {
+            _isUpdatingOxeFilters = false;
+        }
+    }
+
+    private void FillOxeCombo(System.Windows.Controls.ComboBox? cmb, string allLabel, string[] fieldKeys)
+    {
+        if (cmb == null) return;
+        string? prev = cmb.SelectedItem as string;
+        cmb.Items.Clear();
+        cmb.Items.Add(allLabel);
+
+        var values = _allOxeRaw
+            .Select(x => GetOxeField(x, fieldKeys))
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var v in values)
+            cmb.Items.Add(v);
+
+        cmb.SelectedItem = prev != null && cmb.Items.Contains(prev) ? prev : allLabel;
+    }
+
+    private void ApplyOxeFilters()
+    {
+        string q = TxtOxeSearch?.Text?.Trim() ?? string.Empty;
+        string cat = CmbOxeCategoria?.SelectedIndex > 0 ? CmbOxeCategoria.SelectedItem?.ToString() ?? "" : "";
+        string est = CmbOxeTipoEstacao?.SelectedIndex > 0 ? CmbOxeTipoEstacao.SelectedItem?.ToString() ?? "" : "";
+        string grp = CmbOxeGrupoCaptura?.SelectedIndex > 0 ? CmbOxeGrupoCaptura.SelectedItem?.ToString() ?? "" : "";
+        string red = CmbOxeRedePublica?.SelectedIndex > 0 ? CmbOxeRedePublica.SelectedItem?.ToString() ?? "" : "";
+        string fun = CmbOxeFuncao?.SelectedIndex > 0 ? CmbOxeFuncao.SelectedItem?.ToString() ?? "" : "";
+
+        bool comMac = ChkOxeComMac?.IsChecked == true;
+        bool comIp = ChkOxeComIp?.IsChecked == true;
+        bool semMac = ChkOxeSemMac?.IsChecked == true;
+        bool semIp = ChkOxeSemIp?.IsChecked == true;
+
+        var filtered = _allOxeRaw.Where(item =>
+        {
+            if (!string.IsNullOrWhiteSpace(q) && !item.AllFields.Values.Any(v => v.Contains(q, StringComparison.OrdinalIgnoreCase)))
+                return false;
+            if (!string.IsNullOrEmpty(cat) && !string.Equals(GetOxeField(item, "categoria_do_dispositivo", "categoria_dispositivo", "categoria"), cat, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(est) && !string.Equals(GetOxeField(item, "tipo_de_estacao", "tipo_estacao", "station_type", "tipo"), est, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(grp) && !string.Equals(GetOxeField(item, "grupo_de_captura", "grupo_captura", "pickup_group"), grp, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(red) && !string.Equals(GetOxeField(item, "cat_rede_pública", "cat_rede_publica", "categoria_rede_publica", "rede_publica", "public_network_category"), red, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(fun) && !string.Equals(GetOxeField(item, "funcao_role", "funcao", "role"), fun, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (comMac && !BancadaOxeService.HasRealValue(item.Mac)) return false;
+            if (comIp && !BancadaOxeService.HasRealValue(item.Ip)) return false;
+            if (semMac && BancadaOxeService.HasRealValue(item.Mac)) return false;
+            if (semIp && BancadaOxeService.HasRealValue(item.Ip)) return false;
+            return true;
+        });
+
+        _allOxeFound.Clear();
+        _allOxeFound.AddRange(filtered);
+        _oxeCurrentPage = 1;
+        RenderOxePage();
+    }
+
+    private void OxeFilter_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _isUpdatingOxeFilters) return;
+        ApplyOxeFilters();
+    }
+
+    private void RenderOxePage()
+    {
+        _oxeList.Clear();
+        int total = _allOxeFound.Count;
+        int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)OxePageSize));
+        if (_oxeCurrentPage > totalPages) _oxeCurrentPage = totalPages;
+        if (_oxeCurrentPage < 1) _oxeCurrentPage = 1;
+
+        var pageItems = _allOxeFound
+            .Skip((_oxeCurrentPage - 1) * OxePageSize)
+            .Take(OxePageSize);
+
+        foreach (var item in pageItems)
+            _oxeList.Add(item);
+
+        if (TxtOxePageInfo != null)
+            TxtOxePageInfo.Text = $"Página {_oxeCurrentPage} de {totalPages} ({total} ramais)";
+        if (BtnOxePrevPage != null)
+            BtnOxePrevPage.IsEnabled = _oxeCurrentPage > 1;
+        if (BtnOxeNextPage != null)
+            BtnOxeNextPage.IsEnabled = _oxeCurrentPage < totalPages;
+    }
+
+    private void BtnOxePrevPage_Click(object sender, RoutedEventArgs e)
+    {
+        if (_oxeCurrentPage > 1)
+        {
+            _oxeCurrentPage--;
+            RenderOxePage();
+        }
+    }
+
+    private void BtnOxeNextPage_Click(object sender, RoutedEventArgs e)
+    {
+        int totalPages = Math.Max(1, (int)Math.Ceiling(_allOxeFound.Count / (double)OxePageSize));
+        if (_oxeCurrentPage < totalPages)
+        {
+            _oxeCurrentPage++;
+            RenderOxePage();
+        }
+    }
+
+    private void BtnRefreshOxe_Click(object sender, RoutedEventArgs e)
+    {
+        _ = LoadOxeAsync();
+    }
+
+    private void TxtOxeSearch_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            e.Handled = true;
+            ApplyOxeFilters();
+        }
+    }
+
+    private void BtnOxeOpenSite_Click(object sender, RoutedEventArgs e)
+    {
+        string url = ConfigService.UrlOxe;
+        if (!InputValidator.IsSafeHttpUrl(url))
+        {
+            System.Windows.MessageBox.Show("Configure uma URL http/https válida para a Central Telefônica OXE nas Configurações.", "URL Inválida", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        _browserLauncherService.OpenUrlsInFirefox(new[] { url });
+    }
+
+    private void BtnOxeDetails_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not OxeRamalItem item)
+            return;
+
+        var win = new System.Windows.Window
+        {
+            Title = $"Detalhes Completos do Ramal — {item.RamalDisplay}",
+            Width = 860,
+            Height = 700,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+            Foreground = System.Windows.Media.Brushes.White
+        };
+
+        var root = new System.Windows.Controls.Grid { Margin = new Thickness(20) };
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+
+        var header = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+        header.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"📞 Ramal {item.RamalDisplay} — {item.NomeDisplay}",
+            FontSize = 19,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = System.Windows.Media.Brushes.White
+        });
+        header.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "Ficha técnica completa extraída da Central Telefônica Alcatel-Lucent OmniPCX Enterprise (OXE).",
+            FontSize = 12,
+            Margin = new Thickness(0, 4, 0, 0),
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        System.Windows.Controls.Grid.SetRow(header, 0);
+        root.Children.Add(header);
+
+        var scroll = new System.Windows.Controls.ScrollViewer
+        {
+            VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto
+        };
+        var sectionsStack = new System.Windows.Controls.StackPanel();
+
+        string G(params string[] keys)
+        {
+            string val = GetOxeField(item, keys);
+            return string.IsNullOrWhiteSpace(val) ? "-" : val;
+        }
+
+        sectionsStack.Children.Add(CreateOxeSectionExpander("👤 Identificação do Assinante & Titular", true, new (string, string)[]
+        {
+            ("Ramal", G("ramal", "directory_number")),
+            ("Login Externo", G("login_externo", "external_login")),
+            ("Nome Titular", G("nome_titular", "name", "nome")),
+            ("E-mail", G("email", "e_mail")),
+            ("Complemento", G("complemento", "complement")),
+            ("Idioma (Language_Id)", G("language_id", "idioma")),
+            ("Nome Exibido", G("nome_exibido", "display_name")),
+            ("Qtd. Usuários", G("qtd_usuarios", "nb_users"))
+        }));
+
+        sectionsStack.Children.Add(CreateOxeSectionExpander("🌐 Rede, IP & Hardware", true, new (string, string)[]
+        {
+            ("Endereço IP", G("endereco_ip", "ip", "ip_address")),
+            ("Endereço PABX", $"{G("endereco_equipamento")} (Rack {G("rack", "equipment_address_rack")} / Placa {G("placa", "equipment_address_board")} / Terminal {G("terminal", "equipment_address_terminal")})"),
+            ("MAC Address", G("mac_address", "mac")),
+            ("Criptografia Nativa", G("criptografia_nativa", "native_encryption")),
+            ("Categoria Dispositivo", G("categoria_dispositivo", "categoria_do_dispositivo", "categoria")),
+            ("Suporte a Vídeo", G("suporte_video", "video_support"))
+        }));
+
+        sectionsStack.Children.Add(CreateOxeSectionExpander("📞 Telefonia, Grupo de Captura & Regras de Acesso", true, new (string, string)[]
+        {
+            ("Grupo de Captura (Pickup Group)", G("grupo_de_captura", "grupo_captura", "pickup_group")),
+            ("Centro de Custo", G("centro_de_custo", "cost_center")),
+            ("Cat. Rede Pública", G("cat_rede_pública", "cat_rede_publica", "categoria_rede_publica", "public_network_category")),
+            ("Função Adm", G("funcao_adm", "admin_function")),
+            ("Cat. Encaminhamento Externo", G("cat_encaminhamento_externo", "external_forwarding_category")),
+            ("Cat. Chamador (Caller Category)", G("cat_chamador", "caller_category")),
+            ("Cat. Medição / Tarifação", G("cat_medicao", "charging_category")),
+            ("Cat. Conexão / Dados", $"{G("cat_conexao")} / {G("cat_dados")}")
+        }));
+
+        sectionsStack.Children.Add(CreateOxeSectionExpander("⚙️ Tipo de Estação, Perfil & Teclado", true, new (string, string)[]
+        {
+            ("Tipo de Estação", G("tipo_de_estacao", "tipo_estacao", "station_type")),
+            ("Módulos de Extensão", $"{G("modulo_extensao_1")} / {G("modulo_extensao_2")}"),
+            ("Subtipo de Estação", G("subtipo", "station_sub_type")),
+            ("Teclado Interno", G("teclado_interno", "internal_keyboard")),
+            ("Função / Role", G("funcao_role", "set_role", "funcao")),
+            ("Entidade / Domínio", $"{G("entity_number", "entidade")} / {G("domain", "dominio")}"),
+            ("Perfil DM / Tipo", $"{G("dm_profile")} | {G("dm_type")}"),
+            ("Licença Opex", G("opex_license", "licenca_opex"))
+        }));
+
+        sectionsStack.Children.Add(CreateOxeSectionExpander("🎙️ Correio de Voz & Recursos Especiais", true, new (string, string)[]
+        {
+            ("Tipo Correio de Voz", G("tipo_correio_voz", "voice_mail_type")),
+            ("Controle PIN", G("controle_pin", "pin_control")),
+            ("Ramal Correio de Voz", G("ramal_correio_voz", "voice_mail_dir_nb")),
+            ("Atendimento VIP", G("atendimento_vip", "vip")),
+            ("Grupo ACD", G("grupo_acd", "acd_group")),
+            ("Chamada Urgente", G("chamada_urgente", "urgent_call"))
+        }));
+
+        // Dicionário Completo de Dados Brutos (JSON)
+        string rawJson = System.Text.Json.JsonSerializer.Serialize(item.AllFields);
+        var rawBox = TryBuildFormattedJsonRichTextBox(rawJson);
+        if (rawBox != null)
+        {
+            rawBox.MaxHeight = 320;
+            var rawExpander = new System.Windows.Controls.Expander
+            {
+                Header = "🔍 Dicionário Completo de Dados Brutos (API OXE)",
+                IsExpanded = false,
+                Foreground = System.Windows.Media.Brushes.White,
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 0, 10),
+                Padding = new Thickness(10),
+                Content = rawBox
+            };
+            sectionsStack.Children.Add(rawExpander);
+        }
+
+        scroll.Content = sectionsStack;
+        System.Windows.Controls.Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+
+        var footer = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        var btnClose = new Wpf.Ui.Controls.Button
+        {
+            Content = "Fechar",
+            Appearance = ControlAppearance.Primary,
+            Padding = new Thickness(14, 6, 14, 6)
+        };
+        btnClose.Click += (_, _) => win.Close();
+        footer.Children.Add(btnClose);
+        System.Windows.Controls.Grid.SetRow(footer, 2);
+        root.Children.Add(footer);
+
+        win.Content = root;
+        win.ShowDialog();
+    }
+
+    private static System.Windows.Controls.Expander CreateOxeSectionExpander(string title, bool isExpanded, (string Label, string Value)[] items)
+    {
+        var grid = new System.Windows.Controls.Grid { Margin = new Thickness(4, 8, 4, 4) };
+        grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        int rows = (int)Math.Ceiling(items.Length / 2.0);
+        for (int r = 0; r < rows; r++)
+            grid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+
+        for (int i = 0; i < items.Length; i++)
+        {
+            int r = i / 2;
+            int c = i % 2;
+
+            var rowPanel = new System.Windows.Controls.StackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                Margin = new Thickness(0, 0, 12, 8)
+            };
+            rowPanel.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = $"{items[i].Label}: ",
+                FontSize = 12.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(226, 232, 240)),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            rowPanel.Children.Add(new System.Windows.Controls.Border
+            {
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 2, 6, 2),
+                Child = new System.Windows.Controls.TextBlock
+                {
+                    Text = items[i].Value,
+                    FontSize = 12,
+                    FontFamily = new FontFamily("Consolas, Cascadia Code, Courier New"),
+                    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(110, 231, 183)),
+                    TextWrapping = TextWrapping.Wrap
+                }
+            });
+
+            System.Windows.Controls.Grid.SetRow(rowPanel, r);
+            System.Windows.Controls.Grid.SetColumn(rowPanel, c);
+            grid.Children.Add(rowPanel);
+        }
+
+        return new System.Windows.Controls.Expander
+        {
+            Header = title,
+            IsExpanded = isExpanded,
+            Foreground = System.Windows.Media.Brushes.White,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+            BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+            BorderThickness = new Thickness(1),
+            Margin = new Thickness(0, 0, 0, 10),
+            Padding = new Thickness(10),
+            Content = grid
+        };
+    }
+
+    private static System.Windows.Controls.RichTextBox? TryBuildFormattedJsonRichTextBox(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        string trimmed = raw.Trim();
+        if (!(trimmed.StartsWith('{') || trimmed.StartsWith('['))) return null;
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(trimmed);
+            string pretty = System.Text.Json.JsonSerializer.Serialize(
+                doc.RootElement,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+            var rtb = new System.Windows.Controls.RichTextBox
+            {
+                IsReadOnly = true,
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                Padding = new Thickness(8),
+                FontFamily = new FontFamily("Consolas, Cascadia Code, Courier New"),
+                FontSize = 12,
+                VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto,
+                MaxHeight = 240
+            };
+
+            var para = new Paragraph { Margin = new Thickness(0) };
+            var keyBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(125, 211, 252));   // Sky
+            var strBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(110, 231, 183));   // Emerald
+            var numBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(251, 191, 36));    // Amber
+            var puncBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184));  // Slate
+
+            foreach (string line in pretty.Split('\n'))
+            {
+                string cleanLine = line.TrimEnd('\r');
+                int colonIdx = cleanLine.IndexOf("\": ", StringComparison.Ordinal);
+                if (colonIdx > 0)
+                {
+                    string keyPart = cleanLine[..(colonIdx + 1)];
+                    string sepPart = ": ";
+                    string valPart = cleanLine[(colonIdx + 3)..];
+                    para.Inlines.Add(new Run(keyPart) { Foreground = keyBrush });
+                    para.Inlines.Add(new Run(sepPart) { Foreground = puncBrush });
+                    var valBrush = valPart.TrimStart().StartsWith('"') ? strBrush
+                        : (valPart.TrimStart().StartsWith('{') || valPart.TrimStart().StartsWith('[')) ? puncBrush
+                        : numBrush;
+                    para.Inlines.Add(new Run(valPart + "\n") { Foreground = valBrush });
+                }
+                else
+                {
+                    para.Inlines.Add(new Run(cleanLine + "\n") { Foreground = puncBrush });
+                }
+            }
+
+            rtb.Document = new FlowDocument(para);
+            return rtb;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    #endregion
+
+    #region Painel 17: Impressoras PaperCut
+
+    private async System.Threading.Tasks.Task LoadImpressorasAsync()
+    {
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando impressoras do PaperCut no PostgreSQL...";
+        if (BtnRefreshImpressoras != null) BtnRefreshImpressoras.IsEnabled = false;
+
+        try
+        {
+            var (success, items, summary, message) = await _impressorasService.QueryImpressorasAsync();
+            if (success)
+            {
+                _allImpressorasRaw.Clear();
+                _allImpressorasRaw.AddRange(items);
+                PopulateImpressorasFilterCombos();
+                ApplyImpressorasFilters();
+
+                if (TxtImpressorasKpiTotal != null) TxtImpressorasKpiTotal.Text = summary.Total.ToString();
+                if (TxtImpressorasKpiOk != null) TxtImpressorasKpiOk.Text = summary.OkCount.ToString();
+                if (TxtImpressorasKpiAlert != null) TxtImpressorasKpiAlert.Text = summary.AlertCount.ToString();
+                if (TxtImpressorasKpiPaginas != null) TxtImpressorasKpiPaginas.Text = summary.TotalPaginasSoma.ToString("N0", new System.Globalization.CultureInfo("pt-BR"));
+            }
+
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = message;
+        }
+        catch (Exception ex)
+        {
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar impressoras: {ex.Message}";
+        }
+        finally
+        {
+            if (BtnRefreshImpressoras != null) BtnRefreshImpressoras.IsEnabled = true;
+        }
+    }
+
+    private void PopulateImpressorasFilterCombos()
+    {
+        _isUpdatingImpressorasFilters = true;
+        try
+        {
+            FillStringCombo(CmbImpressorasTipo, "Tipo: Todos", _allImpressorasRaw.Select(x => x.Tipo));
+            FillStringCombo(CmbImpressorasStatus, "Status: Todos", _allImpressorasRaw.Select(x => x.Status));
+            FillStringCombo(CmbImpressorasServidor, "Servidor: Todos", _allImpressorasRaw.Select(x => x.Servidor));
+            FillStringCombo(CmbImpressorasLocalizacao, "Localização: Todas", _allImpressorasRaw.Select(x => x.Localizacao));
+        }
+        finally
+        {
+            _isUpdatingImpressorasFilters = false;
+        }
+    }
+
+    private static void FillStringCombo(System.Windows.Controls.ComboBox? cmb, string allLabel, IEnumerable<string> rawValues)
+    {
+        if (cmb == null) return;
+        string? prev = cmb.SelectedItem as string;
+        cmb.Items.Clear();
+        cmb.Items.Add(allLabel);
+
+        foreach (var v in rawValues
+            .Where(BancadaOxeService.HasRealValue)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(v => v, StringComparer.OrdinalIgnoreCase))
+        {
+            cmb.Items.Add(v);
+        }
+
+        cmb.SelectedItem = prev != null && cmb.Items.Contains(prev) ? prev : allLabel;
+    }
+
+    private void ApplyImpressorasFilters()
+    {
+        string q = TxtImpressorasSearch?.Text?.Trim() ?? string.Empty;
+        string tipo = CmbImpressorasTipo?.SelectedIndex > 0 ? CmbImpressorasTipo.SelectedItem?.ToString() ?? "" : "";
+        string status = CmbImpressorasStatus?.SelectedIndex > 0 ? CmbImpressorasStatus.SelectedItem?.ToString() ?? "" : "";
+        string servidor = CmbImpressorasServidor?.SelectedIndex > 0 ? CmbImpressorasServidor.SelectedItem?.ToString() ?? "" : "";
+        string loc = CmbImpressorasLocalizacao?.SelectedIndex > 0 ? CmbImpressorasLocalizacao.SelectedItem?.ToString() ?? "" : "";
+
+        var filtered = _allImpressorasRaw.Where(item =>
+        {
+            if (!string.IsNullOrWhiteSpace(q) && !item.AllFields.Values.Any(v => v.Contains(q, StringComparison.OrdinalIgnoreCase)))
+                return false;
+            if (!string.IsNullOrEmpty(tipo) && !string.Equals(item.Tipo, tipo, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(status) && !string.Equals(item.Status, status, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(servidor) && !string.Equals(item.Servidor, servidor, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (!string.IsNullOrEmpty(loc) && !string.Equals(item.Localizacao, loc, StringComparison.OrdinalIgnoreCase))
+                return false;
+            return true;
+        });
+
+        _allImpressorasFound.Clear();
+        _allImpressorasFound.AddRange(filtered);
+        _impressorasCurrentPage = 1;
+        RenderImpressorasPage();
+    }
+
+    private void ImpressoraFilter_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _isUpdatingImpressorasFilters) return;
+        ApplyImpressorasFilters();
+    }
+
+    private void RenderImpressorasPage()
+    {
+        _impressorasList.Clear();
+        int total = _allImpressorasFound.Count;
+        int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)ImpressorasPageSize));
+        if (_impressorasCurrentPage > totalPages) _impressorasCurrentPage = totalPages;
+        if (_impressorasCurrentPage < 1) _impressorasCurrentPage = 1;
+
+        var pageItems = _allImpressorasFound
+            .Skip((_impressorasCurrentPage - 1) * ImpressorasPageSize)
+            .Take(ImpressorasPageSize);
+
+        foreach (var item in pageItems)
+            _impressorasList.Add(item);
+
+        if (TxtImpressorasPageInfo != null)
+            TxtImpressorasPageInfo.Text = $"Página {_impressorasCurrentPage} de {totalPages} ({total} impressoras)";
+        if (BtnImpressorasPrevPage != null)
+            BtnImpressorasPrevPage.IsEnabled = _impressorasCurrentPage > 1;
+        if (BtnImpressorasNextPage != null)
+            BtnImpressorasNextPage.IsEnabled = _impressorasCurrentPage < totalPages;
+    }
+
+    private void BtnImpressorasPrevPage_Click(object sender, RoutedEventArgs e)
+    {
+        if (_impressorasCurrentPage > 1)
+        {
+            _impressorasCurrentPage--;
+            RenderImpressorasPage();
+        }
+    }
+
+    private void BtnImpressorasNextPage_Click(object sender, RoutedEventArgs e)
+    {
+        int totalPages = Math.Max(1, (int)Math.Ceiling(_allImpressorasFound.Count / (double)ImpressorasPageSize));
+        if (_impressorasCurrentPage < totalPages)
+        {
+            _impressorasCurrentPage++;
+            RenderImpressorasPage();
+        }
+    }
+
+    private void BtnRefreshImpressoras_Click(object sender, RoutedEventArgs e)
+    {
+        _ = LoadImpressorasAsync();
+    }
+
+    private void TxtImpressorasSearch_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            e.Handled = true;
+            ApplyImpressorasFilters();
+        }
+    }
+
+    private void BtnImpressorasOpenSite_Click(object sender, RoutedEventArgs e)
+    {
+        string url = ConfigService.UrlPapercut;
+        if (!InputValidator.IsSafeHttpUrl(url))
+        {
+            System.Windows.MessageBox.Show("Configure uma URL http/https válida para o Admin PaperCut nas Configurações.", "URL Inválida", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        _browserLauncherService.OpenUrlsInFirefox(new[] { url });
+    }
+
+    private void BtnImpressoraOpenIp_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not ImpressoraItem item || !item.HasIpHost)
+            return;
+
+        string raw = item.IpHost.Trim();
+        string url = raw.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || raw.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? raw
+            : $"http://{raw}";
+
+        if (!InputValidator.IsSafeHttpUrl(url))
+        {
+            System.Windows.MessageBox.Show($"Endereço '{item.IpHost}' inválido para abertura no navegador.", "Endereço Inválido", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        _browserLauncherService.OpenUrlsInFirefox(new[] { url });
+    }
+
+    private void BtnImpressoraDetails_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not ImpressoraItem item)
+            return;
+
+        var win = new System.Windows.Window
+        {
+            Title = $"Detalhes da Impressora — {item.NomeDisplay}",
+            Width = 840,
+            Height = 660,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+            Foreground = System.Windows.Media.Brushes.White
+        };
+
+        var root = new System.Windows.Controls.Grid { Margin = new Thickness(20) };
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+
+        var header = new System.Windows.Controls.StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+        header.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"🖨️ {item.NomeDisplay}",
+            FontSize = 19,
+            FontWeight = FontWeights.SemiBold,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = System.Windows.Media.Brushes.White
+        });
+        header.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = $"Status: {item.StatusDisplay}  |  Tipo: {item.TipoDisplay}  |  Atualizado em: {FormatDateBr(item.DataAtualizacao)}",
+            FontSize = 12,
+            Margin = new Thickness(0, 4, 0, 0),
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+        });
+        System.Windows.Controls.Grid.SetRow(header, 0);
+        root.Children.Add(header);
+
+        var scroll = new System.Windows.Controls.ScrollViewer { VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto };
+        var stack = new System.Windows.Controls.StackPanel();
+
+        string D(string? v) => string.IsNullOrWhiteSpace(v) ? "-" : v;
+
+        stack.Children.Add(CreateOxeSectionExpander("🖨️ Identificação & Localização", true, new (string, string)[]
+        {
+            ("Nome", D(item.Nome)),
+            ("Tipo", D(item.Tipo)),
+            ("Modelo", D(item.Modelo)),
+            ("Localização", D(item.Localizacao)),
+            ("Servidor", D(item.Servidor)),
+            ("Status", D(item.Status))
+        }));
+
+        stack.Children.Add(CreateOxeSectionExpander("🌐 Rede, Filas & Contagem", true, new (string, string)[]
+        {
+            ("IP / Host", D(item.IpHost)),
+            ("Total de Páginas", item.TotalPaginas.ToString("N0", new System.Globalization.CultureInfo("pt-BR"))),
+            ("Filas Relacionadas", D(item.FilasRelacionadas)),
+            ("Atualizado em", FormatDateBr(item.DataAtualizacao))
+        }));
+
+        if (!string.IsNullOrWhiteSpace(item.DetalhesExtra))
+        {
+            var extraJsonBox = TryBuildFormattedJsonRichTextBox(item.DetalhesExtra);
+            object extraContent = extraJsonBox != null
+                ? extraJsonBox
+                : new System.Windows.Controls.TextBox
+                {
+                    Text = item.DetalhesExtra,
+                    IsReadOnly = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Foreground = System.Windows.Media.Brushes.White,
+                    FontSize = 12.5
+                };
+
+            stack.Children.Add(new System.Windows.Controls.Expander
+            {
+                Header = "📋 Detalhes Extras (PaperCut)",
+                IsExpanded = true,
+                Foreground = System.Windows.Media.Brushes.White,
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 0, 10),
+                Padding = new Thickness(10),
+                Content = extraContent
+            });
+        }
+
+        string rawJson = System.Text.Json.JsonSerializer.Serialize(item.AllFields);
+        var rawBox = TryBuildFormattedJsonRichTextBox(rawJson);
+        if (rawBox != null)
+        {
+            rawBox.MaxHeight = 280;
+            stack.Children.Add(new System.Windows.Controls.Expander
+            {
+                Header = "🔍 Dicionário Completo de Dados Brutos",
+                IsExpanded = false,
+                Foreground = System.Windows.Media.Brushes.White,
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 0, 0, 10),
+                Padding = new Thickness(10),
+                Content = rawBox
+            });
+        }
+
+        scroll.Content = stack;
+        System.Windows.Controls.Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+
+        var footer = new System.Windows.Controls.StackPanel
+        {
+            Orientation = System.Windows.Controls.Orientation.Horizontal,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0)
+        };
+        if (item.HasIpHost)
+        {
+            var btnOpenIp = new Wpf.Ui.Controls.Button
+            {
+                Content = "Abrir Web IP",
+                Appearance = ControlAppearance.Secondary,
+                Margin = new Thickness(0, 0, 8, 0),
+                Padding = new Thickness(12, 6, 12, 6)
+            };
+            btnOpenIp.Click += (_, _) => BtnImpressoraOpenIp_Click(new System.Windows.Controls.Button { Tag = item }, new RoutedEventArgs());
+            footer.Children.Add(btnOpenIp);
+        }
+        var btnClose = new Wpf.Ui.Controls.Button
+        {
+            Content = "Fechar",
+            Appearance = ControlAppearance.Primary,
+            Padding = new Thickness(14, 6, 14, 6)
+        };
+        btnClose.Click += (_, _) => win.Close();
+        footer.Children.Add(btnClose);
+        System.Windows.Controls.Grid.SetRow(footer, 2);
+        root.Children.Add(footer);
+
+        win.Content = root;
+        win.ShowDialog();
     }
 
     #endregion

@@ -60,6 +60,22 @@ public class ChamadoItem
 
     public Visibility LinkButtonVisibility => !string.IsNullOrWhiteSpace(Link) ? Visibility.Visible : Visibility.Collapsed;
     public Visibility HostnameButtonVisibility => !string.IsNullOrWhiteSpace(Hostname) ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility AndamentoVisibility => !string.IsNullOrWhiteSpace(Andamento) ? Visibility.Visible : Visibility.Collapsed;
+    public string AndamentoDisplay => string.IsNullOrWhiteSpace(Andamento) ? string.Empty : Andamento.Trim();
+
+    public string DataCriacaoBr
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(DataCriacao)) return "-";
+            if (DateTime.TryParse(DataCriacao, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeLocal, out var dt) ||
+                DateTime.TryParse(DataCriacao, new System.Globalization.CultureInfo("pt-BR"), System.Globalization.DateTimeStyles.AssumeLocal, out dt))
+            {
+                return dt.ToString("dd/MM/yyyy HH:mm:ss");
+            }
+            return DataCriacao.Trim();
+        }
+    }
 }
 
 public class ChamadosSummary
@@ -68,4 +84,11 @@ public class ChamadosSummary
     public int Abertos { get; set; }
     public int OtrsCount { get; set; }
     public int CitSmartCount { get; set; }
+}
+
+public class ChamadoComentario
+{
+    public string Data { get; set; } = string.Empty;
+    public string Autor { get; set; } = string.Empty;
+    public string Texto { get; set; } = string.Empty;
 }

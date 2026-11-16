@@ -145,6 +145,8 @@ public static class ConfigService
     public static string AdminAdUser => Get("ADMIN_AD_USER", "");
     public static string UrlOtrs => Get("URL_OTRS", "");
     public static string UrlCitsmart => Get("URL_CITSMART", "");
+    public static string UrlOxe => Get("URL_OXE", "");
+    public static string UrlPapercut => Get("URL_PAPERCUT", "");
     public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "");
     public static string BancadaWindowsDir => Get("BANCADA_WINDOWS_DIR", "");
     public static string BancadaWslDir => Get("BANCADA_WSL_DIR", "");
@@ -155,6 +157,7 @@ public static class ConfigService
     public static string RsatMsuNetworkPath => Get("RSAT_MSU_NETWORK_PATH", "");
 
     public static string DeviceReportsDir => Get("DEVICE_REPORTS_DIR", "");
+    public static string ChamadosReportsDir => Get("CHAMADOS_REPORTS_DIR", "");
     public static string CmRcViewerCustomPath => Get("CMRCVIEWER_PATH", "");
     public static string FirefoxBinaryPath => Get("FIREFOX_PATH", "");
     public static string UsmtPath => Get("USMT_PATH", "");
@@ -183,12 +186,15 @@ public static class ConfigService
             "SCCM_SITE_CODE" => "XXX",
             "URL_OTRS" => "https://central.empresa.gov.br/",
             "URL_CITSMART" => "https://suporte.empresa.gov.br/",
+            "URL_OXE" => "https://oxe.empresa.local/",
+            "URL_PAPERCUT" => "http://impressora.empresa.local:9191/admin",
             "URL_BANCADA_LOCAL" => "http://localhost:8501/",
             "BANCADA_WSL_DIR" => $"/home/{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}/projetos/bancada",
             "BANCADA_WSL_DISTRO" => "Ubuntu-26.04",
             "BANCADA_WINDOWS_DIR" => $@"\\wsl.localhost\Ubuntu-26.04\home\{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}\projetos\bancada",
             "WHATSAPP_PWA_ARGS" => "\"-taskbar-tab\" \"uuid\" \"-new-window\" \"https://web.whatsapp.com/\" \"-container\" \"0\"",
             "DEVICE_REPORTS_DIR" => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DeviceReports"),
+            "CHAMADOS_REPORTS_DIR" => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "ChamadosReports"),
             "CMRCVIEWER_PATH" => @"C:\Program Files (x86)\Microsoft Endpoint Manager\AdminConsole\bin\i386\CmRcViewer.exe",
             "FIREFOX_PATH" => @"C:\Program Files\Mozilla Firefox\firefox.exe",
             "USMT_PATH" => @"C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\User State Migration Tool\amd64",

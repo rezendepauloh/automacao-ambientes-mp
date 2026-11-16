@@ -306,6 +306,96 @@ public class BancadaChamadosService
         }
     }
 
+    public async Task<List<ChamadoComentario>> GetComentariosChamadoAsync(string chamadoId)
+    {
+        var list = new List<ChamadoComentario>();
+        if (string.IsNullOrWhiteSpace(chamadoId) || !TryBuildConnectionStringFromConfig(out string connStr, out _))
+            return list;
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connStr);
+            await conn.OpenAsync();
+
+            const string sql = """
+                SELECT COALESCE(data, ''), COALESCE(autor, ''), COALESCE(texto, '')
+                FROM comentarios
+                WHERE chamado_id = @chamadoId
+                ORDER BY id ASC;
+                """;
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@chamadoId", chamadoId.Trim());
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                list.Add(new ChamadoComentario
+                {
+                    Data = reader.GetString(0),
+                    Autor = reader.GetString(1),
+                    Texto = reader.GetString(2)
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Falha ao carregar comentários do chamado #{chamadoId}: {ex.Message}", nameof(BancadaChamadosService));
+        }
+
+        return list;
+    }
+
+    public async Task<Dictionary<string, List<ChamadoComentario>>> GetComentariosPorChamadosAsync(IEnumerable<string> chamadoIds)
+    {
+        var result = new Dictionary<string, List<ChamadoComentario>>(StringComparer.OrdinalIgnoreCase);
+        var ids = chamadoIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray() ?? [];
+
+        if (ids.Length == 0 || !TryBuildConnectionStringFromConfig(out string connStr, out _))
+            return result;
+
+        try
+        {
+            await using var conn = new NpgsqlConnection(connStr);
+            await conn.OpenAsync();
+
+            const string sql = """
+                SELECT COALESCE(chamado_id, ''), COALESCE(data, ''), COALESCE(autor, ''), COALESCE(texto, '')
+                FROM comentarios
+                WHERE chamado_id = ANY(@ids)
+                ORDER BY id ASC;
+                """;
+
+            await using var cmd = new NpgsqlCommand(sql, conn);
+            cmd.Parameters.AddWithValue("@ids", ids);
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                string chamadoId = reader.GetString(0).Trim();
+                if (!result.TryGetValue(chamadoId, out var list))
+                {
+                    list = [];
+                    result[chamadoId] = list;
+                }
+                list.Add(new ChamadoComentario
+                {
+                    Data = reader.GetString(1),
+                    Autor = reader.GetString(2),
+                    Texto = reader.GetString(3)
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Falha ao carregar comentários em lote: {ex.Message}", nameof(BancadaChamadosService));
+        }
+
+        return result;
+    }
+
     public async Task<(bool Success, string Message)> UpdateChamadoAsync(
         string id,
         string status,
@@ -338,7 +428,9 @@ public class BancadaChamadosService
                     localidade_fisica = @localidadeFisica,
                     descricao = @descricao,
                     andamento = @andamento,
-                    data_atualizacao = @dataAtualizacao
+                    data_atualizacao = @dataAtualizacao,
+                    tag_manual = 1,
+                    dados_manuais = 1
                 WHERE id = @id;
                 """;
 

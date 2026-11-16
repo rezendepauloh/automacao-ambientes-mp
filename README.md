@@ -10,6 +10,7 @@
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1%20%2F%207+-5391FE?style=for-the-badge&logo=powershell&logoColor=white)
 ![Active Directory](https://img.shields.io/badge/Active%20Directory-LDAP-00599C?style=for-the-badge&logo=microsoft&logoColor=white)
 ![SCCM](https://img.shields.io/badge/MECM%20%2F%20SCCM-WMI%20%2B%20CMSite-blue?style=for-the-badge)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Npgsql%208.0-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Tests](https://img.shields.io/badge/Testes-100%25%20Passing-brightgreen?style=for-the-badge)
 
 **Central Unificada de Produtividade, Automação de Ambientes de Trabalho, Acesso Remoto Integrado e Saneamento de Recursos.**
@@ -35,6 +36,8 @@
   - [3.8 Terminal de Logs, Central de Logs & Notificações Toast](#38-terminal-de-logs-central-de-logs--notificações-toast)
   - [3.9 Escudo de Processos & Proteção de Segurança](#39-escudo-de-processos--proteção-de-segurança)
   - [3.10 Backup & Restore USMT, Tweaks de Registro e Bancada Docker](#310-backup--restore-usmt-tweaks-de-registro-e-bancada-docker)
+  - [3.11 Central de Chamados (OTRS & CitSmart — PostgreSQL da Bancada)](#311-central-de-chamados-otrs--citsmart--postgresql-da-bancada)
+  - [3.12 Central Telefônica OXE & Impressoras PaperCut (PostgreSQL da Bancada)](#312-central-telefônica-oxe--impressoras-papercut-postgresql-da-bancada)
 - [4. Estrutura de Diretórios](#-4-estrutura-de-diretórios)
 - [5. Como Executar & Compilar](#-5-como-executar--compilar)
 - [6. Suíte de Testes Automatizados (xUnit + Runner ANSI)](#-6-suíte-de-testes-automatizados-xunit--runner-ansi)
@@ -142,7 +145,7 @@ graph TD
 ### 3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)
 
 - **Criptografia DPAPI de Alta Segurança:** Senhas criptografadas usando a API de Proteção de Dados do Windows (`DataProtectionScope.CurrentUser`), garantindo que o cofre só possa ser lido na sessão do próprio operador.
-- **Zero Credenciais Hardcoded:** Todas as chaves e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência), incluindo botões de reset para valores recomendados dinâmicos e configuração automática de `USMT_PATH`.
+- **Zero Credenciais Hardcoded:** Todas as chaves, caminhos de relatórios (`DEVICE_REPORTS_DIR`, `CHAMADOS_REPORTS_DIR`), conexão PostgreSQL (`BANCADA_DB_*`) e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência), incluindo botões de reset para valores recomendados dinâmicos, configuração automática de `USMT_PATH` e painel com **Informações desta Máquina** (Hostname, IPv4 local, Usuário e Sistema Operacional).
 
 ### 3.8 Terminal de Logs, Central de Logs & Notificações Toast
 
@@ -160,6 +163,19 @@ graph TD
 - **Backup & Restore de Perfis (Windows USMT):** Execução local ou remota (`ScanState` / `LoadState`) com seleção granular de usuários por checkbox, **zero exclusão de perfis**, suporte a criptografia opcional e download/configuração automática do recurso USMT do Windows ADK.
 - **Otimizações de Registro (Tweaks & Rollback):** Ajustes cirúrgicos no Windows Registry com backup `.reg` automático pré-gravação e reversão em 1 clique.
 - **Bancada Docker (WSL):** Inicialização, parada, reconstrução (`build --no-cache`) e streaming contínuo desbufferizado (`PYTHONUNBUFFERED=1`) dos logs do Streamlit.
+
+### 3.11 Central de Chamados (OTRS & CitSmart — PostgreSQL da Bancada)
+
+- **Conexão Direta Segura (`Npgsql`):** Integra-se diretamente ao banco PostgreSQL do container Docker da Bancada (`127.0.0.1:5432`) utilizando consultas SQL parametrizadas e credenciais isoladas no `.env` (`BANCADA_DB_HOST`, `BANCADA_DB_PORT`, `BANCADA_DB_NAME`, `BANCADA_DB_USER`, `BANCADA_DB_PASSWORD`) em modo *fail-closed*.
+- **KPIs & Filtros Dinâmicos em Cascata:** Exibe contadores (`Total no Banco`, `Abertos`, `Base OTRS`, `Base CitSmart`), paginação (10 chamados por página), busca textual, filtro por Base, Status, **Tags** e **Localidade Física com seleção múltipla** (as opções de Tags e Localidades se ajustam dinamicamente aos filtros ativos).
+- **Visualização, Edição & Comentários:** Modal de detalhes abre em modo somente leitura com datas em padrão `dd/MM/yyyy HH:mm:ss`, botão **Habilitar Edição** para atualizar `status`, `hostname`, `tag`, `cidade_predio`, `unidade`, `localidade_fisica`, `descricao` e `andamento` (gravando `tag_manual = 1` e `dados_manuais = 1` para proteger contra sobrescrita do orquestrador), além de carregar separadamente o histórico da tabela `comentarios`.
+- **Ações Rápidas & Relatório HTML/PDF Responsivo:** Permite abrir o chamado ou portais no Firefox, enviar o `Hostname` direto para o **Acesso Remoto**, abrir a pasta de saída (`CHAMADOS_REPORTS_DIR`, padrão `%USERPROFILE%\ChamadosReports`) e exportar um relatório HTML único responsivo (ideal para envio via WhatsApp/celular e impressão em PDF), com accordions interativos, busca rápida, marcação de concluídos (`localStorage`), destaque de localidade e todos os comentários incluídos.
+
+### 3.12 Central Telefônica OXE & Impressoras PaperCut (PostgreSQL da Bancada)
+
+- **Menu Lateral estilo PowerToys:** Os módulos são organizados em grupos dropdown expansíveis/recolhíveis (**Acesso Remoto & AD**, **Máquina Local & Auditoria**, **Scripts & Migração** e **Bancada Streamlit**), mantendo compatibilidade total com a busca global e o Tray Icon.
+- **Telefonia OXE (`central_telefonica`):** Consulta todos os ramais com KPIs (`Total`, `Com Nome/Usuário`, `Com IP/MAC`), paginação (15 por página), busca textual, 5 filtros combináveis (`Categoria do Dispositivo`, `Tipo de Estação`, `Grupo de Captura`, `Categoria Rede Pública`, `Função/Role`), 4 checkboxes (`Com/Sem MAC` e `Com/Sem IP`), modal de detalhes em 6 `Expander`s com dicionário JSON colorido e botão **Abrir Site OXE** (`URL_OXE`).
+- **Impressoras PaperCut (`impressoras`):** Consulta todas as impressoras/dispositivos com KPIs (`Total`, `OK/Online`, `Com Alerta/Erro`, `Total de Páginas`), paginação (15 por página), filtros por `Tipo`, `Status`, `Servidor` e `Localização`, botões **Abrir Admin PaperCut** (`URL_PAPERCUT`) e **Abrir IP Web**, além de modal de detalhes com `Expander`s e JSON colorido para `detalhes_extra`.
 
 ---
 
@@ -179,8 +195,11 @@ AmbientesVirtuais/
 │   ├── Models/                               # Modelos de dados e contratos
 │   │   ├── AdUserDetails.cs                  # Ficha completa de usuário no Active Directory
 │   │   ├── BancadaModels.cs                  # Modelos da Bancada e Diagnóstico/Perfis Remotos
+│   │   ├── ChamadoItem.cs                    # Modelos de Chamados, KPIs e Comentários (PostgreSQL)
 │   │   ├── CleanupOptions.cs                 # Opções e perfis de saneamento de processos
+│   │   ├── ImpressoraItem.cs                 # Modelos de Impressoras PaperCut (PostgreSQL)
 │   │   ├── MachineDetails.cs                 # Ficha completa da máquina (AD, SCCM, IP, Status)
+│   │   ├── OxeRamalItem.cs                   # Modelos de Ramais da Central Telefônica OXE (PostgreSQL)
 │   │   ├── PerformanceAuditModels.cs         # Relatórios e opções de auditoria de sistema
 │   │   ├── RegistryTweakItem.cs              # Definição e status de tweaks do Registro
 │   │   ├── SoftwarePackageItem.cs            # Catálogo de provisionamento de softwares/USMT
@@ -189,7 +208,10 @@ AmbientesVirtuais/
 │   ├── Services/                             # Camada de serviços autônomos em C#
 │   │   ├── AdSccmService.cs                  # Conexão híbrida AD LDAP + SCCM WMI/CMSite + Ping
 │   │   ├── AppLoggerService.cs               # Sistema de logs com rotação e stream em tempo real
+│   │   ├── BancadaChamadosService.cs         # Consultas/edição Npgsql no PostgreSQL da Bancada
 │   │   ├── BancadaDockerService.cs           # Controle Docker/WSL com stream desbufferizado
+│   │   ├── BancadaImpressorasService.cs      # Consultas Npgsql de impressoras PaperCut
+│   │   ├── BancadaOxeService.cs              # Consultas Npgsql de ramais da Central OXE
 │   │   ├── BrowserLauncherService.cs         # Orquestração segura de Firefox e WhatsApp PWA
 │   │   ├── CleanupService.cs                 # Saneamento de memória, COM Office e Explorer Nuclear
 │   │   ├── ClipboardHelper.cs                # Utilitário com retry para a Área de Transferência

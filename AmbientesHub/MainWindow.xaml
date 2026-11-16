@@ -85,236 +85,130 @@
                         <TextBlock x:Name="TxtNavTitle" Grid.Column="1" Text="MÓDULOS" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Margin="8,0,0,0" />
                     </Grid>
 
-                    <!-- Lista com Itens com Ícone e Texto (Sem Scroll Horizontal) -->
+                    <!-- NavListBox oculto mantido para compatibilidade de SelectedIndex -->
+                    <ListBox x:Name="NavListBox" Visibility="Collapsed" SelectionChanged="NavListBox_SelectionChanged" SelectedIndex="0">
+                        <ListBoxItem Content="0" /><ListBoxItem Content="1" /><ListBoxItem Content="2" /><ListBoxItem Content="3" />
+                        <ListBoxItem Content="4" /><ListBoxItem Content="5" /><ListBoxItem Content="6" /><ListBoxItem Content="7" />
+                        <ListBoxItem Content="8" /><ListBoxItem Content="9" /><ListBoxItem Content="10" /><ListBoxItem Content="11" />
+                        <ListBoxItem Content="12" /><ListBoxItem Content="13" /><ListBoxItem Content="14" /><ListBoxItem Content="15" />
+                        <ListBoxItem Content="16" />
+                        <ListBoxItem Content="17" />
+                    </ListBox>
+
+                    <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <ListBox x:Name="NavListBox" SelectionChanged="NavListBox_SelectionChanged" SelectedIndex="0" Background="Transparent" BorderThickness="0" Margin="4,0,4,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Padding" Value="0" />
-                                    <Setter Property="Margin" Value="0,2" />
-                                    <Setter Property="Cursor" Value="Hand" />
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ListBoxItem">
-                                                <Border x:Name="ItemBorder" CornerRadius="6" Background="Transparent" Padding="8,8">
-                                                    <Grid>
-                                                        <!-- Indicador de Seleção Ativo (Pill Azul) -->
-                                                        <Rectangle x:Name="ActivePill" Width="3.5" Height="18" HorizontalAlignment="Left" VerticalAlignment="Center" RadiusX="1.5" RadiusY="1.5" Fill="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed" Margin="-4,0,0,0" />
+                        <StackPanel x:Name="NavMenuContainer" Margin="6,0,6,10">
+                            <!-- Fixo: Ambientes Virtuais -->
+                            <ui:Button x:Name="NavBtn0" Tag="0" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,8" Margin="0,2">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🛠️" FontSize="15" Width="26" TextAlignment="Center" />
+                                    <TextBlock x:Name="NavLbl0" Text="Ambientes Virtuais" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </ui:Button>
 
-                                                        <ContentPresenter />
-                                                    </Grid>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                                                        <Setter TargetName="ActivePill" Property="Visibility" Value="Visible" />
-                                                    </Trigger>
-                                                    <MultiTrigger>
-                                                        <MultiTrigger.Conditions>
-                                                            <Condition Property="IsMouseOver" Value="True" />
-                                                            <Condition Property="IsSelected" Value="False" />
-                                                        </MultiTrigger.Conditions>
-                                                        <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
-                                                    </MultiTrigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-
-                            <!-- Item 0: Ambientes Virtuais -->
-                            <ListBoxItem ToolTip="Ambientes Virtuais">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🛠️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl0" Grid.Column="1" Text="Ambientes Virtuais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                            <!-- Grupo 1: Acesso Remoto & AD -->
+                            <ui:Button Tag="GrpRemotoAd" Click="NavGroupHeader_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,8" Margin="0,6,0,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🖥️" FontSize="15" TextAlignment="Center" />
+                                    <TextBlock x:Name="GrpLblRemotoAd" Grid.Column="1" Text="Acesso Remoto &amp; AD" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GrpChevRemotoAd" Grid.Column="2" Text="⌃" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
                                 </Grid>
-                            </ListBoxItem>
+                            </ui:Button>
+                            <StackPanel x:Name="GrpRemotoAd" Margin="14,0,0,2">
+                                <ui:Button x:Name="NavBtn1" Tag="1" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="👤" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl1" Text="Consulta Usuários AD" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn2" Tag="2" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🖥️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl2" Text="Acesso Remoto" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn3" Tag="3" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🗑️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl3" Text="Limpeza AD &amp; SCCM" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                            </StackPanel>
 
-                            <!-- Item 1: Consulta de Usuários AD -->
-                            <ListBoxItem ToolTip="Consulta Completa de Usuários no Active Directory">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <ui:SymbolIcon Grid.Column="0" Symbol="PersonSearch24" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                                    <TextBlock x:Name="NavLbl1" Grid.Column="1" Text="Consulta Usuários AD" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                            <!-- Grupo 2: Máquina Local & Auditoria -->
+                            <ui:Button Tag="GrpLocalAudit" Click="NavGroupHeader_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,8" Margin="0,4,0,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="⚡" FontSize="15" TextAlignment="Center" />
+                                    <TextBlock x:Name="GrpLblLocalAudit" Grid.Column="1" Text="Máquina Local &amp; Auditoria" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GrpChevLocalAudit" Grid.Column="2" Text="⌄" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
                                 </Grid>
-                            </ListBoxItem>
+                            </ui:Button>
+                            <StackPanel x:Name="GrpLocalAudit" Visibility="Collapsed" Margin="14,0,0,2">
+                                <ui:Button x:Name="NavBtn4" Tag="4" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🧹" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl4" Text="Saneamento de Recursos" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn5" Tag="5" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="⚡" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl5" Text="Performance &amp; Auditoria" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn6" Tag="6" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="📦" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl6" Text="Apps &amp; Provisionamento" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn14" Tag="14" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🔧" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl14" Text="Otimizações de Registro" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                            </StackPanel>
 
-                            <!-- Item 2: Acesso Remoto -->
-                            <ListBoxItem ToolTip="Acesso Remoto">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🖥️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl2" Grid.Column="1" Text="Acesso Remoto" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                            <!-- Grupo 3: Scripts & Migração (ex-PowerShell) -->
+                            <ui:Button Tag="GrpScripts" Click="NavGroupHeader_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,8" Margin="0,4,0,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="💾" FontSize="15" TextAlignment="Center" />
+                                    <TextBlock x:Name="GrpLblScripts" Grid.Column="1" Text="Scripts &amp; Migração" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GrpChevScripts" Grid.Column="2" Text="⌄" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
                                 </Grid>
-                            </ListBoxItem>
+                            </ui:Button>
+                            <StackPanel x:Name="GrpScripts" Visibility="Collapsed" Margin="14,0,0,2">
+                                <ui:Button x:Name="NavBtn7" Tag="7" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="📊" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl7" Text="Analisador de Máquina" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn8" Tag="8" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🧼" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl8" Text="Manutenção Remota" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn9" Tag="9" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="👥" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl9" Text="Perfis de Usuários" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn10" Tag="10" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="💾" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl10" Text="Backup &amp; Restore (USMT)" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                            </StackPanel>
 
-                            <!-- Item 3: Limpeza AD & SCCM -->
-                            <ListBoxItem ToolTip="Limpeza AD &amp; SCCM">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🗑️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl3" Grid.Column="1" Text="Limpeza AD &amp; SCCM" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
+                            <!-- Grupo 4: Bancada Streamlit (Docker & DB) -->
+                            <ui:Button Tag="GrpBancada" Click="NavGroupHeader_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="8,8" Margin="0,4,0,2">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🐳" FontSize="15" TextAlignment="Center" />
+                                    <TextBlock x:Name="GrpLblBancada" Grid.Column="1" Text="Bancada Streamlit" FontSize="13" FontWeight="SemiBold" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="GrpChevBancada" Grid.Column="2" Text="⌃" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
                                 </Grid>
-                            </ListBoxItem>
+                            </ui:Button>
+                            <StackPanel x:Name="GrpBancada" Margin="14,0,0,2">
+                                <ui:Button x:Name="NavBtn11" Tag="11" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🐳" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl11" Text="Bancada Docker (8501)" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn12" Tag="12" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🎫" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl12" Text="Chamados (OTRS/Cit)" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn13" Tag="13" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="☎️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl13" Text="Telefonia OXE" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn17" Tag="17" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🖨️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl17" Text="Impressoras PaperCut" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                            </StackPanel>
 
-                            <!-- Item 4: Saneamento de Recursos -->
-                            <ListBoxItem ToolTip="Saneamento de Recursos">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🧹" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl4" Grid.Column="1" Text="Saneamento de Recursos" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
+                            <Separator Margin="4,8" />
 
-                            <!-- Item 5: Performance & Auditoria -->
-                            <ListBoxItem ToolTip="Performance &amp; Auditoria">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl5" Grid.Column="1" Text="Performance &amp; Auditoria" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 6: Apps & Provisionamento -->
-                            <ListBoxItem ToolTip="Apps &amp; Provisionamento">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="📦" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl6" Grid.Column="1" Text="Apps &amp; Provisionamento" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 7: Analisador de Máquina -->
-                            <ListBoxItem ToolTip="Analisador de Dispositivos (HTML, PDF &amp; Excel)">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="📊" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl7" Grid.Column="1" Text="Analisador de Máquina" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 8: Manutenção & Limpeza Remota -->
-                            <ListBoxItem ToolTip="Manutenção &amp; Limpeza Remota">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🧽" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl8" Grid.Column="1" Text="Manutenção Remota" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 9: Perfis de Usuários Remotos -->
-                            <ListBoxItem ToolTip="Limpeza de Perfis de Usuários Remotos">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="👥" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl9" Grid.Column="1" Text="Perfis de Usuários" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 10: Backup & Restore de Usuários (USMT) -->
-                            <ListBoxItem ToolTip="Backup e Restauração de Perfis (Windows USMT - Local e Remoto)">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="💾" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl10" Grid.Column="1" Text="Backup &amp; Restore (USMT)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 11: Bancada Streamlit (Docker WSL) -->
-                            <ListBoxItem ToolTip="Bancada Streamlit (Docker WSL - localhost:8501)">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🐳" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl11" Grid.Column="1" Text="Bancada Docker (8501)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 12: Chamados (PostgreSQL Bancada) -->
-                            <ListBoxItem ToolTip="Consulta de Chamados OTRS &amp; CitSmart (PostgreSQL da Bancada)">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="🎫" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl12" Grid.Column="1" Text="Chamados (OTRS/Cit)" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 13: Otimizações de Registro (Tweaks & Rollback) -->
-                            <ListBoxItem ToolTip="Otimizações do Registro do Windows (Tweaks &amp; Rollback)">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="⚡" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl13" Grid.Column="1" Text="Otimizações de Registro" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 14: Logs da Aplicação -->
-                            <ListBoxItem ToolTip="Logs e Monitoramento da Aplicação (app.log)">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="📜" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl14" Grid.Column="1" Text="Logs da Aplicação" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-
-                            <!-- Item 15: Configurações & Credenciais (Último item da barra) -->
-                            <ListBoxItem ToolTip="Configurações &amp; Credenciais">
-                                <Grid Height="26">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="34" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="⚙️" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                    <TextBlock x:Name="NavLbl15" Grid.Column="1" Text="Configurações &amp; Credenciais" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </ListBoxItem>
-                        </ListBox>
+                            <!-- Fixo Rodapé: Logs & Configurações -->
+                            <ui:Button x:Name="NavBtn15" Tag="15" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,8" Margin="0,1">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="📜" FontSize="15" Width="26" TextAlignment="Center" /><TextBlock x:Name="NavLbl15" Text="Logs da Aplicação" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                            </ui:Button>
+                            <ui:Button x:Name="NavBtn16" Tag="16" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,8" Margin="0,1">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="⚙️" FontSize="15" Width="26" TextAlignment="Center" /><TextBlock x:Name="NavLbl16" Text="Configurações &amp; Credenciais" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                            </ui:Button>
+                        </StackPanel>
                     </ScrollViewer>
                 </Grid>
             </Border>
@@ -1396,6 +1290,28 @@
 
                                     <Separator Margin="0,5,0,15" />
 
+                                    <TextBlock Text="Informações desta Máquina" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+                                    <Border Background="#0f172a" BorderBrush="#334155" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16">
+                                        <UniformGrid Columns="4">
+                                            <StackPanel Margin="0,0,10,0">
+                                                <TextBlock Text="Hostname" FontSize="11" Foreground="#94a3b8" />
+                                                <TextBlock x:Name="TxtCfgMachineHostname" Text="-" FontSize="13" FontWeight="SemiBold" Foreground="#38bdf8" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,10,0">
+                                                <TextBlock Text="IPv4 Local" FontSize="11" Foreground="#94a3b8" />
+                                                <TextBlock x:Name="TxtCfgMachineIp" Text="-" FontSize="13" FontWeight="SemiBold" Foreground="#34d399" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,10,0">
+                                                <TextBlock Text="Usuário Logado" FontSize="11" Foreground="#94a3b8" />
+                                                <TextBlock x:Name="TxtCfgMachineUser" Text="-" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock Text="Sistema Operacional" FontSize="11" Foreground="#94a3b8" />
+                                                <TextBlock x:Name="TxtCfgMachineOs" Text="-" FontSize="12" FontWeight="Medium" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </UniformGrid>
+                                    </Border>
+
                                     <TextBlock Text="Contas Administrativas" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" />
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
@@ -1482,6 +1398,26 @@
                                         <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="URL_CITSMART" />
                                     </Grid>
 
+                                    <TextBlock Text="URL da Central Telefônica OXE:" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgOxe" Grid.Column="0" PlaceholderText="https://oxe.empresa.local/" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="URL_OXE" />
+                                    </Grid>
+
+                                    <TextBlock Text="URL do Admin PaperCut (Impressoras):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgPapercut" Grid.Column="0" PlaceholderText="http://impressora.empresa.local:9191/admin" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="URL_PAPERCUT" />
+                                    </Grid>
+
                                     <TextBlock Text="URL Bancada Local (WSL / Docker):" FontWeight="Medium" Margin="0,0,0,4" />
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
@@ -1534,6 +1470,16 @@
                                         </Grid.ColumnDefinitions>
                                         <ui:TextBox x:Name="TxtCfgDeviceReportsDir" Grid.Column="0" PlaceholderText="C:\Users\...\DeviceReports" />
                                         <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="DEVICE_REPORTS_DIR" />
+                                    </Grid>
+
+                                    <TextBlock Text="Diretório de Saída dos Relatórios de Chamados (ChamadosReports):" FontWeight="Medium" Margin="0,0,0,4" />
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <ui:TextBox x:Name="TxtCfgChamadosReportsDir" Grid.Column="0" PlaceholderText="C:\Users\...\ChamadosReports" />
+                                        <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="CHAMADOS_REPORTS_DIR" />
                                     </Grid>
 
                                     <Grid Margin="0,0,0,12">
@@ -1916,6 +1862,8 @@
                                 <TextBlock Text="Consulta direta ao PostgreSQL da Bancada (somente leitura) com acesso rápido às páginas de cada chamado e sistema." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:Button Appearance="Secondary" Content="Exportar / Imprimir" Icon="{ui:SymbolIcon Symbol=Print24}" Click="BtnExportChamados_Click" Margin="0,0,8,4" Padding="12,7" />
+                                <ui:Button Appearance="Secondary" Content="Pasta Relatórios" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnOpenChamadosReportsFolder_Click" Margin="0,0,8,4" Padding="12,7" />
                                 <ui:Button Appearance="Secondary" Content="Abrir OTRS" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnChamadosOpenOtrs_Click" Margin="0,0,8,4" Padding="12,7" />
                                 <ui:Button Appearance="Secondary" Content="Abrir CitSmart" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnChamadosOpenCitSmart_Click" Margin="0,0,0,4" Padding="12,7" />
                             </WrapPanel>
@@ -2041,8 +1989,9 @@
                                                             <WrapPanel Orientation="Horizontal">
                                                                 <TextBlock Text="{Binding SolicitanteDisplay, StringFormat='👤 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,14,2" />
                                                                 <TextBlock Text="{Binding LocalizacaoDisplay, StringFormat='📍 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,14,2" TextWrapping="Wrap" />
-                                                                <TextBlock Text="{Binding DataCriacao, StringFormat='🕒 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
+                                                                <TextBlock Text="{Binding DataCriacaoBr, StringFormat='🕒 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" />
                                                             </WrapPanel>
+                                                            <TextBlock Visibility="{Binding AndamentoVisibility}" Text="{Binding AndamentoDisplay, StringFormat='📝 Andamento: {0}'}" FontSize="12" Foreground="#cbd5e1" Margin="0,4,0,0" TextWrapping="Wrap" />
                                                         </StackPanel>
                                                         <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                             <ui:Button Appearance="Secondary" Content="Detalhes" Icon="{ui:SymbolIcon Symbol=Info24}" Tag="{Binding}" Click="BtnChamadoDetails_Click" Margin="0,2,6,2" Padding="10,6" />
@@ -2065,7 +2014,247 @@
                         </Border>
                     </Grid>
 
-                    <!-- PAINEL 13: LOGS DA APLICAÇÃO -->
+                    <!-- PAINEL 13: TELEFONIA OXE (POSTGRESQL) -->
+                    <Grid x:Name="PanelOxe" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Central Telefônica OXE (Ramais)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Consulta direta aos ramais da tabela central_telefonica no PostgreSQL da Bancada com acesso rápido ao portal OXE." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ui:Button Grid.Column="1" Appearance="Primary" Content="Abrir Site OXE" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnOxeOpenSite_Click" VerticalAlignment="Center" Padding="14,8" />
+                        </Grid>
+
+                        <!-- KPIs -->
+                        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="Total de Ramais" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtOxeKpiTotal" Text="-" FontSize="16" FontWeight="Bold" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Com Nome / Usuário" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtOxeKpiComNome" Text="-" FontSize="16" FontWeight="Bold" Foreground="#34d399" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Com IP / MAC" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtOxeKpiComIpMac" Text="-" FontSize="16" FontWeight="Bold" Foreground="#38bdf8" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Barra de Busca e Filtros -->
+                        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="TxtOxeSearch" Grid.Column="0" PlaceholderText="Buscar por ramal, nome, IP, MAC ou login..." Height="34" Margin="0,0,10,0" KeyDown="TxtOxeSearch_KeyDown" />
+                                    <ui:Button x:Name="BtnRefreshOxe" Grid.Column="1" Appearance="Primary" Content="Atualizar Ramais" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnRefreshOxe_Click" Padding="14,7" />
+                                </Grid>
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <ComboBox x:Name="CmbOxeCategoria" Width="175" Height="32" Margin="0,0,8,4" SelectionChanged="OxeFilter_Changed" ToolTip="Categoria do Dispositivo" />
+                                    <ComboBox x:Name="CmbOxeTipoEstacao" Width="175" Height="32" Margin="0,0,8,4" SelectionChanged="OxeFilter_Changed" ToolTip="Tipo de Estação (OXE)" />
+                                    <ComboBox x:Name="CmbOxeGrupoCaptura" Width="165" Height="32" Margin="0,0,8,4" SelectionChanged="OxeFilter_Changed" ToolTip="Grupo de Captura" />
+                                    <ComboBox x:Name="CmbOxeRedePublica" Width="175" Height="32" Margin="0,0,8,4" SelectionChanged="OxeFilter_Changed" ToolTip="Categoria Rede Pública" />
+                                    <ComboBox x:Name="CmbOxeFuncao" Width="165" Height="32" Margin="0,0,0,4" SelectionChanged="OxeFilter_Changed" ToolTip="Função / Role" />
+                                </WrapPanel>
+                                <WrapPanel Orientation="Horizontal">
+                                    <CheckBox x:Name="ChkOxeComMac" Content="Apenas com MAC" Margin="0,0,14,0" Checked="OxeFilter_Changed" Unchecked="OxeFilter_Changed" />
+                                    <CheckBox x:Name="ChkOxeComIp" Content="Apenas com IP" Margin="0,0,14,0" Checked="OxeFilter_Changed" Unchecked="OxeFilter_Changed" />
+                                    <CheckBox x:Name="ChkOxeSemMac" Content="Apenas sem MAC" Margin="0,0,14,0" Checked="OxeFilter_Changed" Unchecked="OxeFilter_Changed" />
+                                    <CheckBox x:Name="ChkOxeSemIp" Content="Apenas sem IP" Checked="OxeFilter_Changed" Unchecked="OxeFilter_Changed" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Lista Paginada de Ramais -->
+                        <Border Grid.Row="3" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ItemsOxe">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,10" Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                                            <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border Background="#1e3a8a" CornerRadius="4" Padding="8,2" Margin="0,2,8,2">
+                                                                    <TextBlock Text="{Binding RamalDisplay, StringFormat='☎️ {0}'}" FontSize="12" FontWeight="Bold" Foreground="#93c5fd" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding NomeDisplay}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                                            </WrapPanel>
+                                                            <WrapPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding SubtituloDisplay, StringFormat='📍 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,14,2" TextWrapping="Wrap" />
+                                                                <TextBlock Text="{Binding RedeDisplay, StringFormat='🌐 {0}'}" FontSize="12" Foreground="#94a3b8" Margin="0,0,0,2" />
+                                                            </WrapPanel>
+                                                            <TextBlock Text="{Binding OxeBadgesDisplay}" FontSize="11.5" Foreground="#cbd5e1" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <ui:Button Grid.Column="1" Appearance="Secondary" Content="Detalhes" Icon="{ui:SymbolIcon Symbol=Info24}" Tag="{Binding}" Click="BtnOxeDetails_Click" VerticalAlignment="Center" Padding="10,6" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                    <ui:Button x:Name="BtnOxePrevPage" Content="← Anterior" Appearance="Secondary" Click="BtnOxePrevPage_Click" IsEnabled="False" Padding="12,6" Margin="0,0,10,0" />
+                                    <TextBlock x:Name="TxtOxePageInfo" Text="Página 1 de 1 (0 ramais)" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnOxeNextPage" Content="Próxima →" Appearance="Secondary" Click="BtnOxeNextPage_Click" IsEnabled="False" Padding="12,6" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 17: IMPRESSORAS PAPERCUT (POSTGRESQL) -->
+                    <Grid x:Name="PanelImpressoras" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Impressoras &amp; Dispositivos (PaperCut)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Consulta direta à tabela impressoras no PostgreSQL da Bancada com acesso rápido ao portal administrativo PaperCut." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ui:Button Grid.Column="1" Appearance="Primary" Content="Abrir Admin PaperCut" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnImpressorasOpenSite_Click" VerticalAlignment="Center" Padding="14,8" />
+                        </Grid>
+
+                        <!-- KPIs -->
+                        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="Total no Banco" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtImpressorasKpiTotal" Text="-" FontSize="16" FontWeight="Bold" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Status OK / Online" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtImpressorasKpiOk" Text="-" FontSize="16" FontWeight="Bold" Foreground="#34d399" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Com Alerta / Erro" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtImpressorasKpiAlert" Text="-" FontSize="16" FontWeight="Bold" Foreground="#f87171" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Total de Páginas" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtImpressorasKpiPaginas" Text="-" FontSize="16" FontWeight="Bold" Foreground="#38bdf8" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Barra de Busca e Filtros -->
+                        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ui:TextBox x:Name="TxtImpressorasSearch" Grid.Column="0" PlaceholderText="Buscar por nome, modelo, localização, IP/host, servidor ou filas..." Height="34" Margin="0,0,10,0" KeyDown="TxtImpressorasSearch_KeyDown" />
+                                    <ui:Button x:Name="BtnRefreshImpressoras" Grid.Column="1" Appearance="Primary" Content="Atualizar Impressoras" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnRefreshImpressoras_Click" Padding="14,7" />
+                                </Grid>
+                                <WrapPanel Orientation="Horizontal">
+                                    <ComboBox x:Name="CmbImpressorasTipo" Width="170" Height="32" Margin="0,0,8,4" SelectionChanged="ImpressoraFilter_Changed" ToolTip="Tipo" />
+                                    <ComboBox x:Name="CmbImpressorasStatus" Width="170" Height="32" Margin="0,0,8,4" SelectionChanged="ImpressoraFilter_Changed" ToolTip="Status" />
+                                    <ComboBox x:Name="CmbImpressorasServidor" Width="190" Height="32" Margin="0,0,8,4" SelectionChanged="ImpressoraFilter_Changed" ToolTip="Servidor" />
+                                    <ComboBox x:Name="CmbImpressorasLocalizacao" Width="210" Height="32" Margin="0,0,0,4" SelectionChanged="ImpressoraFilter_Changed" ToolTip="Localização" />
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Lista Paginada de Impressoras -->
+                        <Border Grid.Row="3" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ItemsImpressoras">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,10" Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                                            <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border Background="{Binding StatusBadgeBackground}" CornerRadius="4" Padding="7,2" Margin="0,2,6,2">
+                                                                    <TextBlock Text="{Binding StatusDisplay}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
+                                                                </Border>
+                                                                <Border Background="#1e3a8a" CornerRadius="4" Padding="7,2" Margin="0,2,8,2">
+                                                                    <TextBlock Text="{Binding TipoDisplay}" FontSize="11" FontWeight="SemiBold" Foreground="#93c5fd" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding NomeDisplay}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                                            </WrapPanel>
+                                                            <TextBlock Text="{Binding SubtituloDisplay, StringFormat='📍 {0}'}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,2" TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding RedeEPaginasDisplay}" FontSize="12" Foreground="#94a3b8" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                        <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <ui:Button Appearance="Secondary" Content="Detalhes" Icon="{ui:SymbolIcon Symbol=Info24}" Tag="{Binding}" Click="BtnImpressoraDetails_Click" Margin="0,2,6,2" Padding="10,6" />
+                                                            <ui:Button Appearance="Secondary" Content="Abrir IP Web" Icon="{ui:SymbolIcon Symbol=Globe24}" Tag="{Binding}" Click="BtnImpressoraOpenIp_Click" IsEnabled="{Binding HasIpHost}" Margin="0,2,0,2" Padding="10,6" />
+                                                        </WrapPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">
+                                    <ui:Button x:Name="BtnImpressorasPrevPage" Content="← Anterior" Appearance="Secondary" Click="BtnImpressorasPrevPage_Click" IsEnabled="False" Padding="12,6" Margin="0,0,10,0" />
+                                    <TextBlock x:Name="TxtImpressorasPageInfo" Text="Página 1 de 1 (0 impressoras)" VerticalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,10,0" />
+                                    <ui:Button x:Name="BtnImpressorasNextPage" Content="Próxima →" Appearance="Secondary" Click="BtnImpressorasNextPage_Click" IsEnabled="False" Padding="12,6" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 14: LOGS DA APLICAÇÃO -->
                     <Grid x:Name="PanelAppLogs" Visibility="Collapsed">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />

@@ -43,4 +43,9 @@ Docs/
 
 - **Arquitetura de Segurança & Hardening (SecOps):** [Segurança e Hardening](arquitetura/seguranca_hardening.md)
 - **PowerShell vs C# (.NET AOT) para performance:** [Análise Arquitetural](arquitetura/analise_arquitetural_powershell_vs_csharp.md)
+
+### 3. Integração PostgreSQL da Bancada (Docker / WSL)
+
+- **Serviços Npgsql (`AmbientesHub/Services/`):** `BancadaChamadosService` (chamados OTRS/CitSmart, comentários e flags `tag_manual`/`dados_manuais`), `BancadaOxeService` (ramais da `central_telefonica`) e `BancadaImpressorasService` (dispositivos `impressoras` PaperCut).
+- **Segurança & Configuração:** Credenciais isoladas no `.env` (`BANCADA_DB_*`), consultas SQL parametrizadas e URLs de portais (`URL_OTRS`, `URL_CITSMART`, `URL_OXE`, `URL_PAPERCUT`) validadas via `InputValidator.IsSafeHttpUrl`.
 - **Mecanismos de segurança e encerramento COM:** [Ciclo de Vida e Segurança de Processos](arquitetura/ciclo_de_vida_e_seguranca_processos.md)

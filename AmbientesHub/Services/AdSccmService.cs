@@ -107,10 +107,32 @@ public class AdSccmService
                     if (isDelete)
                     {
                         onLog($"  -> Removendo conta '{name}' do Active Directory...");
-                        adEntry.DeleteTree();
-                        adEntry.CommitChanges();
-                        onLog($"  -> [SUCESSO] Computador '{name}' removido do Active Directory!");
-                        AppLoggerService.Success($"Conta {name} removida do AD.", nameof(AdSccmService));
+                        try
+                        {
+                            adEntry.DeleteTree();
+                            adEntry.CommitChanges();
+                            onLog($"  -> [SUCESSO] Computador '{name}' removido do Active Directory!");
+                            AppLoggerService.Success($"Conta {name} removida do AD.", nameof(AdSccmService));
+                        }
+                        catch (Exception delEx) when (delEx is UnauthorizedAccessException ||
+                                                      delEx.Message.Contains("0x80070005", StringComparison.OrdinalIgnoreCase) ||
+                                                      delEx.Message.Contains("Acesso negado", StringComparison.OrdinalIgnoreCase) ||
+                                                      delEx.Message.Contains("Access is denied", StringComparison.OrdinalIgnoreCase))
+                        {
+                            onLog("  [i] Acesso negado com usuário atual. Tentando elevação via cofre AD (cred_admin_ad.xml)...");
+                            string credAdPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin_ad.xml";
+                            var (credOk, credMsg, adUser, adPass) = CredentialService.ReadPlaintextCredential(credAdPath);
+                            if (!credOk || string.IsNullOrWhiteSpace(adUser) || string.IsNullOrWhiteSpace(adPass))
+                            {
+                                throw new UnauthorizedAccessException($"Acesso negado no AD e cofre '{credAdPath}' indisponível: {credMsg}", delEx);
+                            }
+
+                            using var elevatedEntry = new DirectoryEntry(adEntry.Path, adUser, adPass, AuthenticationTypes.Secure);
+                            elevatedEntry.DeleteTree();
+                            elevatedEntry.CommitChanges();
+                            onLog($"  -> [SUCESSO] Computador '{name}' removido do Active Directory via '{adUser}'!");
+                            AppLoggerService.Success($"Conta {name} removida do AD via credencial administrativa ({adUser}).", nameof(AdSccmService));
+                        }
                     }
                 }
             }

@@ -44,7 +44,7 @@
 
 O arquivo [SecurityAuditTests.cs](../../tests/Integration/SecurityAuditTests.cs) é executado a cada `dotnet test` e falha o build caso:
 
-- Qualquer arquivo rastreado pelo Git (`git ls-files`) contenha chaves privadas, tokens de API, `ConvertTo-SecureString -AsPlainText` ou identificadores pessoais/organizacionais proibidos;
+- Qualquer arquivo rastreado pelo Git (`git ls-files`) contenha chaves privadas, tokens de API, conversão de senha em texto plano (`AsPlainText`) ou identificadores pessoais/organizacionais proibidos;
 - Arquivos sensíveis (`.env`, `Credenciais/`, `temp/`, `config.ps1`, `login.ps1`, `*.log`) passem a ser rastreados;
 - `.env.example` e `AmbientesHub/.env.example` divirjam entre si ou deixem de documentar qualquer chave consumida pelo `ConfigService`;
 - `HardenFilePermissions` mantenha herança de ACL ou permita acesso a `Authenticated Users` / `BUILTIN\Users`;

@@ -59,6 +59,7 @@ public static class InputValidator
     public static bool IsValidUserName(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
+        if (value.Contains("..", StringComparison.Ordinal)) return false;
         return SafeIsMatch(UserNameRegex, value);
     }
 
@@ -112,7 +113,7 @@ public static class InputValidator
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
         string trimmed = value.Trim();
-        if (trimmed.IndexOfAny(['"', '\'', '\r', '\n', '\0', '<', '>', '|', '*', '?', '&', ';', '`', '$']) >= 0) return false;
+        if (trimmed.IndexOfAny(['"', '\'', '\r', '\n', '\0', '<', '>', '|', '*', '?', '&', ';', '`']) >= 0) return false;
         if (trimmed.Contains("..", StringComparison.Ordinal)) return false;
         return Path.IsPathFullyQualified(trimmed);
     }

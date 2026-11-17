@@ -1474,7 +1474,7 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <ui:TextBox x:Name="TxtCfgBancadaWslDir" Grid.Column="0" PlaceholderText="/home/usuario/PythonProjects/automated-OTRS-and-CitSmart" />
+                                        <ui:TextBox x:Name="TxtCfgBancadaWslDir" Grid.Column="0" PlaceholderText="/home/usuario/projetos/bancada" />
                                         <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="BANCADA_WSL_DIR" />
                                     </Grid>
 
@@ -1596,7 +1596,30 @@
 
                                     <Separator Margin="0,5,0,15" />
 
-                                    <TextBlock Text="Banco de Dados PostgreSQL da Bancada (Somente Leitura)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                                    <TextBlock Text="API REST da Bancada STI (WSL / RedHat — Recomendado)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="URL da API REST (BANCADA_API_URL):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgBancadaApiUrl" Grid.Column="0" PlaceholderText="http://127.0.0.1:8510" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="BANCADA_API_URL" />
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Chave da API (BANCADA_API_KEY):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:PasswordBox x:Name="TxtCfgBancadaApiKey" PlaceholderText="Mínimo 16 caracteres (X-API-Key)" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Text="Banco de Dados PostgreSQL da Bancada (Fallback Direto)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />

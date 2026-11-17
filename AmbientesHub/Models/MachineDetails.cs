@@ -43,9 +43,9 @@ public class MachineDetails
 
     public string PrimaryUserDisplay => !string.IsNullOrWhiteSpace(PrimaryUser) ? PrimaryUser : "Não definido";
 
-    public string IpWithLatency => !string.IsNullOrEmpty(PingResponseTime)
-        ? $"{IpAddress} ({PingResponseTime})"
-        : (!string.IsNullOrEmpty(IpAddress) ? IpAddress : "Sem resposta ICMP");
+    public string IpWithLatency => !string.IsNullOrWhiteSpace(IpAddress)
+        ? (!string.IsNullOrWhiteSpace(PingResponseTime) ? $"{IpAddress} ({PingResponseTime})" : IpAddress)
+        : "Sem resposta ICMP";
 
     public string MacAddressDisplay => !string.IsNullOrWhiteSpace(MacAddress) ? MacAddress : "Não informado";
 

@@ -614,6 +614,8 @@ public partial class MainWindow : FluentWindow
         TxtCfgDbName.Text = ConfigService.BancadaDbName;
         TxtCfgDbUser.Text = ConfigService.BancadaDbUser;
         TxtCfgDbPassword.Password = ConfigService.BancadaDbPassword;
+        TxtCfgBancadaApiUrl.Text = ConfigService.BancadaApiUrl;
+        TxtCfgBancadaApiKey.Password = ConfigService.BancadaApiKey;
         TxtCfgProtectedProfiles.Text = ConfigService.ProtectedProfiles;
         TxtCfgPingTimeout.Text = ConfigService.PingTimeoutMs.ToString();
     }
@@ -862,6 +864,8 @@ public partial class MainWindow : FluentWindow
                 ["USMT_PATH"] = TxtCfgUsmtPath.Text.Trim(),
                 ["PROTECTED_PROFILES"] = TxtCfgProtectedProfiles.Text.Trim(),
                 ["PING_TIMEOUT_MS"] = TxtCfgPingTimeout.Text.Trim(),
+                ["BANCADA_API_URL"] = TxtCfgBancadaApiUrl.Text.Trim(),
+                ["BANCADA_API_KEY"] = TxtCfgBancadaApiKey.Password.Trim(),
                 ["BANCADA_DB_HOST"] = TxtCfgDbHost.Text.Trim(),
                 ["BANCADA_DB_PORT"] = TxtCfgDbPort.Text.Trim(),
                 ["BANCADA_DB_NAME"] = TxtCfgDbName.Text.Trim(),
@@ -908,6 +912,7 @@ public partial class MainWindow : FluentWindow
                 case "FIREFOX_PATH": TxtCfgFirefoxPath.Text = defVal; break;
                 case "USMT_PATH": TxtCfgUsmtPath.Text = defVal; break;
                 case "PROTECTED_PROFILES": TxtCfgProtectedProfiles.Text = defVal; break;
+                case "BANCADA_API_URL": TxtCfgBancadaApiUrl.Text = defVal; break;
                 case "BANCADA_DB_HOST": TxtCfgDbHost.Text = defVal; break;
                 case "BANCADA_DB_PORT": TxtCfgDbPort.Text = defVal; break;
                 case "PING_TIMEOUT_MS": TxtCfgPingTimeout.Text = defVal; break;

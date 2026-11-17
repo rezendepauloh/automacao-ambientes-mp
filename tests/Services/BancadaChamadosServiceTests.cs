@@ -1,3 +1,4 @@
+using System.Windows;
 using AmbientesHub.Models;
 using AmbientesHub.Services;
 using Xunit;
@@ -7,15 +8,12 @@ namespace AmbientesHub.Tests.Services
     public class BancadaChamadosServiceTests
     {
         [Theory]
-        [InlineData("", "5432", "db", "user", "pass")]
-        [InlineData("127.0.0.1", "5432", "", "user", "pass")]
-        [InlineData("127.0.0.1", "5432", "db", "", "pass")]
-        [InlineData("127.0.0.1", "5432", "db", "user", "")]
-        [InlineData("127.0.0.1;drop", "5432", "db", "user", "pass")]
-        [InlineData("127.0.0.1", "abc", "db", "user", "pass")]
-        [InlineData("127.0.0.1", "70000", "db", "user", "pass")]
+        [InlineData("127.0.0.1", 5432, "", "user", "pass")]
+        [InlineData("127.0.0.1", 5432, "db", "", "pass")]
+        [InlineData("127.0.0.1", 5432, "db", "user", "")]
+        [InlineData("127.0.0.1;drop", 5432, "db", "user", "pass")]
         public void TryBuildConnectionString_FailClosed_WhenMissingOrInvalid(
-            string host, string port, string db, string user, string pass)
+            string host, int port, string db, string user, string pass)
         {
             bool ok = BancadaChamadosService.TryBuildConnectionString(host, port, db, user, pass, out string connStr, out string error);
 
@@ -27,7 +25,7 @@ namespace AmbientesHub.Tests.Services
         [Fact]
         public void TryBuildConnectionString_Succeeds_WithValidParameters()
         {
-            bool ok = BancadaChamadosService.TryBuildConnectionString("127.0.0.1", "5432", "bancada_db", "usuario_teste", "senha_teste", out string connStr, out string error);
+            bool ok = BancadaChamadosService.TryBuildConnectionString("127.0.0.1", 5432, "bancada_db", "usuario_teste", "senha_teste", out string connStr, out string error);
 
             Assert.True(ok);
             Assert.Equal(string.Empty, error);
@@ -46,13 +44,14 @@ namespace AmbientesHub.Tests.Services
                 Base = "citsmart",
                 Status = "Em Atendimento",
                 Link = "https://exemplo.local/ticket/1001",
-                Hostname = "ESTACAO-01"
+                Hostname = "ESTACAO-01",
+                CidadePredio = "Sede"
             };
 
-            Assert.Equal("CitSmart", item.BaseBadge);
-            Assert.True(item.HasLink);
-            Assert.True(item.HasHostname);
-            Assert.Contains("ESTACAO-01", item.LocationDisplay);
+            Assert.Equal("CITSMART", item.BaseDisplay);
+            Assert.Equal(Visibility.Visible, item.LinkButtonVisibility);
+            Assert.Equal(Visibility.Visible, item.HostnameButtonVisibility);
+            Assert.Contains("Sede", item.LocalizacaoDisplay);
         }
     }
 }

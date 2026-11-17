@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
 
@@ -7,6 +8,42 @@ public class BancadaImpressorasService
 {
     public async Task<(bool Success, List<ImpressoraItem> Items, ImpressorasSummary Summary, string Message)> QueryImpressorasAsync()
     {
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiImpressorasResponse>("/api/v1/impressoras");
+            if (!ok || res == null)
+                return (false, [], new ImpressorasSummary(), err);
+
+            var apiItems = (res.Items ?? []).Select(x => new ImpressoraItem
+            {
+                Id = x.Id ?? string.Empty,
+                Nome = x.Nome ?? string.Empty,
+                Servidor = x.Servidor ?? string.Empty,
+                Tipo = x.Tipo ?? string.Empty,
+                Modelo = x.Modelo ?? string.Empty,
+                Localizacao = x.Localizacao ?? string.Empty,
+                IpHost = x.IpHost ?? string.Empty,
+                Status = x.Status ?? string.Empty,
+                TotalPaginas = x.TotalPaginas,
+                FilasRelacionadas = x.FilasRelacionadas ?? string.Empty,
+                DetalhesExtra = x.DetalhesExtra ?? string.Empty,
+                DataAtualizacao = x.DataAtualizacao ?? string.Empty,
+                AllFields = x.AllFields != null
+                    ? new Dictionary<string, string>(x.AllFields, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            }).ToList();
+
+            var apiSummary = new ImpressorasSummary
+            {
+                Total = res.Summary?.Total ?? apiItems.Count,
+                OkCount = res.Summary?.OkCount ?? apiItems.Count(x => x.IsStatusOk),
+                AlertCount = res.Summary?.AlertCount ?? apiItems.Count(x => !x.IsStatusOk),
+                TotalPaginasSoma = res.Summary?.TotalPaginasSoma ?? apiItems.Sum(x => x.TotalPaginas)
+            };
+
+            return (true, apiItems, apiSummary, $"{apiItems.Count} impressora(s)/dispositivo(s) carregado(s) do PaperCut via API REST.");
+        }
+
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
             return (false, [], new ImpressorasSummary(), error);
@@ -75,5 +112,36 @@ public class BancadaImpressorasService
         if (fields.TryGetValue(key, out string? v) && BancadaOxeService.HasRealValue(v))
             return v;
         return string.Empty;
+    }
+
+    private sealed class ApiImpressorasResponse
+    {
+        [JsonPropertyName("items")] public List<ApiImpressoraDto>? Items { get; set; }
+        [JsonPropertyName("summary")] public ApiImpressorasSummaryDto? Summary { get; set; }
+    }
+
+    private sealed class ApiImpressorasSummaryDto
+    {
+        [JsonPropertyName("total")] public int Total { get; set; }
+        [JsonPropertyName("ok_count")] public int OkCount { get; set; }
+        [JsonPropertyName("alert_count")] public int AlertCount { get; set; }
+        [JsonPropertyName("total_paginas_soma")] public long TotalPaginasSoma { get; set; }
+    }
+
+    private sealed class ApiImpressoraDto
+    {
+        [JsonPropertyName("id")] public string? Id { get; set; }
+        [JsonPropertyName("nome")] public string? Nome { get; set; }
+        [JsonPropertyName("servidor")] public string? Servidor { get; set; }
+        [JsonPropertyName("tipo")] public string? Tipo { get; set; }
+        [JsonPropertyName("modelo")] public string? Modelo { get; set; }
+        [JsonPropertyName("localizacao")] public string? Localizacao { get; set; }
+        [JsonPropertyName("ip_host")] public string? IpHost { get; set; }
+        [JsonPropertyName("status")] public string? Status { get; set; }
+        [JsonPropertyName("total_paginas")] public long TotalPaginas { get; set; }
+        [JsonPropertyName("filas_relacionadas")] public string? FilasRelacionadas { get; set; }
+        [JsonPropertyName("detalhes_extra")] public string? DetalhesExtra { get; set; }
+        [JsonPropertyName("data_atualizacao")] public string? DataAtualizacao { get; set; }
+        [JsonPropertyName("all_fields")] public Dictionary<string, string>? AllFields { get; set; }
     }
 }

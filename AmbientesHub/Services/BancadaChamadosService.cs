@@ -1,11 +1,12 @@
+using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
 
 namespace AmbientesHub.Services;
 
 /// <summary>
-/// Serviço nativo de leitura (somente consulta) dos chamados OTRS e CitSmart
-/// diretamente no PostgreSQL da Bancada Docker, sem credenciais hardcoded.
+/// Serviço nativo de leitura e edição dos chamados OTRS e CitSmart.
+/// Prioriza a API REST segura da Bancada (WSL/RedHat) com fallback opcional para PostgreSQL direto.
 /// </summary>
 public class BancadaChamadosService
 {
@@ -68,6 +69,15 @@ public class BancadaChamadosService
 
     public async Task<List<string>> GetDistinctLocalidadesAsync()
     {
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiLocalidadesResponse>("/api/v1/chamados/localidades");
+            if (ok && res?.Localidades != null)
+                return res.Localidades;
+            AppLoggerService.Warning($"Falha ao listar localidades via API: {err}", nameof(BancadaChamadosService));
+            return [];
+        }
+
         var list = new List<string>();
         if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
             return list;
@@ -106,6 +116,16 @@ public class BancadaChamadosService
         string? tagFilter = null,
         List<string>? localidadesFilter = null)
     {
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            string qs = BuildChamadosQueryString(search, baseFilter, statusFilter, null, tagFilter, localidadesFilter);
+            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiFiltersResponse>($"/api/v1/chamados/filters{qs}");
+            if (ok && res != null)
+                return (res.Tags ?? [], res.Localidades ?? []);
+            AppLoggerService.Warning($"Falha ao atualizar filtros dinâmicos via API: {err}", nameof(BancadaChamadosService));
+            return ([], []);
+        }
+
         var tags = new List<string>();
         var locs = new List<string>();
         if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
@@ -187,6 +207,27 @@ public class BancadaChamadosService
         string? tagFilter = null,
         List<string>? localidadesFilter = null)
     {
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            string qs = BuildChamadosQueryString(search, baseFilter, statusFilter, Math.Clamp(limit, 1, 500), tagFilter, localidadesFilter);
+            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiChamadosListResponse>($"/api/v1/chamados{qs}");
+            if (!ok || res == null)
+            {
+                return (false, [], new ChamadosSummary(), err);
+            }
+
+            var apiItems = (res.Items ?? []).Select(MapChamadoDto).ToList();
+            var apiSummary = new ChamadosSummary
+            {
+                Total = res.Summary?.Total ?? 0,
+                Abertos = res.Summary?.Abertos ?? 0,
+                OtrsCount = res.Summary?.OtrsCount ?? 0,
+                CitSmartCount = res.Summary?.CitSmartCount ?? 0
+            };
+
+            return (true, apiItems, apiSummary, $"{apiItems.Count} chamado(s) carregado(s) via API REST da Bancada.");
+        }
+
         if (!TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
             return (false, [], new ChamadosSummary(), error);
@@ -322,7 +363,27 @@ public class BancadaChamadosService
     public async Task<List<ChamadoComentario>> GetComentariosChamadoAsync(string chamadoId)
     {
         var list = new List<ChamadoComentario>();
-        if (string.IsNullOrWhiteSpace(chamadoId) || !TryBuildConnectionStringFromConfig(out string connStr, out _))
+        if (string.IsNullOrWhiteSpace(chamadoId))
+            return list;
+
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            string encodedId = Uri.EscapeDataString(chamadoId.Trim());
+            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiComentariosResponse>($"/api/v1/chamados/{encodedId}/comentarios");
+            if (ok && res?.Comentarios != null)
+            {
+                return res.Comentarios.Select(c => new ChamadoComentario
+                {
+                    Data = c.Data ?? string.Empty,
+                    Autor = c.Autor ?? string.Empty,
+                    Texto = c.Texto ?? string.Empty
+                }).ToList();
+            }
+            AppLoggerService.Warning($"Falha ao carregar comentários via API do chamado #{chamadoId}: {err}", nameof(BancadaChamadosService));
+            return list;
+        }
+
+        if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
             return list;
 
         try
@@ -367,7 +428,33 @@ public class BancadaChamadosService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray() ?? [];
 
-        if (ids.Length == 0 || !TryBuildConnectionStringFromConfig(out string connStr, out _))
+        if (ids.Length == 0)
+            return result;
+
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            var body = new ApiComentariosBatchRequest { ChamadoIds = ids.Take(500).ToArray() };
+            var (ok, res, _, err) = await BancadaApiClient.PostAsync<ApiComentariosBatchRequest, ApiComentariosBatchResponse>("/api/v1/chamados/comentarios/batch", body);
+            if (ok && res?.Comentarios != null)
+            {
+                foreach (var kv in res.Comentarios)
+                {
+                    result[kv.Key] = (kv.Value ?? []).Select(c => new ChamadoComentario
+                    {
+                        Data = c.Data ?? string.Empty,
+                        Autor = c.Autor ?? string.Empty,
+                        Texto = c.Texto ?? string.Empty
+                    }).ToList();
+                }
+            }
+            else if (!ok)
+            {
+                AppLoggerService.Warning($"Falha ao carregar comentários em lote via API: {err}", nameof(BancadaChamadosService));
+            }
+            return result;
+        }
+
+        if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
             return result;
 
         try
@@ -423,6 +510,28 @@ public class BancadaChamadosService
         if (string.IsNullOrWhiteSpace(id))
             return (false, "ID do chamado inválido.");
 
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            string encodedId = Uri.EscapeDataString(id.Trim());
+            var payload = new ApiChamadoUpdateRequest
+            {
+                Status = status?.Trim() ?? string.Empty,
+                Hostname = hostname?.Trim() ?? string.Empty,
+                Tag = tag?.Trim() ?? string.Empty,
+                CidadePredio = cidadePredio?.Trim() ?? string.Empty,
+                Unidade = unidade?.Trim() ?? string.Empty,
+                LocalidadeFisica = localidadeFisica?.Trim() ?? string.Empty,
+                Descricao = descricao?.Trim() ?? string.Empty,
+                Andamento = andamento?.Trim() ?? string.Empty,
+                TagManual = true,
+                DadosManuais = true
+            };
+            var (ok, res, _, err) = await BancadaApiClient.PatchAsync<ApiChamadoUpdateRequest, ApiMutationResponse>($"/api/v1/chamados/{encodedId}", payload);
+            return ok
+                ? (true, res?.Message ?? $"Chamado #{id} atualizado via API REST com sucesso.")
+                : (false, err);
+        }
+
         if (!TryBuildConnectionStringFromConfig(out string connStr, out string error))
             return (false, error);
 
@@ -470,5 +579,168 @@ public class BancadaChamadosService
             AppLoggerService.Warning($"Falha ao atualizar chamado #{id}: {ex.Message}", nameof(BancadaChamadosService));
             return (false, $"Erro ao salvar no PostgreSQL: {ex.Message}");
         }
+    }
+
+    public async Task<(bool Success, string Message)> AddComentarioChamadoAsync(string id, string autor, string texto)
+    {
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(autor) || string.IsNullOrWhiteSpace(texto))
+            return (false, "Chamado, autor e texto são obrigatórios.");
+
+        if (!BancadaApiClient.IsApiConfigured())
+            return (false, "Configure BANCADA_API_URL e BANCADA_API_KEY para adicionar comentários via API.");
+
+        string encodedId = Uri.EscapeDataString(id.Trim());
+        var payload = new ApiComentarioCreateRequest
+        {
+            Autor = autor.Trim(),
+            Texto = texto.Trim()
+        };
+        var (ok, _, _, err) = await BancadaApiClient.PostAsync<ApiComentarioCreateRequest, ApiMutationResponse>($"/api/v1/chamados/{encodedId}/comentarios", payload);
+        return ok
+            ? (true, $"Comentário registrado no chamado #{id}.")
+            : (false, err);
+    }
+
+    private static string BuildChamadosQueryString(
+        string? search,
+        string? baseFilter,
+        string? statusFilter,
+        int? limit,
+        string? tagFilter,
+        List<string>? localidadesFilter)
+    {
+        var pairs = new List<string>();
+        if (!string.IsNullOrWhiteSpace(search))
+            pairs.Add($"search={Uri.EscapeDataString(search.Trim())}");
+        if (!string.IsNullOrWhiteSpace(baseFilter) && !baseFilter.Equals("Todas as Bases", StringComparison.OrdinalIgnoreCase))
+            pairs.Add($"base={Uri.EscapeDataString(baseFilter.Trim())}");
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+            pairs.Add($"status={Uri.EscapeDataString(statusFilter.Trim())}");
+        if (!string.IsNullOrWhiteSpace(tagFilter) && !tagFilter.Equals("Todas as Tags", StringComparison.OrdinalIgnoreCase))
+            pairs.Add($"tag={Uri.EscapeDataString(tagFilter.Trim())}");
+        if (localidadesFilter != null)
+        {
+            foreach (string loc in localidadesFilter.Where(l => !string.IsNullOrWhiteSpace(l)).Distinct())
+                pairs.Add($"localidades={Uri.EscapeDataString(loc.Trim())}");
+        }
+        if (limit.HasValue)
+            pairs.Add($"limit={limit.Value}");
+
+        return pairs.Count > 0 ? "?" + string.Join("&", pairs) : string.Empty;
+    }
+
+    private static ChamadoItem MapChamadoDto(ApiChamadoDto d) => new()
+    {
+        Id = d.Id ?? string.Empty,
+        DataCriacao = d.DataCriacao ?? string.Empty,
+        Titulo = d.Titulo ?? string.Empty,
+        CidadePredio = d.CidadePredio ?? string.Empty,
+        Unidade = d.Unidade ?? string.Empty,
+        LocalidadeFisica = d.LocalidadeFisica ?? string.Empty,
+        Usuario = d.Usuario ?? string.Empty,
+        IdCliente = d.IdCliente ?? string.Empty,
+        Descricao = d.Descricao ?? string.Empty,
+        Tag = d.Tag ?? string.Empty,
+        IpOrigem = d.IpOrigem ?? string.Empty,
+        Status = string.IsNullOrWhiteSpace(d.Status) ? "Aberto" : d.Status,
+        DataAtualizacao = d.DataAtualizacao ?? string.Empty,
+        Base = d.Base ?? string.Empty,
+        Andamento = d.Andamento ?? string.Empty,
+        Link = d.Link ?? string.Empty,
+        Hostname = d.Hostname ?? string.Empty
+    };
+
+    private sealed class ApiLocalidadesResponse
+    {
+        [JsonPropertyName("localidades")] public List<string>? Localidades { get; set; }
+    }
+
+    private sealed class ApiFiltersResponse
+    {
+        [JsonPropertyName("tags")] public List<string>? Tags { get; set; }
+        [JsonPropertyName("localidades")] public List<string>? Localidades { get; set; }
+    }
+
+    private sealed class ApiChamadosListResponse
+    {
+        [JsonPropertyName("items")] public List<ApiChamadoDto>? Items { get; set; }
+        [JsonPropertyName("summary")] public ApiChamadosSummaryDto? Summary { get; set; }
+    }
+
+    private sealed class ApiChamadosSummaryDto
+    {
+        [JsonPropertyName("total")] public int Total { get; set; }
+        [JsonPropertyName("abertos")] public int Abertos { get; set; }
+        [JsonPropertyName("otrs_count")] public int OtrsCount { get; set; }
+        [JsonPropertyName("citsmart_count")] public int CitSmartCount { get; set; }
+    }
+
+    private sealed class ApiChamadoDto
+    {
+        [JsonPropertyName("id")] public string? Id { get; set; }
+        [JsonPropertyName("data_criacao")] public string? DataCriacao { get; set; }
+        [JsonPropertyName("titulo")] public string? Titulo { get; set; }
+        [JsonPropertyName("cidade_predio")] public string? CidadePredio { get; set; }
+        [JsonPropertyName("unidade")] public string? Unidade { get; set; }
+        [JsonPropertyName("localidade_fisica")] public string? LocalidadeFisica { get; set; }
+        [JsonPropertyName("usuario")] public string? Usuario { get; set; }
+        [JsonPropertyName("id_cliente")] public string? IdCliente { get; set; }
+        [JsonPropertyName("descricao")] public string? Descricao { get; set; }
+        [JsonPropertyName("tag")] public string? Tag { get; set; }
+        [JsonPropertyName("ip_origem")] public string? IpOrigem { get; set; }
+        [JsonPropertyName("status")] public string? Status { get; set; }
+        [JsonPropertyName("data_atualizacao")] public string? DataAtualizacao { get; set; }
+        [JsonPropertyName("base")] public string? Base { get; set; }
+        [JsonPropertyName("andamento")] public string? Andamento { get; set; }
+        [JsonPropertyName("link")] public string? Link { get; set; }
+        [JsonPropertyName("hostname")] public string? Hostname { get; set; }
+    }
+
+    private sealed class ApiChamadoUpdateRequest
+    {
+        [JsonPropertyName("status")] public string? Status { get; set; }
+        [JsonPropertyName("hostname")] public string? Hostname { get; set; }
+        [JsonPropertyName("tag")] public string? Tag { get; set; }
+        [JsonPropertyName("cidade_predio")] public string? CidadePredio { get; set; }
+        [JsonPropertyName("unidade")] public string? Unidade { get; set; }
+        [JsonPropertyName("localidade_fisica")] public string? LocalidadeFisica { get; set; }
+        [JsonPropertyName("descricao")] public string? Descricao { get; set; }
+        [JsonPropertyName("andamento")] public string? Andamento { get; set; }
+        [JsonPropertyName("tag_manual")] public bool? TagManual { get; set; }
+        [JsonPropertyName("dados_manuais")] public bool? DadosManuais { get; set; }
+    }
+
+    private sealed class ApiComentariosResponse
+    {
+        [JsonPropertyName("comentarios")] public List<ApiComentarioDto>? Comentarios { get; set; }
+    }
+
+    private sealed class ApiComentariosBatchRequest
+    {
+        [JsonPropertyName("chamado_ids")] public string[] ChamadoIds { get; set; } = [];
+    }
+
+    private sealed class ApiComentariosBatchResponse
+    {
+        [JsonPropertyName("comentarios")] public Dictionary<string, List<ApiComentarioDto>>? Comentarios { get; set; }
+    }
+
+    private sealed class ApiComentarioCreateRequest
+    {
+        [JsonPropertyName("autor")] public string Autor { get; set; } = string.Empty;
+        [JsonPropertyName("texto")] public string Texto { get; set; } = string.Empty;
+    }
+
+    private sealed class ApiComentarioDto
+    {
+        [JsonPropertyName("data")] public string? Data { get; set; }
+        [JsonPropertyName("autor")] public string? Autor { get; set; }
+        [JsonPropertyName("texto")] public string? Texto { get; set; }
+    }
+
+    private sealed class ApiMutationResponse
+    {
+        [JsonPropertyName("success")] public bool Success { get; set; }
+        [JsonPropertyName("message")] public string? Message { get; set; }
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
 
@@ -7,6 +8,41 @@ public class BancadaOxeService
 {
     public async Task<(bool Success, List<OxeRamalItem> Items, OxeSummary Summary, string Message)> QueryRamaisAsync(string? search = null)
     {
+        if (BancadaApiClient.IsApiConfigured())
+        {
+            string qs = string.IsNullOrWhiteSpace(search) ? string.Empty : $"?search={Uri.EscapeDataString(search.Trim())}";
+            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiOxeResponse>($"/api/v1/oxe{qs}");
+            if (!ok || res == null)
+                return (false, [], new OxeSummary(), err);
+
+            var apiItems = (res.Items ?? []).Select(x => new OxeRamalItem
+            {
+                Ramal = x.Ramal ?? string.Empty,
+                Nome = x.Nome ?? string.Empty,
+                Localidade = x.Localidade ?? string.Empty,
+                Setor = x.Setor ?? string.Empty,
+                Tipo = x.Tipo ?? string.Empty,
+                Ip = x.Ip ?? string.Empty,
+                Mac = x.Mac ?? string.Empty,
+                GrupoCaptura = x.GrupoCaptura ?? string.Empty,
+                CatRedePublica = x.CatRedePublica ?? string.Empty,
+                CategoriaDispositivo = x.CategoriaDispositivo ?? string.Empty,
+                TipoEstacao = x.TipoEstacao ?? string.Empty,
+                AllFields = x.AllFields != null
+                    ? new Dictionary<string, string>(x.AllFields, StringComparer.OrdinalIgnoreCase)
+                    : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            }).ToList();
+
+            var apiSummary = new OxeSummary
+            {
+                Total = res.Summary?.Total ?? apiItems.Count,
+                ComNome = res.Summary?.ComNome ?? apiItems.Count(x => HasRealValue(x.Nome)),
+                ComIpOuMac = res.Summary?.ComIpOuMac ?? apiItems.Count(x => HasRealValue(x.Ip) || HasRealValue(x.Mac))
+            };
+
+            return (true, apiItems, apiSummary, $"{apiItems.Count} ramal(is) carregado(s) da Central OXE via API REST.");
+        }
+
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
             return (false, [], new OxeSummary(), error);
@@ -100,5 +136,34 @@ public class BancadaOxeService
                 return v;
         }
         return string.Empty;
+    }
+
+    private sealed class ApiOxeResponse
+    {
+        [JsonPropertyName("items")] public List<ApiOxeRamalDto>? Items { get; set; }
+        [JsonPropertyName("summary")] public ApiOxeSummaryDto? Summary { get; set; }
+    }
+
+    private sealed class ApiOxeSummaryDto
+    {
+        [JsonPropertyName("total")] public int Total { get; set; }
+        [JsonPropertyName("com_nome")] public int ComNome { get; set; }
+        [JsonPropertyName("com_ip_ou_mac")] public int ComIpOuMac { get; set; }
+    }
+
+    private sealed class ApiOxeRamalDto
+    {
+        [JsonPropertyName("ramal")] public string? Ramal { get; set; }
+        [JsonPropertyName("nome")] public string? Nome { get; set; }
+        [JsonPropertyName("localidade")] public string? Localidade { get; set; }
+        [JsonPropertyName("setor")] public string? Setor { get; set; }
+        [JsonPropertyName("tipo")] public string? Tipo { get; set; }
+        [JsonPropertyName("ip")] public string? Ip { get; set; }
+        [JsonPropertyName("mac")] public string? Mac { get; set; }
+        [JsonPropertyName("grupo_captura")] public string? GrupoCaptura { get; set; }
+        [JsonPropertyName("cat_rede_publica")] public string? CatRedePublica { get; set; }
+        [JsonPropertyName("categoria_dispositivo")] public string? CategoriaDispositivo { get; set; }
+        [JsonPropertyName("tipo_estacao")] public string? TipoEstacao { get; set; }
+        [JsonPropertyName("all_fields")] public Dictionary<string, string>? AllFields { get; set; }
     }
 }

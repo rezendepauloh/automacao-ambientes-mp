@@ -157,7 +157,7 @@ public class BancadaServicesTests
     [InlineData("app.exe --password=MinhaSenhaSecreta --user=joao", "MinhaSenhaSecreta")]
     [InlineData("curl -H --token \"eyJhbGciOiJIUzI1NiJ9\"", "eyJhbGciOiJIUzI1NiJ9")]
     [InlineData("cmd /p:Segredo123 /u:usuario", "Segredo123")]
-    [InlineData("tool --api-key=AKIAIOSFODNN7EXAMPLE", "AKIAIOSFODNN7EXAMPLE")]
+    [InlineData("tool --api-key=TOKEN_TESTE_1234567890", "TOKEN_TESTE_1234567890")]
     public void DeviceAnalyzerService_RedactSensitiveCommandLine_RemovesSecretValues(string rawCmd, string secret)
     {
         string redacted = DeviceAnalyzerService.RedactSensitiveCommandLine(rawCmd);

@@ -48,14 +48,20 @@ public class BancadaDockerService
     {
         try
         {
-            var uri = new Uri(BancadaUrl.TrimEnd('/') + "/_stcore/health");
-            var res = await HttpClient.GetAsync(uri);
-            return res.IsSuccessStatusCode;
+            if (InputValidator.IsSafeHttpUrl(BancadaUrl))
+            {
+                var uri = new Uri(BancadaUrl.TrimEnd('/') + "/_stcore/health");
+                var res = await HttpClient.GetAsync(uri);
+                if (res.IsSuccessStatusCode)
+                    return true;
+            }
         }
         catch
         {
-            return false;
+            // Fallback para checagem de saúde da API REST (ex: RedHat ou Streamlit reiniciando)
         }
+
+        return await BancadaApiClient.CheckHealthAsync();
     }
 
     public async Task StartDockerBancadaAsync(Action<string> onOutput, bool streamLogs = true)

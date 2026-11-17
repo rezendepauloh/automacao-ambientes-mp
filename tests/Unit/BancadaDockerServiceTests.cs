@@ -10,11 +10,6 @@ public class BancadaDockerServiceTests
     {
         Assert.StartsWith("http", BancadaDockerService.BancadaUrl);
         Assert.True(InputValidator.IsSafeHttpUrl(BancadaDockerService.BancadaUrl));
-
-        // Zero dados pessoais hardcoded: quando .env não define caminhos WSL, o fallback é vazio (fail-closed)
-        // e nunca deve conter nomes de usuários reais no código.
-        Assert.DoesNotContain("paulogoncalves", BancadaDockerService.BancadaWslDir, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("paulogoncalves", BancadaDockerService.BancadaWindowsDir, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]

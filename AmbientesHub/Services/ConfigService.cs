@@ -148,6 +148,8 @@ public static class ConfigService
     public static string UrlOxe => Get("URL_OXE", "");
     public static string UrlPapercut => Get("URL_PAPERCUT", "");
     public static string UrlBancadaLocal => Get("URL_BANCADA_LOCAL", "");
+    public static string BancadaApiUrl => Get("BANCADA_API_URL", "");
+    public static string BancadaApiKey => Get("BANCADA_API_KEY", "");
     public static string BancadaWindowsDir => Get("BANCADA_WINDOWS_DIR", "");
     public static string BancadaWslDir => Get("BANCADA_WSL_DIR", "");
     public static string BancadaWslDistro => Get("BANCADA_WSL_DISTRO", "");
@@ -189,6 +191,7 @@ public static class ConfigService
             "URL_OXE" => "https://oxe.empresa.local/",
             "URL_PAPERCUT" => "http://impressora.empresa.local:9191/admin",
             "URL_BANCADA_LOCAL" => "http://localhost:8501/",
+            "BANCADA_API_URL" => "http://127.0.0.1:8510",
             "BANCADA_WSL_DIR" => $"/home/{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}/projetos/bancada",
             "BANCADA_WSL_DISTRO" => "Ubuntu-26.04",
             "BANCADA_WINDOWS_DIR" => $@"\\wsl.localhost\Ubuntu-26.04\home\{(!string.IsNullOrWhiteSpace(user) ? user.ToLowerInvariant() : "usuario")}\projetos\bancada",

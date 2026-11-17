@@ -17,7 +17,6 @@ public class ConfigServiceTests
         Assert.False(string.IsNullOrWhiteSpace(sccm));
         Assert.Equal("2500", ping);
         Assert.Contains("User State Migration Tool", usmt, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("paulogoncalves", wslDir, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

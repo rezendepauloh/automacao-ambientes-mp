@@ -69,6 +69,12 @@ public partial class MainWindow : FluentWindow
     private bool _isUpdatingImpressorasFilters = false;
     private int _impressorasCurrentPage = 1;
     private const int ImpressorasPageSize = 15;
+    private readonly BancadaCronService _cronService = new();
+    private readonly ObservableCollection<CronScheduleItem> _cronSchedulesList = [];
+    private readonly List<CronScheduleItem> _allCronSchedulesRaw = [];
+    private readonly List<CronLogItem> _latestCronLogs = [];
+    private bool _isUpdatingCronFilters = false;
+    private readonly ObservableCollection<EnvironmentModeItem> _environmentModes = new(EnvironmentLauncherService.CreateDefaultModes());
 
     public MainWindow()
     {
@@ -82,6 +88,8 @@ public partial class MainWindow : FluentWindow
         ItemsChamados.ItemsSource = _chamadosList;
         ItemsOxe.ItemsSource = _oxeList;
         ItemsImpressoras.ItemsSource = _impressorasList;
+        ItemsCronSchedules.ItemsSource = _cronSchedulesList;
+        ItemsAmbientes.ItemsSource = _environmentModes;
         LstRegistryTweaks.ItemsSource = _filteredRegistryTweaks;
         InitializeRegistryTweaks();
         PopulateFontList();
@@ -285,6 +293,13 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (lower is "cron" or "agendador" or "agendadores" or "schedules" or "rotinas" or "jobs")
+        {
+            NavListBox.SelectedIndex = 18;
+            TxtFooterStatus.Text = "Navegado para: Agendadores & Cron Jobs";
+            return;
+        }
+
         if (lower is "regedit" or "registro" or "tweak" or "tweaks" or "otimizar registro" or "otimização registro" or "rollback" or "ajustes registro")
         {
             NavListBox.SelectedIndex = 14;
@@ -365,7 +380,7 @@ public partial class MainWindow : FluentWindow
 
     private void HighlightActiveNavMenuItem(int activeIndex)
     {
-        for (int i = 0; i <= 17; i++)
+        for (int i = 0; i <= 18; i++)
         {
             if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
                 btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
@@ -392,6 +407,7 @@ public partial class MainWindow : FluentWindow
         PanelChamados.Visibility = Visibility.Collapsed;
         PanelOxe.Visibility = Visibility.Collapsed;
         PanelImpressoras.Visibility = Visibility.Collapsed;
+        PanelCronJobs.Visibility = Visibility.Collapsed;
         PanelRegistryTweaks.Visibility = Visibility.Collapsed;
         PanelAppLogs.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
@@ -464,6 +480,10 @@ public partial class MainWindow : FluentWindow
             case 17:
                 PanelImpressoras.Visibility = Visibility.Visible;
                 _ = LoadImpressorasAsync();
+                break;
+            case 18:
+                PanelCronJobs.Visibility = Visibility.Visible;
+                _ = LoadCronJobsAsync();
                 break;
         }
     }
@@ -1045,6 +1065,81 @@ public partial class MainWindow : FluentWindow
     private void BtnModoImpressoras_Click(object sender, RoutedEventArgs e) => LaunchEnv("Impressoras");
     private void BtnModoPxe_Click(object sender, RoutedEventArgs e) => LaunchEnv("PXE");
     private void BtnModoEstudo_Click(object sender, RoutedEventArgs e) => LaunchEnv("Estudo");
+
+    private void BtnToggleEnvDropdown_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is EnvironmentModeItem mode)
+        {
+            mode.IsExpanded = !mode.IsExpanded;
+        }
+    }
+
+    private void BtnEnvSelectAllSteps_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is EnvironmentModeItem mode)
+        {
+            foreach (var s in mode.Steps) s.IsEnabled = true;
+        }
+    }
+
+    private void BtnEnvDeselectAllSteps_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is EnvironmentModeItem mode)
+        {
+            foreach (var s in mode.Steps) s.IsEnabled = false;
+        }
+    }
+
+    private void EnvCard_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is EnvironmentModeItem mode && mode.CanRun)
+        {
+            _ = ExecuteEnvironmentModeAsync(mode);
+        }
+    }
+
+    private void BtnRunEnvMode_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.Tag is EnvironmentModeItem mode && mode.CanRun)
+        {
+            _ = ExecuteEnvironmentModeAsync(mode);
+        }
+    }
+
+    private async System.Threading.Tasks.Task ExecuteEnvironmentModeAsync(EnvironmentModeItem mode)
+    {
+        mode.IsRunning = true;
+        mode.ConsoleLog = string.Empty;
+        TxtFooterStatus.Text = $"Executando {mode.Title}...";
+
+        try
+        {
+            await Task.Run(() =>
+            {
+                _envService.ExecuteCustomEnvironment(mode, line =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        mode.ConsoleLog = string.IsNullOrEmpty(mode.ConsoleLog)
+                            ? line
+                            : $"{mode.ConsoleLog}\n{line}";
+                    });
+                });
+            });
+
+            TxtFooterStatus.Text = $"Ambiente ativo: {mode.Title}";
+        }
+        catch (Exception ex)
+        {
+            mode.ConsoleLog += $"\n[ERRO] {ex.Message}";
+            AppLoggerService.Danger($"Falha ao carregar {mode.Title}: {ex.Message}", nameof(MainWindow));
+            System.Windows.MessageBox.Show($"Erro ao carregar o ambiente: {ex.Message}", "Falha", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            mode.IsRunning = false;
+        }
+    }
 
     private async void LaunchEnv(string modeName)
     {
@@ -3475,7 +3570,8 @@ public partial class MainWindow : FluentWindow
 
         try
         {
-            var (availTags, availLocs) = await _chamadosService.GetAvailableFiltersAsync(search, baseFilter, statusFilter);
+            var (availTags, availLocs) = await _chamadosService.GetAvailableFiltersAsync(
+                search, baseFilter, statusFilter, tagFilter, _selectedLocalidades.ToList());
             UpdateChamadosFilterOptions(availTags, availLocs);
             tagFilter = (CmbChamadosTag?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Tags";
 
@@ -5255,6 +5351,235 @@ public partial class MainWindow : FluentWindow
         footer.Children.Add(btnClose);
         System.Windows.Controls.Grid.SetRow(footer, 2);
         root.Children.Add(footer);
+
+        win.Content = root;
+        win.ShowDialog();
+    }
+
+    #endregion
+
+    #region Painel 18: Agendadores & Cron Jobs
+
+    private async System.Threading.Tasks.Task LoadCronJobsAsync()
+    {
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando agendadores (cron_schedules) no PostgreSQL...";
+        if (BtnRefreshCron != null) BtnRefreshCron.IsEnabled = false;
+
+        try
+        {
+            var (success, schedules, logs, summary, message) = await _cronService.QueryCronDataAsync();
+            if (success)
+            {
+                _allCronSchedulesRaw.Clear();
+                _allCronSchedulesRaw.AddRange(schedules);
+                _latestCronLogs.Clear();
+                _latestCronLogs.AddRange(logs);
+
+                _isUpdatingCronFilters = true;
+                try
+                {
+                    FillStringCombo(CmbCronCategoria, "Categoria: Todas", _allCronSchedulesRaw.Select(s => s.Categoria));
+                }
+                finally
+                {
+                    _isUpdatingCronFilters = false;
+                }
+
+                ApplyCronFilters();
+
+                if (TxtCronKpiTotal != null) TxtCronKpiTotal.Text = summary.Total.ToString();
+                if (TxtCronKpiAtivas != null) TxtCronKpiAtivas.Text = summary.Ativas.ToString();
+                if (TxtCronKpiExec != null) TxtCronKpiExec.Text = summary.Executando.ToString();
+                if (TxtCronKpiErro != null) TxtCronKpiErro.Text = summary.ComErro.ToString();
+            }
+
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = message;
+        }
+        catch (Exception ex)
+        {
+            if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar agendadores: {ex.Message}";
+        }
+        finally
+        {
+            if (BtnRefreshCron != null) BtnRefreshCron.IsEnabled = true;
+        }
+    }
+
+    private void ApplyCronFilters()
+    {
+        string q = TxtCronSearch?.Text?.Trim() ?? string.Empty;
+        string cat = CmbCronCategoria?.SelectedIndex > 0 ? CmbCronCategoria.SelectedItem?.ToString() ?? "" : "";
+
+        _cronSchedulesList.Clear();
+        foreach (var s in _allCronSchedulesRaw)
+        {
+            if (!string.IsNullOrEmpty(cat) && !string.Equals(s.Categoria, cat, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                bool hit = s.Nome.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                           s.TaskId.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                           s.Categoria.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                           s.Descricao.Contains(q, StringComparison.OrdinalIgnoreCase);
+                if (!hit) continue;
+            }
+
+            _cronSchedulesList.Add(s);
+        }
+    }
+
+    private void CronFilter_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _isUpdatingCronFilters) return;
+        ApplyCronFilters();
+    }
+
+    private void TxtCronSearch_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter)
+        {
+            e.Handled = true;
+            ApplyCronFilters();
+        }
+    }
+
+    private void BtnRefreshCron_Click(object sender, RoutedEventArgs e)
+    {
+        _ = LoadCronJobsAsync();
+    }
+
+    private async void BtnRunCronTask_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not CronScheduleItem item)
+            return;
+
+        var (ok, msg) = await _cronService.TriggerTaskNowAsync(item.TaskId);
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
+
+        if (!ok)
+        {
+            System.Windows.MessageBox.Show(msg, "Agendador", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        await LoadCronJobsAsync();
+        await System.Threading.Tasks.Task.Delay(3500);
+        if (PanelCronJobs?.Visibility == Visibility.Visible)
+            await LoadCronJobsAsync();
+    }
+
+    private async void BtnToggleCronActive_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.CheckBox cb || cb.Tag is not CronScheduleItem item)
+            return;
+
+        bool newActive = cb.IsChecked == true;
+        var (ok, msg) = await _cronService.SetTaskActiveAsync(item.TaskId, newActive);
+        if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
+        if (ok)
+            await LoadCronJobsAsync();
+    }
+
+    private void BtnOpenCronLogsModal_Click(object sender, RoutedEventArgs e)
+    {
+        var win = new System.Windows.Window
+        {
+            Title = "Histórico Recente de Execuções (cron_logs)",
+            Width = 860,
+            Height = 600,
+            WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner,
+            Owner = this,
+            Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(15, 23, 42)),
+            Foreground = System.Windows.Media.Brushes.White
+        };
+
+        var root = new System.Windows.Controls.Grid { Margin = new Thickness(20) };
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+
+        var title = new System.Windows.Controls.TextBlock
+        {
+            Text = $"📋 Últimas {_latestCronLogs.Count} Execuções Registradas",
+            FontSize = 18,
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        System.Windows.Controls.Grid.SetRow(title, 0);
+        root.Children.Add(title);
+
+        var scroll = new System.Windows.Controls.ScrollViewer { VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto };
+        var stack = new System.Windows.Controls.StackPanel();
+
+        if (_latestCronLogs.Count == 0)
+        {
+            stack.Children.Add(new System.Windows.Controls.TextBlock
+            {
+                Text = "Nenhuma execução registrada em cron_logs.",
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184))
+            });
+        }
+        else
+        {
+            foreach (var l in _latestCronLogs)
+            {
+                bool ok = l.Status.Equals("sucesso", StringComparison.OrdinalIgnoreCase);
+                var border = new System.Windows.Controls.Border
+                {
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+                    BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 65, 85)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(12),
+                    Margin = new Thickness(0, 0, 0, 8)
+                };
+                var sp = new System.Windows.Controls.StackPanel();
+                sp.Children.Add(new System.Windows.Controls.TextBlock
+                {
+                    Text = $"{l.Rotina}  •  [{l.StatusDisplay}]  •  🕒 {l.InicioBr}  ({l.DuracaoSegundos}s)",
+                    FontSize = 12.5,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(ok
+                        ? System.Windows.Media.Color.FromRgb(52, 211, 153)
+                        : System.Windows.Media.Color.FromRgb(251, 191, 36)),
+                    TextWrapping = TextWrapping.Wrap
+                });
+                if (!string.IsNullOrWhiteSpace(l.Mensagem))
+                {
+                    sp.Children.Add(new System.Windows.Controls.TextBox
+                    {
+                        Text = l.Mensagem.Trim(),
+                        IsReadOnly = true,
+                        TextWrapping = TextWrapping.Wrap,
+                        Background = System.Windows.Media.Brushes.Transparent,
+                        BorderThickness = new Thickness(0),
+                        Foreground = System.Windows.Media.Brushes.White,
+                        FontSize = 12,
+                        Margin = new Thickness(0, 4, 0, 0),
+                        Padding = new Thickness(0)
+                    });
+                }
+                border.Child = sp;
+                stack.Children.Add(border);
+            }
+        }
+
+        scroll.Content = stack;
+        System.Windows.Controls.Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+
+        var btnClose = new Wpf.Ui.Controls.Button
+        {
+            Content = "Fechar",
+            Appearance = ControlAppearance.Primary,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0),
+            Padding = new Thickness(14, 6, 14, 6)
+        };
+        btnClose.Click += (_, _) => win.Close();
+        System.Windows.Controls.Grid.SetRow(btnClose, 2);
+        root.Children.Add(btnClose);
 
         win.Content = root;
         win.ShowDialog();

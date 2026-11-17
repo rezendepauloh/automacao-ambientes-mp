@@ -102,7 +102,9 @@ public class BancadaChamadosService
     public async Task<(List<string> Tags, List<string> Localidades)> GetAvailableFiltersAsync(
         string? search = null,
         string? baseFilter = null,
-        string? statusFilter = "Aberto")
+        string? statusFilter = "Aberto",
+        string? tagFilter = null,
+        List<string>? localidadesFilter = null)
     {
         var tags = new List<string>();
         var locs = new List<string>();
@@ -121,8 +123,16 @@ public class BancadaChamadosService
             string cleanStatus = string.IsNullOrWhiteSpace(statusFilter) || statusFilter.Equals("Todos", StringComparison.OrdinalIgnoreCase)
                 ? string.Empty
                 : statusFilter.Trim().ToLowerInvariant();
+            string cleanTag = string.IsNullOrWhiteSpace(tagFilter) || tagFilter.Equals("Todas as Tags", StringComparison.OrdinalIgnoreCase)
+                ? string.Empty
+                : tagFilter.Trim().ToLowerInvariant();
+            string[] cleanLocalidades = localidadesFilter?
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .Select(l => l.Trim().ToLowerInvariant())
+                .Distinct()
+                .ToArray() ?? [];
 
-            const string whereClause = """
+            const string baseWhere = """
                 WHERE (@baseFilter = '' OR LOWER(COALESCE(base, '')) LIKE @baseFilter)
                   AND (@statusFilter = '' OR LOWER(COALESCE(status, '')) = @statusFilter)
                   AND (
@@ -136,23 +146,26 @@ public class BancadaChamadosService
                       )
                 """;
 
-            string tagsSql = $"SELECT DISTINCT TRIM(tag) FROM chamados {whereClause} AND TRIM(COALESCE(tag, '')) <> '' ORDER BY 1;";
+            string tagsSql = $"SELECT DISTINCT TRIM(tag) FROM chamados {baseWhere} AND (@hasLocalidades = false OR LOWER(TRIM(COALESCE(localidade_fisica, ''))) = ANY(@localidades)) AND TRIM(COALESCE(tag, '')) <> '' ORDER BY 1;";
             await using (var cmd = new NpgsqlCommand(tagsSql, conn))
             {
                 cmd.Parameters.AddWithValue("@baseFilter", cleanBase);
                 cmd.Parameters.AddWithValue("@statusFilter", cleanStatus);
                 cmd.Parameters.AddWithValue("@search", cleanSearch);
+                cmd.Parameters.AddWithValue("@hasLocalidades", cleanLocalidades.Length > 0);
+                cmd.Parameters.AddWithValue("@localidades", cleanLocalidades);
                 await using var r = await cmd.ExecuteReaderAsync();
                 while (await r.ReadAsync())
                     tags.Add(r.GetString(0));
             }
 
-            string locsSql = $"SELECT DISTINCT TRIM(localidade_fisica) FROM chamados {whereClause} AND TRIM(COALESCE(localidade_fisica, '')) <> '' ORDER BY 1;";
+            string locsSql = $"SELECT DISTINCT TRIM(localidade_fisica) FROM chamados {baseWhere} AND (@tagFilter = '' OR LOWER(COALESCE(tag, '')) = @tagFilter) AND TRIM(COALESCE(localidade_fisica, '')) <> '' ORDER BY 1;";
             await using (var cmd = new NpgsqlCommand(locsSql, conn))
             {
                 cmd.Parameters.AddWithValue("@baseFilter", cleanBase);
                 cmd.Parameters.AddWithValue("@statusFilter", cleanStatus);
                 cmd.Parameters.AddWithValue("@search", cleanSearch);
+                cmd.Parameters.AddWithValue("@tagFilter", cleanTag);
                 await using var r = await cmd.ExecuteReaderAsync();
                 while (await r.ReadAsync())
                     locs.Add(r.GetString(0));

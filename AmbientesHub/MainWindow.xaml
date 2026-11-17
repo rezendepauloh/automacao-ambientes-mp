@@ -93,6 +93,7 @@
                         <ListBoxItem Content="12" /><ListBoxItem Content="13" /><ListBoxItem Content="14" /><ListBoxItem Content="15" />
                         <ListBoxItem Content="16" />
                         <ListBoxItem Content="17" />
+                        <ListBoxItem Content="18" />
                     </ListBox>
 
                     <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
@@ -197,6 +198,9 @@
                                 <ui:Button x:Name="NavBtn17" Tag="17" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="🖨️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl17" Text="Impressoras PaperCut" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
                                 </ui:Button>
+                                <ui:Button x:Name="NavBtn18" Tag="18" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="⏰" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl18" Text="Agendadores &amp; Cron" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
                             </StackPanel>
 
                             <Separator Margin="4,8" />
@@ -228,48 +232,84 @@
                         </Grid.RowDefinitions>
 
                         <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                            <TextBlock Text="Selecione o Ambiente de Trabalho" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
-                            <TextBlock Text="Fecha as tarefas anteriores e carrega o novo fluxo limpo no Firefox." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            <TextBlock Text="Ambientes Virtuais &amp; Modos de Trabalho" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Clique no card para iniciar o fluxo completo imediatamente ou na seta (⌄) à direita para personalizar as etapas e acompanhar o console." FontSize="14" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
                         </StackPanel>
 
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                            <WrapPanel Orientation="Horizontal" ItemWidth="280" ItemHeight="130">
-                                <ui:CardAction Margin="8" Click="BtnModoChamados_Click">
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="🛠️ Modo Chamados" FontSize="16" FontWeight="SemiBold" />
-                                        <TextBlock Text="Fecha tudo e abre WhatsApp PWA, CitSmart e OTRS no Firefox." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                    </StackPanel>
-                                </ui:CardAction>
+                        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="ItemsAmbientes">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" BorderBrush="#334155" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,10">
+                                                <StackPanel>
+                                                    <!-- Cabeçalho do Card (Clique no corpo executa direto; seta à direita expande dropdown) -->
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
 
-                                <ui:CardAction Margin="8" Click="BtnModoContratos_Click">
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="🛠️ Modo Contratos" FontSize="16" FontWeight="SemiBold" />
-                                        <TextBlock Text="Gestão contratual, termos e pastas de documentação." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                    </StackPanel>
-                                </ui:CardAction>
+                                                        <Border Grid.Column="0" Background="Transparent" Cursor="Hand" Tag="{Binding}" MouseLeftButtonUp="EnvCard_MouseLeftButtonUp" ToolTip="Clique no card para executar o fluxo imediatamente" Margin="0,0,12,0">
+                                                            <StackPanel>
+                                                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                    <Border Background="#1e3a8a" CornerRadius="4" Padding="8,2" Margin="0,2,8,2">
+                                                                        <TextBlock Text="{Binding BadgeText}" FontSize="11" FontWeight="Bold" Foreground="#93c5fd" />
+                                                                    </Border>
+                                                                    <TextBlock Text="{Binding Icon}" FontSize="16" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                                    <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                                                </WrapPanel>
+                                                                <TextBlock Text="{Binding Subtitle}" FontSize="12.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                        </Border>
 
-                                <ui:CardAction Margin="8" Click="BtnModoImpressoras_Click">
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="🛠️ Modo Impressoras" FontSize="16" FontWeight="SemiBold" />
-                                        <TextBlock Text="Servidores de impressão, filas e ferramentas de suporte." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                    </StackPanel>
-                                </ui:CardAction>
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <ui:Button Appearance="Secondary" Content="{Binding ChevronSymbol}" Tag="{Binding}" Click="BtnToggleEnvDropdown_Click" Width="38" Height="36" Padding="0" FontSize="15" ToolTip="Expandir/recolher etapas do fluxo e console" />
+                                                        </StackPanel>
+                                                    </Grid>
 
-                                <ui:CardAction Margin="8" Click="BtnModoPxe_Click">
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="🛠️ Modo PXE" FontSize="16" FontWeight="SemiBold" />
-                                        <TextBlock Text="Bancada de formatação, deploys de imagem e boot de rede." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                    </StackPanel>
-                                </ui:CardAction>
+                                                    <!-- Dropdown de Etapas + Botão Executar + Console -->
+                                                    <StackPanel Visibility="{Binding DetailsVisibility}" Margin="0,12,0,0">
+                                                        <Separator Margin="0,0,0,10" />
 
-                                <ui:CardAction Margin="8" Click="BtnModoEstudo_Click">
-                                    <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="🛠️ Modo Estudo" FontSize="16" FontWeight="SemiBold" />
-                                        <TextBlock Text="Ambiente focado com ferramentas de leitura e documentação." FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
-                                    </StackPanel>
-                                </ui:CardAction>
-                            </WrapPanel>
-                        </ScrollViewer>
+                                                        <Grid Margin="0,0,0,8">
+                                                            <TextBlock Text="Etapas do Fluxo (desmarque para pular):" FontSize="12" FontWeight="SemiBold" Foreground="#38bdf8" VerticalAlignment="Center" />
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                                <ui:Button Content="Marcar Todas" Appearance="Transparent" Tag="{Binding}" Click="BtnEnvSelectAllSteps_Click" Padding="8,3" FontSize="11.5" Margin="0,0,4,0" />
+                                                                <ui:Button Content="Desmarcar" Appearance="Transparent" Tag="{Binding}" Click="BtnEnvDeselectAllSteps_Click" Padding="8,3" FontSize="11.5" />
+                                                            </StackPanel>
+                                                        </Grid>
+
+                                                        <ItemsControl ItemsSource="{Binding Steps}" Margin="4,0,0,10">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" Margin="0,2">
+                                                                        <WrapPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="{Binding Category, StringFormat='[{0}] '}" FontSize="12" FontWeight="SemiBold" Foreground="#94a3b8" />
+                                                                            <TextBlock Text="{Binding Label}" FontSize="12.5" />
+                                                                        </WrapPanel>
+                                                                    </CheckBox>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+
+                                                        <ui:Button Appearance="Primary" Content="{Binding RunButtonText}" Icon="{ui:SymbolIcon Symbol=Play24}" Tag="{Binding}" Click="BtnRunEnvMode_Click" IsEnabled="{Binding CanRun}" Padding="16,8" HorizontalAlignment="Left" />
+
+                                                        <!-- Console em Tempo Real do Fluxo -->
+                                                        <Border Visibility="{Binding ConsoleVisibility}" Margin="0,12,0,0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="6" Padding="10">
+                                                            <StackPanel>
+                                                                <TextBlock Text="Console de Execução do Ambiente" FontSize="11" FontWeight="SemiBold" Foreground="#38bdf8" Margin="0,0,0,4" />
+                                                                <TextBox Text="{Binding ConsoleLog, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Background="Transparent" BorderThickness="0" Foreground="#34d399" FontFamily="Consolas, Cascadia Code, Courier New" FontSize="12" MaxHeight="180" VerticalScrollBarVisibility="Auto" Padding="0" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
                     </Grid>
 
                     <!-- PAINEL 1: ACESSO REMOTO -->
@@ -2251,6 +2291,114 @@
                                     <ui:Button x:Name="BtnImpressorasNextPage" Content="Próxima →" Appearance="Secondary" Click="BtnImpressorasNextPage_Click" IsEnabled="False" Padding="12,6" />
                                 </StackPanel>
                             </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- PAINEL 18: AGENDADORES & CRON JOBS (WSL / REDHAT) -->
+                    <Grid x:Name="PanelCronJobs" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Cabeçalho -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock Text="Agendadores &amp; Cron Jobs (Bancada STI)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="Disparo sob demanda e monitoramento de todas as rotinas via PostgreSQL (compatível com Docker/WSL local e servidor RedHat remoto)." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <WrapPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:Button Appearance="Secondary" Content="Histórico (Logs)" Icon="{ui:SymbolIcon Symbol=History24}" Click="BtnOpenCronLogsModal_Click" Margin="0,0,8,0" Padding="12,8" />
+                                <ui:Button x:Name="BtnRefreshCron" Appearance="Primary" Content="Atualizar Status" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnRefreshCron_Click" Padding="14,8" />
+                            </WrapPanel>
+                        </Grid>
+
+                        <!-- KPIs -->
+                        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,6,0">
+                                <StackPanel>
+                                    <TextBlock Text="Total de Rotinas" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtCronKpiTotal" Text="-" FontSize="16" FontWeight="Bold" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Habilitadas" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtCronKpiAtivas" Text="-" FontSize="16" FontWeight="Bold" Foreground="#34d399" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="3,0">
+                                <StackPanel>
+                                    <TextBlock Text="Em Execução" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtCronKpiExec" Text="-" FontSize="16" FontWeight="Bold" Foreground="#38bdf8" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                            <Border Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Com Erro" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock x:Name="TxtCronKpiErro" Text="-" FontSize="16" FontWeight="Bold" Foreground="#f87171" Margin="0,2,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Filtros -->
+                        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox x:Name="TxtCronSearch" Grid.Column="0" PlaceholderText="Buscar rotina por nome, task_id, categoria ou descrição..." Height="34" Margin="0,0,10,0" KeyDown="TxtCronSearch_KeyDown" />
+                                <ComboBox x:Name="CmbCronCategoria" Grid.Column="1" Width="210" Height="34" SelectionChanged="CronFilter_Changed" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Lista de Rotinas com Botão Individual -->
+                        <Border Grid.Row="3" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl x:Name="ItemsCronSchedules">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}" CornerRadius="6" Padding="14,10" Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                                                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                            <Border Background="{Binding StatusBadgeBackground}" CornerRadius="4" Padding="7,2" Margin="0,2,6,2">
+                                                                <TextBlock Text="{Binding StatusDisplay}" FontSize="11" FontWeight="Bold" Foreground="{Binding StatusBadgeForeground}" />
+                                                            </Border>
+                                                            <Border Background="#1e293b" CornerRadius="4" Padding="7,2" Margin="0,2,8,2">
+                                                                <TextBlock Text="{Binding Categoria}" FontSize="11" Foreground="#cbd5e1" />
+                                                            </Border>
+                                                            <TextBlock Text="{Binding Nome}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                                        </WrapPanel>
+                                                        <TextBlock Text="{Binding Descricao}" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" TextWrapping="Wrap" />
+                                                        <WrapPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding AgendamentoDisplay, StringFormat='⏰ {0}'}" FontSize="11.5" Foreground="#94a3b8" Margin="0,0,14,2" />
+                                                            <TextBlock Text="{Binding UltimaExecucaoBr, StringFormat='🕒 Última: {0}'}" FontSize="11.5" Foreground="#94a3b8" Margin="0,0,14,2" />
+                                                            <TextBlock Text="{Binding TaskId, StringFormat='🆔 {0}'}" FontSize="11.5" Foreground="#64748b" Margin="0,0,0,2" />
+                                                        </WrapPanel>
+                                                        <TextBlock Text="{Binding UltimoLogDisplay, StringFormat='📝 {0}'}" FontSize="11.5" Foreground="#cbd5e1" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                        <ui:Button Appearance="Primary" Content="Executar Agora" Icon="{ui:SymbolIcon Symbol=Play24}" Tag="{Binding}" Click="BtnRunCronTask_Click" IsEnabled="{Binding CanTrigger}" Padding="12,7" Margin="0,0,0,6" HorizontalAlignment="Stretch" />
+                                                        <CheckBox Content="Habilitada no Cron" IsChecked="{Binding Ativo, Mode=OneWay}" Tag="{Binding}" Click="BtnToggleCronActive_Click" HorizontalAlignment="Center" FontSize="11.5" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </Border>
                     </Grid>
 

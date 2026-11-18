@@ -2569,7 +2569,7 @@ public partial class MainWindow : FluentWindow
             TxtBancadaStatus.Text = "🟢 ONLINE (Streamlit 8501)";
             TxtBancadaStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#34d399"));
             BadgeBancadaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#064e3b"));
-            TxtFooterStatus.Text = "Sistema Bancada STI está online em http://localhost:8501/";
+            TxtFooterStatus.Text = $"Sistema Bancada STI está online em {ConfigService.UrlBancadaLocal}";
 
             // Se os containers já estão de pé mas o streaming de logs ainda não está conectado no terminal:
             if (!_bancadaService.IsProcessRunning)

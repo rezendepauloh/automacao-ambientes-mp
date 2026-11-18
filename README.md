@@ -145,7 +145,7 @@ graph TD
 ### 3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)
 
 - **Criptografia DPAPI de Alta Segurança:** Senhas criptografadas usando a API de Proteção de Dados do Windows (`DataProtectionScope.CurrentUser`), garantindo que o cofre só possa ser lido na sessão do próprio operador.
-- **Zero Credenciais Hardcoded:** Todas as chaves, caminhos de relatórios (`DEVICE_REPORTS_DIR`, `CHAMADOS_REPORTS_DIR`), conexão PostgreSQL (`BANCADA_DB_*`) e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência), incluindo botões de reset para valores recomendados dinâmicos, configuração automática de `USMT_PATH` e painel com **Informações desta Máquina** (Hostname, IPv4 local, Usuário e Sistema Operacional).
+- **Zero Credenciais Hardcoded:** Todas as chaves, caminhos de relatórios (`DEVICE_REPORTS_DIR`, `CHAMADOS_REPORTS_DIR`), URLs da Bancada (`URL_BANCADA_LOCAL`, `BANCADA_API_URL` — inclusive apontando para host remoto via [Guia de Migração WSL Remoto](Docs/guias/migracao_wsl_remoto.md)), conexão PostgreSQL (`BANCADA_DB_*`) e nomes administrativos são gerenciados pelo arquivo `.env` local (com `.env.example` versionado para referência), incluindo botões de reset para valores recomendados dinâmicos, configuração automática de `USMT_PATH` e painel com **Informações desta Máquina** (Hostname, IPv4 local, Usuário e Sistema Operacional).
 
 ### 3.8 Terminal de Logs, Central de Logs & Notificações Toast
 

@@ -13,11 +13,14 @@ public enum LogLevel
 public class AppLoggerService
 {
     private static readonly object LockObj = new();
-    
+    private static readonly int CurrentPid = Environment.ProcessId;
+    private static readonly Lazy<string> PrivilegeTag = new(() =>
+        SystemPerformanceService.IsUserAdministrator() ? "Admin" : "User");
+
     // Grava fixo em C:\AmbientesVirtuais\AmbientesHub\logs
     private static readonly string LogsDirectory = @"C:\AmbientesVirtuais\AmbientesHub\logs";
     private const long MaxFileSizeBytes = 3 * 1024 * 1024; // 3 MB
-    private const int MaxLogFiles = 3;
+    private const int MaxLogFiles = 3; // app.log + app_1.log + app_2.log (máx. 3 arquivos)
 
     public static string LogDirectoryPath => LogsDirectory;
     public static string CurrentLogFilePath => Path.Combine(LogsDirectory, "app.log");
@@ -56,9 +59,10 @@ public class AppLoggerService
                     }
                 }
 
-                // Formato exigido: [2026-11-11 16:26:06] [INFO]
+                // Formato enriquecido com milissegundos, PID, ThreadId e privilégio
+                int threadId = Environment.CurrentManagedThreadId;
                 string prefix = caller != null ? $" [{caller}]" : "";
-                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{level}]{prefix} {InputValidator.SanitizeLogText(message)}";
+                string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level}] [PID:{CurrentPid}|T:{threadId}|{PrivilegeTag.Value}]{prefix} {InputValidator.SanitizeLogText(message)}";
 
                 File.AppendAllText(currentLogPath, line + Environment.NewLine);
 
@@ -108,24 +112,30 @@ public class AppLoggerService
         }
     }
 
-    private static void RotateLogs()
+    public static void RotateLogsInDirectory(string directory, int maxTotalFiles = MaxLogFiles)
     {
         try
         {
-            string file3 = Path.Combine(LogsDirectory, "app_3.log");
-            if (File.Exists(file3)) File.Delete(file3);
+            // Mantém no máximo `maxTotalFiles` (ex: app.log + app_1.log + app_2.log = 3 arquivos)
+            int maxBackupIndex = Math.Max(1, maxTotalFiles - 1);
+            string oldest = Path.Combine(directory, $"app_{maxBackupIndex}.log");
+            if (File.Exists(oldest)) File.Delete(oldest);
 
-            string file2 = Path.Combine(LogsDirectory, "app_2.log");
-            if (File.Exists(file2)) File.Move(file2, file3);
+            for (int i = maxBackupIndex - 1; i >= 1; i--)
+            {
+                string src = Path.Combine(directory, $"app_{i}.log");
+                string dst = Path.Combine(directory, $"app_{i + 1}.log");
+                if (File.Exists(src)) File.Move(src, dst);
+            }
 
-            string file1 = Path.Combine(LogsDirectory, "app_1.log");
-            if (File.Exists(file1)) File.Move(file1, file2);
-
-            string current = Path.Combine(LogsDirectory, "app.log");
-            if (File.Exists(current)) File.Move(current, file1);
+            string current = Path.Combine(directory, "app.log");
+            if (File.Exists(current))
+                File.Move(current, Path.Combine(directory, "app_1.log"));
         }
         catch { }
     }
+
+    private static void RotateLogs() => RotateLogsInDirectory(LogsDirectory, MaxLogFiles);
 
     public static void Info(string msg, string? caller = null) => Log(LogLevel.INFO, msg, caller);
     public static void Warning(string msg, string? caller = null) => Log(LogLevel.WARNING, msg, caller);

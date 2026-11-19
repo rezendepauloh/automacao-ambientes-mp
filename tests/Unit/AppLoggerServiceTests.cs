@@ -1,3 +1,4 @@
+using System.IO;
 using AmbientesHub.Services;
 using Xunit;
 
@@ -46,6 +47,7 @@ public class AppLoggerServiceTests
             AppLoggerService.Info($"Mensagem de teste {testToken}", "TestCaller");
             Assert.NotNull(receivedLine);
             Assert.Contains(testToken, receivedLine);
+            Assert.Contains("[PID:", receivedLine);
 
             var recentLogs = AppLoggerService.ReadRecentLogs(50);
             Assert.NotEmpty(recentLogs);
@@ -54,6 +56,31 @@ public class AppLoggerServiceTests
         finally
         {
             AppLoggerService.OnLogLineWritten -= handler;
+        }
+    }
+
+    [Fact]
+    public void RotateLogsInDirectory_KeepsAtMostThreeFilesAndDeletesOldest()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"log_rot_test_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "app.log"), "atual");
+            File.WriteAllText(Path.Combine(tempDir, "app_1.log"), "backup1");
+            File.WriteAllText(Path.Combine(tempDir, "app_2.log"), "backup2_antigo");
+
+            AppLoggerService.RotateLogsInDirectory(tempDir, maxTotalFiles: 3);
+
+            Assert.False(File.Exists(Path.Combine(tempDir, "app.log")));
+            Assert.Equal("atual", File.ReadAllText(Path.Combine(tempDir, "app_1.log")));
+            Assert.Equal("backup1", File.ReadAllText(Path.Combine(tempDir, "app_2.log")));
+            Assert.False(File.Exists(Path.Combine(tempDir, "app_3.log")));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
         }
     }
 }

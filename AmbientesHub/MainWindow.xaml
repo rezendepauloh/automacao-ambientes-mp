@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:views="clr-namespace:AmbientesHub.Views"
         Title="Ambientes Hub — Central de Produtividade &amp; Performance"
         Icon="Assets/app.ico"
         Height="820" Width="1160"
@@ -94,6 +95,7 @@
                         <ListBoxItem Content="16" />
                         <ListBoxItem Content="17" />
                         <ListBoxItem Content="18" />
+                        <ListBoxItem Content="19" />
                     </ListBox>
 
                     <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
@@ -173,6 +175,9 @@
                                 </ui:Button>
                                 <ui:Button x:Name="NavBtn10" Tag="10" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="💾" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl10" Text="Backup &amp; Restore (USMT)" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn19" Tag="19" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🌐" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl19" Text="Mapa de Rota &amp; Ping" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
                                 </ui:Button>
                             </StackPanel>
 
@@ -1619,6 +1624,29 @@
                                         </StackPanel>
                                     </Grid>
 
+                                    <TextBlock Text="Integração Zabbix API (Enriquecimento de Switches &amp; Roteadores)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <TextBlock Text="URL da API Zabbix (ZABBIX_API_URL):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ui:TextBox x:Name="TxtCfgZabbixApiUrl" Grid.Column="0" PlaceholderText="https://zabbix.empresa.local/api_jsonrpc.php" />
+                                                <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="ZABBIX_API_URL" />
+                                            </Grid>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="API Token (ZABBIX_API_TOKEN):" FontWeight="Medium" Margin="0,0,0,4" />
+                                            <ui:PasswordBox x:Name="TxtCfgZabbixApiToken" PlaceholderText="Token pessoal gerado no Zabbix" />
+                                        </StackPanel>
+                                    </Grid>
+
                                     <TextBlock Text="Banco de Dados PostgreSQL da Bancada (Fallback Direto)" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap" />
                                     <Grid Margin="0,0,0,12">
                                         <Grid.ColumnDefinitions>
@@ -2634,6 +2662,9 @@
                             </Grid>
                         </Border>
                     </Grid>
+
+                    <!-- PAINEL 19: MAPA VISUAL DE ROTA & PING (TRACEROUTE NATIVO) -->
+                    <views:NetworkPathView x:Name="PanelNetworkPath" Visibility="Collapsed" />
 
                 </Grid>
             </Border>

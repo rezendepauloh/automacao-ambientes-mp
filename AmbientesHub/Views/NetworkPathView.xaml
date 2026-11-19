@@ -1,0 +1,208 @@
+<UserControl x:Class="AmbientesHub.Views.NetworkPathView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Cabeçalho -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock Text="Mapa Visual de Rota &amp; Ping (Traceroute Nativo)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                <TextBlock Text="Traça a árvore L3 da estação local até o destino em tempo real com curvas Bézier, ping contínuo e localização estimada por CIDR/PTR/AD." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+            <Border x:Name="BadgeTraceStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="6" Padding="12,6" Background="#1e293b" BorderBrush="#334155" BorderThickness="1">
+                <TextBlock x:Name="TxtTraceStatus" Text="⚪ Pronto para rastrear" FontSize="12" FontWeight="Bold" Foreground="#94a3b8" />
+            </Border>
+        </Grid>
+
+        <!-- Barra de Controle -->
+        <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+            <StackPanel>
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="165" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Estação / Hostname ou IP Destino:" FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                        <ui:TextBox x:Name="TxtTargetHost" PlaceholderText="Ex: ESTACAO-01, servidor.dominio.local ou 10.0.0.50" Height="34" KeyDown="TxtTargetHost_KeyDown" Icon="{ui:SymbolIcon Symbol=Search24}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                        <TextBlock Text="Máx. Saltos (TTL):" FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                        <ComboBox x:Name="CmbMaxHops" Height="34" SelectedIndex="1">
+                            <ComboBoxItem Content="15 saltos" Tag="15" />
+                            <ComboBoxItem Content="25 saltos" Tag="25" />
+                            <ComboBoxItem Content="30 saltos" Tag="30" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Orientação da Árvore:" FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                        <ComboBox x:Name="CmbLayoutOrientation" Height="34" SelectedIndex="0" SelectionChanged="CmbLayoutOrientation_SelectionChanged">
+                            <ComboBoxItem Content="Horizontal (→)" Tag="H" />
+                            <ComboBoxItem Content="Vertical (↓)" Tag="V" />
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <WrapPanel Orientation="Horizontal">
+                    <ui:Button x:Name="BtnRunTrace" Appearance="Primary" Content="Traçar Rota + Ping" Icon="{ui:SymbolIcon Symbol=Play24}" Click="BtnRunTrace_Click" Margin="0,0,8,4" Padding="14,7" />
+                    <ui:Button x:Name="BtnToggleContinuousPing" Appearance="Secondary" Content="Ping Contínuo" Icon="{ui:SymbolIcon Symbol=ArrowSync24}" Click="BtnToggleContinuousPing_Click" Margin="0,0,8,4" Padding="12,7" />
+                    <ui:Button x:Name="BtnStopTrace" Appearance="Danger" Content="Parar" Icon="{ui:SymbolIcon Symbol=Stop24}" Click="BtnStopTrace_Click" IsEnabled="False" Margin="0,0,8,4" Padding="12,7" />
+                    <ui:Button x:Name="BtnSubnetMapEditor" Appearance="Secondary" Content="Sub-redes (CIDR)" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnSubnetMapEditor_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Gerenciar tabela local de faixas CIDR -> Prédio / Andar / Switch" />
+                    <ui:Button x:Name="BtnCopyReport" Appearance="Transparent" Content="Copiar Texto" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnCopyReport_Click" Margin="0,0,8,4" Padding="10,7" ToolTip="Copia o resumo estruturado da rota e dos saltos para a área de transferência" />
+                    <ui:Button x:Name="BtnExportHtmlReport" Appearance="Secondary" Content="Relatório HTML" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnExportHtmlReport_Click" Margin="0,0,0,4" Padding="12,7" ToolTip="Gera um relatório HTML responsivo (desktop e celular) e abre no navegador" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Telemetria de Ping em Tempo Real -->
+        <Border Grid.Row="2" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="4,0,16,0">
+                    <TextBlock Text="ENVIADOS" FontSize="10" Foreground="#94a3b8" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TxtPingSent" Text="0" FontSize="15" FontWeight="Bold" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                    <TextBlock Text="RECEBIDOS" FontSize="10" Foreground="#94a3b8" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TxtPingRecv" Text="0" FontSize="15" FontWeight="Bold" Foreground="#34d399" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Margin="0,0,16,0">
+                    <TextBlock Text="PERDA" FontSize="10" Foreground="#94a3b8" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TxtPingLoss" Text="0%" FontSize="15" FontWeight="Bold" Foreground="#94a3b8" />
+                </StackPanel>
+                <StackPanel Grid.Column="3" Margin="0,0,16,0">
+                    <TextBlock Text="ÚLTIMO / MÉDIA" FontSize="10" Foreground="#94a3b8" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TxtPingLastAvg" Text="- / - ms" FontSize="15" FontWeight="Bold" Foreground="#38bdf8" />
+                </StackPanel>
+                <StackPanel Grid.Column="4" Margin="0,0,16,0">
+                    <TextBlock Text="MÍN / MÁX" FontSize="10" Foreground="#94a3b8" FontWeight="SemiBold" />
+                    <TextBlock x:Name="TxtPingMinMax" Text="- / - ms" FontSize="15" FontWeight="Bold" Foreground="#cbd5e1" />
+                </StackPanel>
+
+                <!-- Histórico visual das últimas amostras de Ping -->
+                <Border Grid.Column="5" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="6" Padding="8,4" VerticalAlignment="Center" Height="36">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Histórico:" FontSize="10" Foreground="#64748b" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <StackPanel x:Name="PingHistoryBarsPanel" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Right" Height="24" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Área Visual: Canvas Bézier (Esquerda) + Painel Inspetor do Nó (Direita) -->
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="295" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Canvas Interativo da Árvore -->
+            <Border Grid.Column="0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Margin="0,0,10,0" ClipToBounds="True">
+                <Grid>
+                    <ScrollViewer x:Name="GraphScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  PreviewMouseWheel="GraphScrollViewer_PreviewMouseWheel"
+                                  PreviewMouseLeftButtonDown="GraphScrollViewer_PreviewMouseLeftButtonDown"
+                                  PreviewMouseMove="GraphScrollViewer_PreviewMouseMove"
+                                  PreviewMouseLeftButtonUp="GraphScrollViewer_PreviewMouseLeftButtonUp">
+                        <Canvas x:Name="GraphCanvas" MinWidth="800" MinHeight="420" Background="Transparent">
+                            <Canvas.LayoutTransform>
+                                <ScaleTransform x:Name="GraphScaleTransform" ScaleX="1" ScaleY="1" />
+                            </Canvas.LayoutTransform>
+                        </Canvas>
+                    </ScrollViewer>
+
+                    <!-- Estado Inicial / Vazio -->
+                    <StackPanel x:Name="GraphEmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                        <TextBlock Text="🌐" FontSize="42" HorizontalAlignment="Center" Opacity="0.7" />
+                        <TextBlock Text="Informe um hostname ou IP e clique em 'Traçar Rota + Ping'" FontSize="14" FontWeight="SemiBold" Foreground="#94a3b8" Margin="0,8,0,2" HorizontalAlignment="Center" />
+                        <TextBlock Text="Mesmo com a máquina desligada, a árvore exibirá os saltos L3 até o último gateway ativo." FontSize="12" Foreground="#64748b" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Controles Flutuantes de Zoom -->
+                    <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="12" Background="#CC0f172a" BorderBrush="#334155" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Content="-" Appearance="Transparent" Padding="8,3" Click="BtnZoomOut_Click" ToolTip="Reduzir Zoom" />
+                            <TextBlock x:Name="TxtZoomPercent" Text="100%" FontSize="11.5" FontWeight="SemiBold" Foreground="#cbd5e1" VerticalAlignment="Center" Margin="6,0" MinWidth="38" TextAlignment="Center" />
+                            <ui:Button Content="+" Appearance="Transparent" Padding="8,3" Click="BtnZoomIn_Click" ToolTip="Ampliar Zoom" />
+                            <ui:Button Content="Ajustar" Appearance="Transparent" Padding="8,3" Margin="4,0,0,0" Click="BtnZoomFit_Click" ToolTip="Ajustar árvore ao tamanho da tela" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Painel Lateral Inspetor -->
+            <Border Grid.Column="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Detalhes do Nó Selecionado" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                        <Border Background="#0f172a" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtInspectorBadge" Text="NENHUM NÓ SELECIONADO" FontSize="10.5" FontWeight="Bold" Foreground="#38bdf8" />
+                                <TextBlock x:Name="TxtInspectorHost" Text="Clique em um card da árvore" FontSize="14" FontWeight="SemiBold" Foreground="#f8fafc" Margin="0,4,0,2" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtInspectorIp" Text="-" FontSize="12" FontFamily="Consolas" Foreground="#94a3b8" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Tipo / Equipamento:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorKind" Text="-" FontSize="12.5" FontWeight="Medium" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                        <TextBlock Text="Latência &amp; TTL:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorLatency" Text="-" FontSize="12.5" FontWeight="Medium" Margin="0,2,0,8" />
+
+                        <TextBlock Text="Usuário Conectado:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorUser" Text="-" FontSize="12.5" FontWeight="Medium" Foreground="#34d399" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                        <TextBlock Text="Localização / Sub-rede:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorLocation" Text="-" FontSize="12.5" FontWeight="Medium" Foreground="#38bdf8" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                        <TextBlock Text="Regra CIDR Aplicada:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorCidr" Text="-" FontSize="12" FontFamily="Consolas" Margin="0,2,0,8" />
+
+                        <TextBlock Text="Observações:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorDetails" Text="-" FontSize="11.5" Foreground="#cbd5e1" Margin="0,2,0,14" TextWrapping="Wrap" />
+
+                        <Separator Margin="0,0,0,10" />
+
+                        <TextBlock Text="Legenda da Rota" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <StackPanel>
+                            <TextBlock Text="🟢 Salto ativo (&lt;= 80 ms)" FontSize="11.5" Foreground="#34d399" Margin="0,0,0,3" />
+                            <TextBlock Text="🟡 Latência elevada (&gt; 80 ms)" FontSize="11.5" Foreground="#fbbf24" Margin="0,0,0,3" />
+                            <TextBlock Text="🔴 Timeout ICMP / Destino Offline" FontSize="11.5" Foreground="#f87171" Margin="0,0,0,3" />
+                            <TextBlock Text="--- Linha tracejada: ruptura da rota" FontSize="11.5" Foreground="#94a3b8" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -132,6 +132,9 @@ public partial class MainWindow : FluentWindow
             NavLbl14.Visibility = Visibility.Visible;
             NavLbl15.Visibility = Visibility.Visible;
             NavLbl16.Visibility = Visibility.Visible;
+            NavLbl17.Visibility = Visibility.Visible;
+            NavLbl18.Visibility = Visibility.Visible;
+            NavLbl19.Visibility = Visibility.Visible;
         }
         else
         {
@@ -154,6 +157,9 @@ public partial class MainWindow : FluentWindow
             NavLbl14.Visibility = Visibility.Collapsed;
             NavLbl15.Visibility = Visibility.Collapsed;
             NavLbl16.Visibility = Visibility.Collapsed;
+            NavLbl17.Visibility = Visibility.Collapsed;
+            NavLbl18.Visibility = Visibility.Collapsed;
+            NavLbl19.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -266,6 +272,13 @@ public partial class MainWindow : FluentWindow
         {
             NavListBox.SelectedIndex = 10;
             TxtFooterStatus.Text = "Navegado para: Backup & Restore de Perfis (USMT)";
+            return;
+        }
+
+        if (lower is "ping" or "tracert" or "traceroute" or "rota" or "mapa de rota" or "mapa de rede")
+        {
+            NavListBox.SelectedIndex = 19;
+            TxtFooterStatus.Text = "Navegado para: Mapa de Rota & Ping";
             return;
         }
 
@@ -384,7 +397,7 @@ public partial class MainWindow : FluentWindow
 
     private void HighlightActiveNavMenuItem(int activeIndex)
     {
-        for (int i = 0; i <= 18; i++)
+        for (int i = 0; i <= 19; i++)
         {
             if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
                 btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
@@ -415,6 +428,7 @@ public partial class MainWindow : FluentWindow
         PanelRegistryTweaks.Visibility = Visibility.Collapsed;
         PanelAppLogs.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
+        PanelNetworkPath.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -488,6 +502,9 @@ public partial class MainWindow : FluentWindow
             case 18:
                 PanelCronJobs.Visibility = Visibility.Visible;
                 _ = LoadCronJobsAsync();
+                break;
+            case 19:
+                PanelNetworkPath.Visibility = Visibility.Visible;
                 break;
         }
     }
@@ -620,6 +637,8 @@ public partial class MainWindow : FluentWindow
         TxtCfgDbPassword.Password = ConfigService.BancadaDbPassword;
         TxtCfgBancadaApiUrl.Text = ConfigService.BancadaApiUrl;
         TxtCfgBancadaApiKey.Password = ConfigService.BancadaApiKey;
+        TxtCfgZabbixApiUrl.Text = ConfigService.ZabbixApiUrl;
+        TxtCfgZabbixApiToken.Password = ConfigService.ZabbixApiToken;
         TxtCfgProtectedProfiles.Text = ConfigService.ProtectedProfiles;
         TxtCfgPingTimeout.Text = ConfigService.PingTimeoutMs.ToString();
     }

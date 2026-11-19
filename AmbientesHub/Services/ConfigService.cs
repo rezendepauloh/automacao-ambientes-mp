@@ -171,6 +171,8 @@ public static class ConfigService
     public static string ProtectedProfiles => Get("PROTECTED_PROFILES", "");
     public static int PingTimeoutMs => int.TryParse(Get("PING_TIMEOUT_MS", "2500"), out int t) && t > 100 ? t : 2500;
     public static bool MinimizeToTray => bool.TryParse(Get("MINIMIZE_TO_TRAY", "true"), out bool min) ? min : true;
+    public static string ZabbixApiUrl => Get("ZABBIX_API_URL", "");
+    public static string ZabbixApiToken => Get("ZABBIX_API_TOKEN", "");
 
     /// <summary>
     /// Retorna valores padrão recomendados e dinâmicos (ex: perfil do usuário atual do Windows)
@@ -205,6 +207,7 @@ public static class ConfigService
             "BANCADA_DB_PORT" => "5432",
             "PROTECTED_PROFILES" => "Public, Default, Default User, All Users, Administrator, Administrador",
             "PING_TIMEOUT_MS" => "2500",
+            "ZABBIX_API_URL" => "https://zabbix.empresa.local/api_jsonrpc.php",
             _ => string.Empty
         };
     }

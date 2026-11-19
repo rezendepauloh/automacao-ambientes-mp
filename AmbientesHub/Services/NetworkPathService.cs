@@ -5,6 +5,7 @@ using System.Management;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using AmbientesHub.Models;
@@ -140,6 +141,7 @@ public class NetworkPathService
     {
         string localHost = Environment.MachineName;
         string localIp = "127.0.0.1";
+        string localMac = string.Empty;
         string gatewayIp = string.Empty;
         string nicDesc = string.Empty;
 
@@ -166,6 +168,8 @@ public class NetworkPathService
                     .FirstOrDefault(g => g.Address.AddressFamily == AddressFamily.InterNetwork);
                 if (gw != null)
                     gatewayIp = gw.Address.ToString();
+
+                localMac = FormatPhysicalAddress(activeNic.GetPhysicalAddress());
             }
         }
         catch { }
@@ -189,6 +193,7 @@ public class NetworkPathService
             Status = NetworkHopStatus.Online,
             InferredLocation = loc,
             ConnectedUser = localUser,
+            MacAddress = localMac,
             ProbableDeviceLabel = matched != null && !string.IsNullOrWhiteSpace(matched.ProbableSwitch)
                 ? $"Estação Local • Switch: {matched.ProbableSwitch}"
                 : "Estação Local (Origem)",
@@ -357,6 +362,11 @@ public class NetworkPathService
                 if (isDestination)
                     node.ConnectedUser = await TryGetRemoteLoggedUserAsync(hopIp, cancellationToken);
 
+                node.MacAddress = TryResolveMacViaArp(hopIp);
+
+                if (isDestination && (string.IsNullOrWhiteSpace(node.ConnectedUser) || string.IsNullOrWhiteSpace(node.MacAddress)))
+                    await TryEnrichDestinationFromAdSccmAsync(target, node, cancellationToken);
+
                 result.Hops.Add(node);
                 onHopDiscovered?.Report(node);
 
@@ -424,6 +434,7 @@ public class NetworkPathService
                 MatchedCidr = matchedDest?.Cidr ?? string.Empty,
                 Details = $"Último salto válido antes do destino: {(result.Hops.LastOrDefault(h => h.Kind != NetworkHopKind.Timeout)?.SubtitleDisplay ?? "nenhum")}. Destino {targetIpStr} não respondeu."
             };
+            await TryEnrichDestinationFromAdSccmAsync(target, offlineDest, cancellationToken);
             result.Hops.Add(offlineDest);
             onHopDiscovered?.Report(offlineDest);
         }
@@ -592,7 +603,7 @@ public class NetworkPathService
                         <span class=""lat-badge"" style=""background:{E(hop.BadgeBackgroundHex)};color:{E(hop.StatusColorHex)}"">{E(hop.LatencyDisplay)}</span>
                     </div>
                     <div class=""hop-title"">{E(hop.TitleDisplay)}</div>
-                    <div class=""hop-ip"">{E(hop.SubtitleDisplay)}{(hop.TtlRemaining.HasValue ? $" • TTL {hop.TtlRemaining}" : "")}</div>
+                    <div class=""hop-ip"">{E(hop.SubtitleDisplay)}{(!string.IsNullOrWhiteSpace(hop.MacAddress) ? $" • {E(hop.MacAddress)}" : "")}{(hop.TtlRemaining.HasValue ? $" • TTL {hop.TtlRemaining}" : "")}</div>
                     {(!string.IsNullOrWhiteSpace(hop.ConnectedUser) ? $@"<div class=""hop-user"">👤 {E(hop.ConnectedUser)}</div>" : "")}
                     <div class=""hop-loc"">📍 {E(hop.LocationDisplay)}</div>
                     <div class=""hop-kind"">{E(hop.KindLabel)}</div>
@@ -863,5 +874,90 @@ public class NetworkPathService
         }
 
         return string.Empty;
+    }
+
+    [DllImport("iphlpapi.dll", ExactSpelling = true)]
+    private static extern int SendARP(uint destIp, uint srcIp, byte[] macAddr, ref int phyAddrLen);
+
+    /// <summary>
+    /// Resolve o MAC Address via tabela ARP do Windows (apenas para IPs IPv4 na mesma sub-rede L2).
+    /// </summary>
+    public static string TryResolveMacViaArp(string? ipAddress)
+    {
+        if (string.IsNullOrWhiteSpace(ipAddress))
+            return string.Empty;
+
+        if (!IPAddress.TryParse(ipAddress.Trim(), out var ip) || ip.AddressFamily != AddressFamily.InterNetwork)
+            return string.Empty;
+
+        try
+        {
+            byte[] ipBytes = ip.GetAddressBytes();
+            uint destIp = BitConverter.ToUInt32(ipBytes, 0);
+            byte[] macAddr = new byte[6];
+            int len = macAddr.Length;
+            int res = SendARP(destIp, 0, macAddr, ref len);
+            if (res == 0 && len == 6)
+                return string.Join(":", macAddr.Select(b => b.ToString("X2")));
+        }
+        catch { }
+
+        return string.Empty;
+    }
+
+    private static string FormatPhysicalAddress(PhysicalAddress? address)
+    {
+        if (address == null)
+            return string.Empty;
+
+        byte[] bytes = address.GetAddressBytes();
+        return bytes.Length == 6
+            ? string.Join(":", bytes.Select(b => b.ToString("X2")))
+            : string.Empty;
+    }
+
+    private static async Task TryEnrichDestinationFromAdSccmAsync(
+        string target,
+        NetworkHopNode destNode,
+        CancellationToken ct)
+    {
+        try
+        {
+            string shortHost = target.Split('.')[0].Trim();
+            if (!InputValidator.IsValidHostName(shortHost))
+                return;
+
+            var adSccm = new AdSccmService();
+            var searchTask = adSccm.SearchMachinesAsync(shortHost);
+            if (await Task.WhenAny(searchTask, Task.Delay(3500, ct)) != searchTask)
+                return;
+
+            var list = await searchTask;
+            var match = list.FirstOrDefault(m =>
+                string.Equals(m.ComputerName, shortHost, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.DnsHostName, target, StringComparison.OrdinalIgnoreCase));
+
+            if (match == null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(destNode.ConnectedUser))
+            {
+                string user = !string.IsNullOrWhiteSpace(match.CurrentLogonUser)
+                    ? match.CurrentLogonUser
+                    : match.PrimaryUser;
+                if (!string.IsNullOrWhiteSpace(user))
+                    destNode.ConnectedUser = $"{user} (SCCM)";
+            }
+
+            if (string.IsNullOrWhiteSpace(destNode.MacAddress) && !string.IsNullOrWhiteSpace(match.MacAddress))
+                destNode.MacAddress = match.MacAddress;
+
+            if (!string.IsNullOrWhiteSpace(match.EstimatedLocationDisplay) &&
+                !match.EstimatedLocationDisplay.Equals("Localidade não identificada", StringComparison.OrdinalIgnoreCase))
+            {
+                destNode.InferredLocation = match.EstimatedLocationDisplay;
+            }
+        }
+        catch { }
     }
 }

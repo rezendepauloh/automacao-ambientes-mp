@@ -100,6 +100,7 @@ public class NetworkHopNode
     public string ProbableDeviceLabel { get; set; } = string.Empty;
     public string MatchedCidr { get; set; } = string.Empty;
     public string ConnectedUser { get; set; } = string.Empty;
+    public string MacAddress { get; set; } = string.Empty;
     public string Details { get; set; } = string.Empty;
 
     public string HopBadgeText => Kind switch

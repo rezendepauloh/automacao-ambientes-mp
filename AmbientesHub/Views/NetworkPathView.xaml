@@ -179,6 +179,9 @@
                         <TextBlock Text="Latência &amp; TTL:" FontSize="11" Foreground="#94a3b8" />
                         <TextBlock x:Name="TxtInspectorLatency" Text="-" FontSize="12.5" FontWeight="Medium" Margin="0,2,0,8" />
 
+                        <TextBlock Text="MAC Address:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorMac" Text="-" FontSize="12" FontFamily="Consolas" Foreground="#cbd5e1" Margin="0,2,0,8" />
+
                         <TextBlock Text="Usuário Conectado:" FontSize="11" Foreground="#94a3b8" />
                         <TextBlock x:Name="TxtInspectorUser" Text="-" FontSize="12.5" FontWeight="Medium" Foreground="#34d399" Margin="0,2,0,8" TextWrapping="Wrap" />
 

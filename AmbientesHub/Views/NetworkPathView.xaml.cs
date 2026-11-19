@@ -554,13 +554,20 @@ public partial class NetworkPathView : WControls.UserControl
             TextTrimming = TextTrimming.CharacterEllipsis,
             ToolTip = hop.TitleDisplay
         });
+        string ipLine = hop.SubtitleDisplay;
+        if (!string.IsNullOrWhiteSpace(hop.MacAddress))
+            ipLine = $"{ipLine} • {hop.MacAddress}";
+        if (hop.TtlRemaining.HasValue)
+            ipLine = $"{ipLine} • TTL {hop.TtlRemaining}";
+
         centerStack.Children.Add(new WControls.TextBlock
         {
-            Text = hop.TtlRemaining.HasValue ? $"{hop.SubtitleDisplay}  •  TTL {hop.TtlRemaining}" : hop.SubtitleDisplay,
-            FontSize = 11,
+            Text = ipLine,
+            FontSize = 10.5,
             FontFamily = new WMedia.FontFamily("Consolas"),
             Foreground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(148, 163, 184)),
-            TextTrimming = TextTrimming.CharacterEllipsis
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            ToolTip = ipLine
         });
         WControls.Grid.SetRow(centerStack, 1);
         root.Children.Add(centerStack);
@@ -643,6 +650,7 @@ public partial class NetworkPathView : WControls.UserControl
         TxtInspectorLatency.Text = node.TtlRemaining.HasValue
             ? $"{node.LatencyDisplay} (TTL retornado: {node.TtlRemaining})"
             : node.LatencyDisplay;
+        TxtInspectorMac.Text = string.IsNullOrWhiteSpace(node.MacAddress) ? "-" : node.MacAddress;
         TxtInspectorUser.Text = string.IsNullOrWhiteSpace(node.ConnectedUser) ? "-" : node.ConnectedUser;
         TxtInspectorLocation.Text = node.LocationDisplay;
         TxtInspectorCidr.Text = string.IsNullOrWhiteSpace(node.MatchedCidr) ? "Nenhuma regra CIDR correspondente" : node.MatchedCidr;
@@ -656,6 +664,7 @@ public partial class NetworkPathView : WControls.UserControl
         TxtInspectorIp.Text = "-";
         TxtInspectorKind.Text = "-";
         TxtInspectorLatency.Text = "-";
+        TxtInspectorMac.Text = "-";
         TxtInspectorUser.Text = "-";
         TxtInspectorLocation.Text = "-";
         TxtInspectorCidr.Text = "-";

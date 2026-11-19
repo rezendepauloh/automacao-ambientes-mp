@@ -79,6 +79,10 @@ public partial class MainWindow : FluentWindow
     public MainWindow()
     {
         InitializeComponent();
+        WindowPlacementService.Restore(this);
+        LocationChanged += (_, _) => { if (IsLoaded) WindowPlacementService.Save(this); };
+        SizeChanged += (_, _) => { if (IsLoaded) WindowPlacementService.Save(this); };
+        Closing += (_, _) => WindowPlacementService.Save(this);
         AppLoggerService.OnLogLineWritten += OnNewLogLineReceived;
         AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;

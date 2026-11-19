@@ -6,12 +6,16 @@ Este guia descreve como migrar o ambiente WSL da Bancada (Streamlit na porta `85
 
 ## 1. Preparação da Máquina Remota
 
-1. **Habilitar o WSL e WinRM (PowerShell Admin na máquina remota):**
+1. **Habilitar o WSL e WinRM persistente (PowerShell Admin na máquina remota):**
    ```powershell
    Enable-PSRemoting -Force
+   Set-Service -Name WinRM -StartupType Automatic
+   Start-Service -Name WinRM
+   Add-LocalGroupMember -SID "S-1-5-32-580" -Member "$env:USERDOMAIN\<usuario>"
    wsl --install
    Restart-Computer -Force
    ```
+   _(O SID `S-1-5-32-580` corresponde ao grupo **Remote Management Users / Usuários de Gerenciamento Remoto**, permitindo que o `<usuario>` execute comandos WinRM a partir do `AmbientesHub` sem precisar de senha.)_
 2. **Copiar o `.wslconfig` (opcional, para manter limites de memória/CPU):**
    ```powershell
    Copy-Item -Path "C:\Users\<usuario>\.wslconfig" -Destination "\\<HOST_REMOTO>\C$\Users\<usuario>\.wslconfig" -Force
@@ -57,7 +61,26 @@ netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8510 conne
 
 ---
 
-## 4. Configuração do `AmbientesHub`
+## 4. Inicialização Automática no Boot (Agendador de Tarefas)
+
+Para que o WSL2 e os containers subam automaticamente no boot (mesmo sem ninguém logado):
+
+1. Na máquina remota, abra `secpol.msc` → **Políticas Locais** → **Atribuição de Direitos de Usuário** → **Fazer logon como trabalho em lotes** (`SeBatchLogonRight`) e adicione `<DOMINIO>\<usuario>`.
+2. Registre a tarefa agendada com `exec sleep infinity` para manter a VM do WSL2 ativa em segundo plano:
+
+```powershell
+$action   = New-ScheduledTaskAction -Execute "wsl.exe" -Argument "-d Ubuntu-26.04 -- bash -lc `"cd /home/<usuario>/projetos/bancada && docker compose up -d && exec sleep infinity`""
+$trigger  = New-ScheduledTaskTrigger -AtStartup
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+
+Register-ScheduledTask -TaskName "BancadaStreamlitAutoStart" `
+    -Action $action -Trigger $trigger -Settings $settings `
+    -User "$env:USERDOMAIN\<usuario>" -Password "<senha>" -RunLevel Highest -Force
+```
+
+---
+
+## 5. Configuração do `AmbientesHub`
 
 No `.env` local (ou pela aba **Configurações & Credenciais** do `AmbientesHub`), aponte as URLs para o host remoto:
 
@@ -65,3 +88,5 @@ No `.env` local (ou pela aba **Configurações & Credenciais** do `AmbientesHub`
 URL_BANCADA_LOCAL=http://<HOST_REMOTO>:8501/
 BANCADA_API_URL=http://<HOST_REMOTO>:8510
 ```
+
+Quando `URL_BANCADA_LOCAL` aponta para um host remoto (diferente de `localhost`/`127.0.0.1`), o `BancadaDockerService` roteia automaticamente os botões **Iniciar**, **Parar**, **Reiniciar**, **Reconstruir** e **Conectar Logs** via WinRM (`Invoke-Command`).

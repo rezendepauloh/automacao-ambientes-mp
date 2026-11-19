@@ -39,8 +39,8 @@ public class BancadaDockerService
             if (!TryGetValidatedTarget(out string distro, out string wslDir, out string _))
                 return;
 
-            string cmd = $"cd '{wslDir}' && docker compose logs -f --tail=100";
-            RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{cmd}\"", onOutput);
+            string cmd = $"cd '{wslDir}' && docker compose logs -f --tail=30";
+            RunWslCommand(distro, cmd, onOutput);
         });
     }
 
@@ -89,10 +89,10 @@ public class BancadaDockerService
             string cmd = $"cd '{wslDir}' && export PYTHONUNBUFFERED=1 && docker compose up -d";
             if (streamLogs)
             {
-                cmd += " && docker compose logs -f --tail=100";
+                cmd += " && docker compose logs -f --tail=30";
             }
 
-            RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{cmd}\"", onOutput);
+            RunWslCommand(distro, cmd, onOutput);
         });
     }
 
@@ -162,7 +162,7 @@ public class BancadaDockerService
 
             string cmd = $"cd '{wslDir}' && docker compose down";
 
-            RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{cmd}\"", onOutput, waitForExit: true);
+            RunWslCommand(distro, cmd, onOutput, waitForExit: true);
             onOutput("[WSL/Docker] Containers encerrados.");
         });
     }
@@ -203,11 +203,46 @@ public class BancadaDockerService
             string buildCmd = $"cd '{wslDir}' && docker compose down && export PYTHONUNBUFFERED=1 && docker compose build --no-cache && docker compose up -d";
             if (streamLogs)
             {
-                buildCmd += " && docker compose logs -f --tail=100";
+                buildCmd += " && docker compose logs -f --tail=30";
             }
 
-            RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{buildCmd}\"", onOutput);
+            RunWslCommand(distro, buildCmd, onOutput);
         });
+    }
+
+    /// <summary>Extrai o host remoto de <see cref="BancadaUrl"/> quando não for localhost/loopback.</summary>
+    public static bool TryGetRemoteHost(string? url, out string remoteHost)
+    {
+        remoteHost = string.Empty;
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
+            return false;
+
+        string host = uri.Host;
+        if (string.IsNullOrWhiteSpace(host) ||
+            host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+            host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+            host.Equals("::1", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!InputValidator.IsValidHostName(host))
+            return false;
+
+        remoteHost = host;
+        return true;
+    }
+
+    private void RunWslCommand(string distro, string bashCmd, Action<string> onOutput, bool waitForExit = false)
+    {
+        if (TryGetRemoteHost(BancadaUrl, out string remoteHost))
+        {
+            string escapedBash = bashCmd.Replace("\"", "`\"");
+            string psCommand = $"Invoke-Command -ComputerName '{remoteHost}' -ScriptBlock {{ wsl.exe -d {distro} -- bash -lic \"{escapedBash}\" }}";
+            onOutput($"[WinRM -> {remoteHost}] Executando no WSL remoto ({distro})...");
+            RunProcess("powershell.exe", $"-NoProfile -NonInteractive -Command \"{psCommand.Replace("\"", "\\\"")}\"", onOutput, waitForExit);
+            return;
+        }
+
+        RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{bashCmd}\"", onOutput, waitForExit);
     }
 
     private void RunProcess(string filename, string arguments, Action<string> onOutput, bool waitForExit = false)

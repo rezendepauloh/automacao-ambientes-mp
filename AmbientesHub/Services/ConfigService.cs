@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -27,6 +28,7 @@ public static class ConfigService
 
     public static void LoadEnv()
     {
+        var sw = Stopwatch.StartNew();
         Configs.Clear();
         string envFile = GetEnvFilePath();
 
@@ -53,11 +55,15 @@ public static class ConfigService
                     Configs[key] = val;
                 }
             }
-            AppLoggerService.Info($"Configurações carregadas do .env ({Configs.Count} chaves, {rejected} rejeitadas)", nameof(ConfigService));
+            AppLoggerService.Info(
+                $"Configurações carregadas de '{envFile}' ({Configs.Count} chaves válidas, {rejected} rejeitadas) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(ConfigService));
         }
         else
         {
-            AppLoggerService.Warning("Arquivo .env não localizado; funcionalidades dependentes de configuração permanecem desabilitadas (fail-closed).", nameof(ConfigService));
+            AppLoggerService.Warning(
+                $"Arquivo .env não localizado (caminho esperado: '{envFile}'); funcionalidades dependentes permanecem desabilitadas (fail-closed) [{AppLoggerService.FormatElapsed(sw)}].",
+                nameof(ConfigService));
         }
     }
 
@@ -87,14 +93,16 @@ public static class ConfigService
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Não foi possível restringir permissões do arquivo de configuração: {ex.GetType().Name}", nameof(ConfigService));
+            AppLoggerService.Warning($"Não foi possível restringir permissões de '{Path.GetFileName(path)}' ({ex.GetType().Name}): {ex.Message}", nameof(ConfigService));
             return false;
         }
     }
 
     public static void SaveConfig(Dictionary<string, string> newConfigs)
     {
+        var sw = Stopwatch.StartNew();
         string envFile = GetEnvFilePath();
+        var updatedKeys = new List<string>();
         var lines = new List<string>
         {
             "# ==========================================",
@@ -108,12 +116,13 @@ public static class ConfigService
             // Fail-closed: chave inválida é descartada; valor perde CR/LF (impede injeção de novas chaves).
             if (!InputValidator.IsValidEnvKey(kvp.Key))
             {
-                AppLoggerService.Warning("Chave de configuração inválida descartada ao salvar .env.", nameof(ConfigService));
+                AppLoggerService.Warning($"Chave de configuração inválida '{kvp.Key}' descartada ao salvar .env.", nameof(ConfigService));
                 continue;
             }
 
             string safeValue = InputValidator.SanitizeEnvValue(kvp.Value);
             Configs[kvp.Key] = safeValue;
+            updatedKeys.Add(kvp.Key);
         }
 
         // Persiste o dicionário consolidado para evitar perda de outras configurações ao salvar parcialmente.
@@ -126,8 +135,10 @@ public static class ConfigService
         }
 
         File.WriteAllLines(envFile, lines);
-        HardenFilePermissions(envFile);
-        AppLoggerService.Success("Arquivo .env atualizado com sucesso.", nameof(ConfigService));
+        bool aclOk = HardenFilePermissions(envFile);
+        AppLoggerService.Success(
+            $"Arquivo .env atualizado em '{envFile}': {updatedKeys.Count} chave(s) alterada(s) [{string.Join(", ", updatedKeys)}], total={Configs.Count}, ACL600={aclOk}, duração={AppLoggerService.FormatElapsed(sw)}.",
+            nameof(ConfigService));
     }
 
     /// <summary>Atualiza e persiste uma única chave no .env mantendo todas as demais configurações intactas.</summary>

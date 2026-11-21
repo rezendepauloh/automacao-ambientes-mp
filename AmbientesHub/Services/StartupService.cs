@@ -78,14 +78,14 @@ public class StartupService : IStartupManager
                 string exePath = customExecutablePath ?? GetExecutablePath();
                 string formattedCmd = $"\"{exePath}\"";
                 key.SetValue(AppName, formattedCmd, RegistryValueKind.String);
-                AppLoggerService.Info($"Inicialização com Windows habilitada: {formattedCmd}", nameof(StartupService));
+                AppLoggerService.Success($"Inicialização com Windows habilitada: {formattedCmd}", nameof(StartupService));
             }
             else
             {
                 if (key.GetValue(AppName) != null)
                 {
                     key.DeleteValue(AppName, throwOnMissingValue: false);
-                    AppLoggerService.Info("Inicialização com Windows desabilitada.", nameof(StartupService));
+                    AppLoggerService.Success("Inicialização com Windows desabilitada.", nameof(StartupService));
                 }
             }
 
@@ -134,7 +134,7 @@ public class StartupService : IStartupManager
             Marshal.ReleaseComObject(file);
             Marshal.ReleaseComObject(link);
 
-            AppLoggerService.Info($"Atalho criado no Menu Iniciar: {shortcutPath}", nameof(StartupService));
+            AppLoggerService.Success($"Atalho criado no Menu Iniciar: {shortcutPath}", nameof(StartupService));
             return true;
         }
         catch (Exception ex)

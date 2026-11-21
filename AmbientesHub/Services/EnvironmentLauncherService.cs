@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 
 namespace AmbientesHub.Services;
@@ -9,7 +10,8 @@ public class EnvironmentLauncherService
 
     public void LaunchEnvironment(string modeName, bool cleanFirst = true)
     {
-        AppLoggerService.Info($"Acionamento do ambiente: {modeName} (Limpeza prévia: {cleanFirst})", nameof(EnvironmentLauncherService));
+        var sw = Stopwatch.StartNew();
+        AppLoggerService.Info($"Acionamento do ambiente: '{modeName}' (Limpeza prévia: {cleanFirst}).", nameof(EnvironmentLauncherService));
 
         if (cleanFirst)
         {
@@ -48,7 +50,13 @@ public class EnvironmentLauncherService
             case "Estudo":
                 LaunchModoEstudo();
                 break;
+
+            default:
+                AppLoggerService.Warning($"Modo de ambiente desconhecido: '{modeName}'.", nameof(EnvironmentLauncherService));
+                return;
         }
+
+        AppLoggerService.Success($"Ambiente '{modeName}' finalizado em {AppLoggerService.FormatElapsed(sw)}.", nameof(EnvironmentLauncherService));
     }
 
     private void LaunchModoChamados()
@@ -173,6 +181,7 @@ public class EnvironmentLauncherService
 
     public void ExecuteCustomEnvironment(Models.EnvironmentModeItem mode, Action<string> logCallback)
     {
+        var sw = Stopwatch.StartNew();
         void Log(string msg)
         {
             logCallback?.Invoke($"[{DateTime.Now:HH:mm:ss}] {msg}");
@@ -183,8 +192,9 @@ public class EnvironmentLauncherService
             .Select(s => s.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        int skippedCount = mode.Steps.Count - enabledIds.Count;
         Log($"=== Iniciando {mode.Title} ===");
-        AppLoggerService.Info($"Acionamento personalizado do ambiente: {mode.ModeKey}", nameof(EnvironmentLauncherService));
+        AppLoggerService.Info($"Acionamento personalizado do ambiente '{mode.ModeKey}': {enabledIds.Count} etapa(s) ativa(s), {skippedCount} pulada(s).", nameof(EnvironmentLauncherService));
 
         foreach (var step in mode.Steps.Where(s => !s.IsEnabled))
             Log($"[PULADO] {step.Label}");
@@ -240,6 +250,6 @@ public class EnvironmentLauncherService
         }
 
         Log($"[SUCESSO] {mode.Title} carregado com sucesso!");
-        AppLoggerService.Success($"{mode.Title} carregado.", nameof(EnvironmentLauncherService));
+        AppLoggerService.Success($"Ambiente personalizado '{mode.Title}' carregado ({urlsToOpen.Count} URL(s)) em {AppLoggerService.FormatElapsed(sw)}.", nameof(EnvironmentLauncherService));
     }
 }

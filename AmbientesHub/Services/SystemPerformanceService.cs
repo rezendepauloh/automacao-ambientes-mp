@@ -161,6 +161,7 @@ public class SystemPerformanceService
 
     private SystemAuditReport RunFullAuditCore(Action<string>? onLog)
     {
+        var sw = Stopwatch.StartNew();
         void Log(string msg)
         {
             onLog?.Invoke(msg);
@@ -171,6 +172,8 @@ public class SystemPerformanceService
         {
             IsAdministrator = IsUserAdministrator()
         };
+
+        AppLoggerService.Info($"Iniciando auditoria completa de performance (Admin={report.IsAdministrator}).", nameof(SystemPerformanceService));
 
         Log("==========================================================");
         Log("=== AUDITORIA DE PERFORMANCE, BLOAT & SAÚDE DO SISTEMA ===");
@@ -452,6 +455,9 @@ public class SystemPerformanceService
 
         Log("==========================================================");
         Log("[SUCESSO] Auditoria completa concluída!");
+        AppLoggerService.Success(
+            $"Auditoria completa concluída em {AppLoggerService.FormatElapsed(sw)}: RAM livre={report.FreeRamGb:F2}/{report.TotalRamGb:F2} GB, Discos={report.Disks.Count}, Bloat={report.DetectedBloatApps.Count}, Docker={report.IsDockerAvailable}.",
+            nameof(SystemPerformanceService));
         return report;
     }
 
@@ -463,6 +469,7 @@ public class SystemPerformanceService
 
     private void ApplyOptimizationsCore(OptimizationOptions options, Action<string>? onLog)
     {
+        var sw = Stopwatch.StartNew();
         void Log(string msg)
         {
             onLog?.Invoke(msg);
@@ -470,6 +477,9 @@ public class SystemPerformanceService
         }
 
         bool isAdmin = IsUserAdministrator();
+        AppLoggerService.Info(
+            $"Iniciando ApplyOptimizationsCore (Admin={isAdmin}, TelemetrySvc={options.DisableTelemetryServices}, Reg={options.ApplyRegistryTelemetryTweaks}, Bloat={options.RemoveBloatwareApps}, Hiber={options.DisableHibernation}, Trim={options.EnableSsdTrim}, Bing={options.DisableBingSearch}, Ui={options.AccelerateUiMenus}, Wsl={options.ConfigureWslLimit}[{options.WslMemoryLimit}], DockerCache={options.CleanDockerBuilderCache}).",
+            nameof(SystemPerformanceService));
         Log("==========================================================");
         Log("=== APLICANDO OTIMIZAÇÃO DE DESEMPENHO & DEBLOAT (C#) ===");
         Log("==========================================================");
@@ -477,6 +487,7 @@ public class SystemPerformanceService
         if (!isAdmin)
         {
             Log("[AVISO] Aplicação não está elevada como Administrador. Ajustes de usuário (HKCU/.wslconfig) serão aplicados; ações de sistema/HKLM podem ser ignoradas pelo Windows.");
+            AppLoggerService.Warning("ApplyOptimizationsCore executando sem elevação Admin; ajustes HKLM serão ignorados.", nameof(SystemPerformanceService));
         }
 
         // [1/8] Serviços de Telemetria
@@ -544,12 +555,14 @@ public class SystemPerformanceService
 
         Log("==========================================================");
         Log("[SUCESSO] Rotina de otimização e debloat concluída!");
+        AppLoggerService.Success($"ApplyOptimizationsCore concluído em {AppLoggerService.FormatElapsed(sw)}.", nameof(SystemPerformanceService));
     }
 
     public async Task RollbackTelemetryServicesAsync(Action<string>? onLog = null)
     {
         await Task.Run(() =>
         {
+            var sw = Stopwatch.StartNew();
             void Log(string msg)
             {
                 onLog?.Invoke(msg);
@@ -560,9 +573,12 @@ public class SystemPerformanceService
             if (!IsUserAdministrator())
             {
                 Log("[ERRO] Reverter serviços do Windows exige privilégios de Administrador.");
+                AppLoggerService.Warning("RollbackTelemetryServicesAsync abortado: usuário sem privilégios de Administrador.", nameof(SystemPerformanceService));
                 return;
             }
 
+            int restored = 0;
+            int failed = 0;
             foreach (var kv in DebloatTargetServices)
             {
                 try
@@ -574,17 +590,21 @@ public class SystemPerformanceService
                         {
                             svc.InvokeMethod("ChangeStartMode", [kv.Value]);
                             svc.InvokeMethod("StartService", null);
+                            restored++;
                             Log($"  -> [OK] Serviço {kv.Key} restaurado ({kv.Value}).");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    failed++;
+                    AppLoggerService.Warning($"Falha ao restaurar serviço '{kv.Key}': {ex.Message}", nameof(SystemPerformanceService));
                     Log($"  -> Aviso ao restaurar {kv.Key}: {ex.Message}");
                 }
             }
 
             Log("[SUCESSO] Rollback de serviços finalizado.");
+            AppLoggerService.Success($"RollbackTelemetryServicesAsync concluído (restaurados={restored}, falhas={failed}) em {AppLoggerService.FormatElapsed(sw)}.", nameof(SystemPerformanceService));
         });
     }
 
@@ -856,19 +876,25 @@ foreach ($pattern in $patterns) {{
         var winRes = RunCliTool("docker.exe", dockerArgs, timeoutMs);
         if (winRes.exitCode == 0 && !string.IsNullOrWhiteSpace(winRes.stdout))
         {
+            AppLoggerService.Info($"Docker CLI Windows ('docker.exe {dockerArgs}') executado com sucesso.", nameof(SystemPerformanceService));
             return winRes;
         }
 
         // 2. Se falhar ou não encontrar, executa dentro do WSL 2 nativo (onde os containers de desenvolvimento rodam)
+        AppLoggerService.Info($"docker.exe indisponível/falhou (exit={winRes.exitCode}); tentando fallback 'wsl.exe docker {dockerArgs}'.", nameof(SystemPerformanceService));
         try
         {
             var wslRes = RunCliTool("wsl.exe", $"docker {dockerArgs}", timeoutMs);
             if (wslRes.exitCode == 0 && !string.IsNullOrWhiteSpace(wslRes.stdout))
             {
+                AppLoggerService.Info($"Fallback Docker WSL ('wsl.exe docker {dockerArgs}') executado com sucesso.", nameof(SystemPerformanceService));
                 return wslRes;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Fallback Docker WSL falhou: {ex.Message}", nameof(SystemPerformanceService));
+        }
 
         return winRes;
     }

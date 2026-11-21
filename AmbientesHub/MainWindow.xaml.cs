@@ -78,13 +78,13 @@ public partial class MainWindow : FluentWindow
 
     public MainWindow()
     {
+        var ctorSw = Stopwatch.StartNew();
         InitializeComponent();
         WindowPlacementService.Restore(this);
         LocationChanged += (_, _) => { if (IsLoaded) WindowPlacementService.Save(this); };
         SizeChanged += (_, _) => { if (IsLoaded) WindowPlacementService.Save(this); };
         Closing += (_, _) => WindowPlacementService.Save(this);
         AppLoggerService.OnLogLineWritten += OnNewLogLineReceived;
-        AppLoggerService.Info("Ambientes Hub iniciado com sucesso.", nameof(MainWindow));
         LstSoftwareCatalog.ItemsSource = _softwareCatalog;
         ItemsRemoteProfiles.ItemsSource = _remoteProfilesList;
         LoadMachineInfoIntoSettings();
@@ -105,6 +105,9 @@ public partial class MainWindow : FluentWindow
         {
             CmbAdUserStatusFilter.SelectedIndex = 0;
         }
+        AppLoggerService.Success(
+            $"MainWindow inicializada (Admin={SystemPerformanceService.IsUserAdministrator()}, ModosAmbiente={_environmentModes.Count}, TweaksRegistro={_allRegistryTweaks.Count}, Duração={AppLoggerService.FormatElapsed(ctorSw)}).",
+            nameof(MainWindow));
     }
 
     #region Navegação Lateral Vertical & Hambúrguer
@@ -408,6 +411,7 @@ public partial class MainWindow : FluentWindow
     {
         if (PanelAmbientes == null) return;
         HighlightActiveNavMenuItem(NavListBox.SelectedIndex);
+        AppLoggerService.Info($"Navegação selecionada: PainelIndex={NavListBox.SelectedIndex}", nameof(MainWindow));
 
         PanelAmbientes.Visibility = Visibility.Collapsed;
         PanelRemoto.Visibility = Visibility.Collapsed;
@@ -602,6 +606,7 @@ public partial class MainWindow : FluentWindow
             };
             ConfigService.SaveConfig(dict);
             ApplyTerminalFont(selectedFont);
+            AppLoggerService.Success($"Fonte do terminal alterada e salva: '{selectedFont}'.", nameof(MainWindow));
             TxtFooterStatus.Text = $"Fonte '{selectedFont}' gravada com sucesso!";
             System.Windows.MessageBox.Show($"Fonte '{selectedFont}' gravada com sucesso!", "Tipografia", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -649,12 +654,14 @@ public partial class MainWindow : FluentWindow
         bool ok = _startupService.SetRunAtStartup(enable);
         if (ok)
         {
+            AppLoggerService.Info($"Inicialização com o Windows alterada para: {(enable ? "ATIVADA" : "DESATIVADA")}.", nameof(MainWindow));
             TxtFooterStatus.Text = enable
                 ? "Inicialização com o Windows ATIVADA."
                 : "Inicialização com o Windows DESATIVADA.";
         }
         else
         {
+            AppLoggerService.Warning($"Falha ao alterar inicialização com o Windows para {enable}.", nameof(MainWindow));
             ToggleStartWithWindows.IsChecked = !enable;
             TxtFooterStatus.Text = "Erro ao configurar inicialização no registro.";
         }
@@ -667,6 +674,7 @@ public partial class MainWindow : FluentWindow
         {
             ["MINIMIZE_TO_TRAY"] = min ? "true" : "false"
         });
+        AppLoggerService.Info($"Minimizar para bandeja alterado para: {min}.", nameof(MainWindow));
         TxtFooterStatus.Text = min
             ? "Minimizar para bandeja ATIVADO."
             : "Minimizar para bandeja DESATIVADO.";
@@ -681,12 +689,14 @@ public partial class MainWindow : FluentWindow
 
         if (ok)
         {
+            AppLoggerService.Info($"Atalho do Menu Iniciar {(enable ? "CRIADO" : "REMOVIDO")}.", nameof(MainWindow));
             TxtFooterStatus.Text = enable
                 ? "Atalho no Menu Iniciar CRIADO com sucesso."
                 : "Atalho no Menu Iniciar REMOVIDO com sucesso.";
         }
         else
         {
+            AppLoggerService.Warning($"Falha ao {(enable ? "criar" : "remover")} atalho no Menu Iniciar.", nameof(MainWindow));
             ToggleStartMenuShortcut.IsChecked = !enable;
             TxtFooterStatus.Text = "Falha ao atualizar atalho no Menu Iniciar.";
         }
@@ -756,19 +766,24 @@ public partial class MainWindow : FluentWindow
 
     private void TrayLaunchEnvironment(string modeName)
     {
+        var sw = Stopwatch.StartNew();
         try
         {
+            AppLoggerService.Info($"Acionando ambiente '{modeName}' via bandeja do sistema.", nameof(MainWindow));
             _envService.LaunchEnvironment(modeName, cleanFirst: false);
+            AppLoggerService.Success($"Ambiente '{modeName}' disparado via bandeja em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             _trayIconService?.ShowBalloon("Ambientes Hub", $"Ambiente 'Modo {modeName}' disparado com sucesso.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Danger($"Erro ao alternar para modo {modeName} via bandeja: {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), $"Alternar para modo '{modeName}' via bandeja", ex, sw.Elapsed);
         }
     }
 
     private async void TrayQuickClean()
     {
+        var sw = Stopwatch.StartNew();
+        AppLoggerService.Info("Iniciando saneamento rápido via bandeja do sistema.", nameof(MainWindow));
         _trayIconService?.ShowBalloon("Saneamento", "Iniciando saneamento de processos e liberação de memória...");
         try
         {
@@ -782,11 +797,12 @@ public partial class MainWindow : FluentWindow
             };
 
             await Task.Run(() => _cleanupService.CleanEnvironment(options));
+            AppLoggerService.Success($"Saneamento rápido via bandeja concluído em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             _trayIconService?.ShowBalloon("Saneamento Concluído", "Memória RAM liberada e processos do Office/Browsers saneados.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Danger($"Erro no saneamento rápido via bandeja: {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), "Saneamento rápido via bandeja", ex, sw.Elapsed);
         }
     }
 
@@ -795,6 +811,7 @@ public partial class MainWindow : FluentWindow
         string raw = System.Windows.Clipboard.ContainsText() ? System.Windows.Clipboard.GetText().Trim() : string.Empty;
         if (string.IsNullOrWhiteSpace(raw) || !InputValidator.IsValidHostName(raw))
         {
+            AppLoggerService.Warning("Conexão remota via bandeja abortada: área de transferência sem hostname/IP válido.", nameof(MainWindow));
             RestoreFromTray();
             NavListBox.SelectedIndex = 2; // Painel Remoto
             System.Windows.MessageBox.Show(
@@ -809,23 +826,27 @@ public partial class MainWindow : FluentWindow
         {
             if (useSccm)
             {
+                AppLoggerService.Info($"Iniciando conexão SCCM via bandeja para '{raw}'.", nameof(MainWindow));
                 _remoteToolsService.OpenSccmRemoteControl(raw, ConfigService.SccmSiteServer);
                 _trayIconService?.ShowBalloon("SCCM Remoto", $"Conectando ao console SCCM na máquina '{raw}'...");
             }
             else
             {
+                AppLoggerService.Info($"Iniciando conexão RDP via bandeja para '{raw}'.", nameof(MainWindow));
                 _remoteToolsService.OpenRdp(raw);
                 _trayIconService?.ShowBalloon("RDP Padrão", $"Conectando via mstsc na máquina '{raw}'...");
             }
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Conexão remota via bandeja (SCCM={useSccm}, Alvo={raw})", ex);
             System.Windows.MessageBox.Show($"Falha ao iniciar conexão remota: {ex.Message}", "Erro de Conexão", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
     private void ExitApplication()
     {
+        AppLoggerService.Info("Encerramento explícito solicitado pelo usuário (ExitApplication).", nameof(MainWindow));
         _isRealExit = true;
         AppLoggerService.OnLogLineWritten -= OnNewLogLineReceived;
         _trayIconService?.Dispose();
@@ -900,12 +921,15 @@ public partial class MainWindow : FluentWindow
             ApplyTerminalFont(chosenFont);
             RefreshUsmtBinStatusBadge();
 
+            AppLoggerService.Success(
+                $"Configurações salvas via UI (Chaves={dict.Count}, ApiKey={AppLoggerService.DescribeSecretPresence(TxtCfgBancadaApiKey.Password)}, DbPass={AppLoggerService.DescribeSecretPresence(TxtCfgDbPassword.Password)}).",
+                nameof(MainWindow));
             TxtFooterStatus.Text = "Configurações salvas no arquivo .env com sucesso!";
             System.Windows.MessageBox.Show("Configurações atualizadas com sucesso!", "Sucesso", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            AppLoggerService.Danger($"Erro ao salvar configurações: {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), "Salvar configurações pela UI", ex);
             System.Windows.MessageBox.Show($"Falha ao salvar: {ex.Message}", "Erro", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1136,9 +1160,11 @@ public partial class MainWindow : FluentWindow
 
     private async System.Threading.Tasks.Task ExecuteEnvironmentModeAsync(EnvironmentModeItem mode)
     {
+        var sw = Stopwatch.StartNew();
         mode.IsRunning = true;
         mode.ConsoleLog = string.Empty;
         TxtFooterStatus.Text = $"Executando {mode.Title}...";
+        AppLoggerService.Info($"Iniciando modo personalizado '{mode.Title}' (Etapas={mode.Steps?.Count ?? 0}).", nameof(MainWindow));
 
         try
         {
@@ -1155,12 +1181,13 @@ public partial class MainWindow : FluentWindow
                 });
             });
 
+            AppLoggerService.Success($"Modo personalizado '{mode.Title}' concluído em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             TxtFooterStatus.Text = $"Ambiente ativo: {mode.Title}";
         }
         catch (Exception ex)
         {
             mode.ConsoleLog += $"\n[ERRO] {ex.Message}";
-            AppLoggerService.Danger($"Falha ao carregar {mode.Title}: {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), $"Execução do modo '{mode.Title}'", ex, sw.Elapsed);
             System.Windows.MessageBox.Show($"Erro ao carregar o ambiente: {ex.Message}", "Falha", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -1171,6 +1198,7 @@ public partial class MainWindow : FluentWindow
 
     private async void LaunchEnv(string modeName)
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             AppLoggerService.Info($"Usuário clicou para acionar: Modo {modeName}", nameof(MainWindow));
@@ -1181,11 +1209,12 @@ public partial class MainWindow : FluentWindow
                 _envService.LaunchEnvironment(modeName, cleanFirst: true);
             });
 
+            AppLoggerService.Success($"Modo '{modeName}' finalizado na UI em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             TxtFooterStatus.Text = $"Ambiente ativo: Modo {modeName}";
         }
         catch (Exception ex)
         {
-            AppLoggerService.Danger($"Falha ao carregar ambiente {modeName}: {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), $"Acionamento do modo '{modeName}'", ex, sw.Elapsed);
             System.Windows.MessageBox.Show($"Erro ao carregar o ambiente: {ex.Message}", "Falha", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -1201,12 +1230,14 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        var sw = Stopwatch.StartNew();
         BtnConsultarRemoto.IsEnabled = false;
         PlaceholderRemoteCard.Visibility = Visibility.Collapsed;
         ItemsMachineResults.ItemsSource = null;
         LoadingRemoteCard.Visibility = Visibility.Visible;
         RichRemoteLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Pesquisando máquinas e usuários para '{query}'...";
+        AppLoggerService.Info($"Iniciando pesquisa remota AD/SCCM para '{query}'.", nameof(MainWindow));
 
         try
         {
@@ -1220,18 +1251,20 @@ public partial class MainWindow : FluentWindow
                 ItemsMachineResults.ItemsSource = results;
                 PlaceholderRemoteCard.Visibility = Visibility.Collapsed;
                 TxtFooterStatus.Text = $"{results.Count} máquina(s) encontrada(s) para '{query}'.";
+                AppLoggerService.Success($"Pesquisa remota '{query}' retornou {results.Count} máquina(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             }
             else
             {
                 PlaceholderRemoteCard.Visibility = Visibility.Visible;
                 AppendColoredLog(RichRemoteLogs, $"[i] Nenhum registro encontrado para '{query}' no AD ou SCCM.");
                 TxtFooterStatus.Text = $"Nenhum resultado para '{query}'.";
+                AppLoggerService.Warning($"Pesquisa remota '{query}' sem resultados em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             }
         }
         catch (Exception ex)
         {
             AppendColoredLog(RichRemoteLogs, $"[ERRO] Falha na pesquisa: {ex.Message}");
-            AppLoggerService.Danger($"Erro na pesquisa de '{query}': {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), $"Pesquisa remota '{query}'", ex, sw.Elapsed);
             PlaceholderRemoteCard.Visibility = Visibility.Visible;
         }
         finally
@@ -1385,10 +1418,12 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        var sw = Stopwatch.StartNew();
         BtnAdQuery.IsEnabled = false;
         BtnAdClean.IsEnabled = false;
         RichAdLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Consultando máquina {host} no AD e SCCM...";
+        AppLoggerService.Info($"Iniciando consulta AD/SCCM via UI para '{host}'.", nameof(MainWindow));
 
         await Task.Run(() =>
         {
@@ -1401,6 +1436,7 @@ public partial class MainWindow : FluentWindow
         BtnAdQuery.IsEnabled = true;
         BtnAdClean.IsEnabled = true;
         TxtFooterStatus.Text = $"Consulta concluída para {host}";
+        AppLoggerService.Info($"Consulta AD/SCCM via UI finalizada para '{host}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
     }
 
     private async void BtnAdClean_Click(object sender, RoutedEventArgs e)
@@ -1419,8 +1455,13 @@ public partial class MainWindow : FluentWindow
             System.Windows.MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
 
-        if (result != System.Windows.MessageBoxResult.Yes) return;
+        if (result != System.Windows.MessageBoxResult.Yes)
+        {
+            AppLoggerService.Info($"Exclusão AD/SCCM cancelada pelo usuário para '{host}'.", nameof(MainWindow));
+            return;
+        }
 
+        var sw = Stopwatch.StartNew();
         AppLoggerService.Info($"Iniciando rotina de exclusão AD/SCCM para {host}", nameof(MainWindow));
         BtnAdQuery.IsEnabled = false;
         BtnAdClean.IsEnabled = false;
@@ -1438,7 +1479,7 @@ public partial class MainWindow : FluentWindow
         BtnAdQuery.IsEnabled = true;
         BtnAdClean.IsEnabled = true;
         TxtFooterStatus.Text = $"Exclusão concluída para {host}";
-        AppLoggerService.Success($"Rotina de exclusão concluída para {host}", nameof(MainWindow));
+        AppLoggerService.Success($"Rotina de exclusão concluída para {host} em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
         _trayIconService?.ShowBalloon("Desprovisionamento AD & SCCM", $"Rotina finalizada para a máquina '{host}'.", TrayIconService.NIIF_INFO);
     }
 
@@ -1466,6 +1507,7 @@ public partial class MainWindow : FluentWindow
             RestartExplorer = ChkRestartExplorer.IsChecked ?? false
         };
 
+        var sw = Stopwatch.StartNew();
         AppLoggerService.Info("Limpeza manual com opções personalizadas iniciada.", nameof(MainWindow));
         BtnLimparAmbiente.IsEnabled = false;
         RichCleanLogs.Document.Blocks.Clear();
@@ -1480,7 +1522,7 @@ public partial class MainWindow : FluentWindow
 
         BtnLimparAmbiente.IsEnabled = true;
         TxtFooterStatus.Text = "Limpeza seletiva concluída com sucesso!";
-        AppLoggerService.Success("Limpeza seletiva concluída com sucesso.", nameof(MainWindow));
+        AppLoggerService.Success($"Limpeza seletiva concluída com sucesso em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
     }
     #endregion
 
@@ -1543,7 +1585,7 @@ public partial class MainWindow : FluentWindow
             }
             catch (Exception ex)
             {
-                AppLoggerService.Warning($"Erro ao reiniciar em modo padrão: {ex.Message}", nameof(MainWindow));
+                AppLoggerService.LogException(nameof(MainWindow), "Reiniciar aplicação em modo usuário padrão via explorer.exe", ex, level: LogLevel.WARNING);
             }
         }
         else
@@ -1560,6 +1602,7 @@ public partial class MainWindow : FluentWindow
             if (string.IsNullOrWhiteSpace(exePath))
                 return;
 
+            AppLoggerService.Info($"Solicitando elevação UAC para '{exePath}'.", nameof(MainWindow));
             Process.Start(new ProcessStartInfo
             {
                 FileName = exePath,
@@ -1571,26 +1614,31 @@ public partial class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Elevação UAC do AmbientesHub", ex, level: LogLevel.WARNING);
             AppendColoredLog(RichPerformanceLogs, $"[AVISO] Elevação UAC cancelada ou indisponível: {ex.Message}");
         }
     }
 
     private async void BtnExecutarAuditoria_Click(object sender, RoutedEventArgs e)
     {
+        var sw = Stopwatch.StartNew();
         BtnExecutarAuditoria.IsEnabled = false;
         BtnAplicarOtimizacao.IsEnabled = false;
         BtnReverterServicos.IsEnabled = false;
         RichPerformanceLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = "Executando auditoria completa de performance...";
+        AppLoggerService.Info("Iniciando auditoria de performance pela UI.", nameof(MainWindow));
 
         try
         {
             var report = await _perfService.RunFullAuditAsync(msg => AppendColoredLog(RichPerformanceLogs, msg));
             UpdatePerformanceKpis(report);
             TxtFooterStatus.Text = "Auditoria de performance concluída com sucesso!";
+            AppLoggerService.Success($"Auditoria de performance concluída pela UI em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Auditoria de performance pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichPerformanceLogs, $"[ERRO] Falha durante a auditoria: {ex.Message}");
             TxtFooterStatus.Text = "Falha durante a auditoria de performance.";
         }
@@ -1629,11 +1677,13 @@ public partial class MainWindow : FluentWindow
         if (confirm != System.Windows.MessageBoxResult.Yes)
             return;
 
+        var sw = Stopwatch.StartNew();
         BtnExecutarAuditoria.IsEnabled = false;
         BtnAplicarOtimizacao.IsEnabled = false;
         BtnReverterServicos.IsEnabled = false;
         RichPerformanceLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = "Aplicando otimizações e debloat no sistema...";
+        AppLoggerService.Info($"Aplicando otimizações selecionadas na UI (WSLMem={selectedWslMem}).", nameof(MainWindow));
 
         try
         {
@@ -1642,9 +1692,11 @@ public partial class MainWindow : FluentWindow
             var postAudit = await _perfService.RunFullAuditAsync(msg => { });
             UpdatePerformanceKpis(postAudit);
             TxtFooterStatus.Text = "Otimizações aplicadas com sucesso!";
+            AppLoggerService.Success($"Otimizações e pós-auditoria finalizadas na UI em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Aplicação de otimizações de performance pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichPerformanceLogs, $"[ERRO] Falha ao aplicar otimizações: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao aplicar otimizações.";
         }
@@ -1667,19 +1719,23 @@ public partial class MainWindow : FluentWindow
         if (confirm != System.Windows.MessageBoxResult.Yes)
             return;
 
+        var sw = Stopwatch.StartNew();
         BtnExecutarAuditoria.IsEnabled = false;
         BtnAplicarOtimizacao.IsEnabled = false;
         BtnReverterServicos.IsEnabled = false;
         RichPerformanceLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = "Revertendo serviços do Windows...";
+        AppLoggerService.Info("Iniciando rollback de serviços de telemetria pela UI.", nameof(MainWindow));
 
         try
         {
             await _perfService.RollbackTelemetryServicesAsync(msg => AppendColoredLog(RichPerformanceLogs, msg));
             TxtFooterStatus.Text = "Rollback de serviços concluído.";
+            AppLoggerService.Success($"Rollback de serviços pela UI concluído em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Rollback de serviços pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichPerformanceLogs, $"[ERRO] Falha no rollback: {ex.Message}");
         }
         finally
@@ -1720,6 +1776,7 @@ public partial class MainWindow : FluentWindow
     #region Apps Instalados & Provisionamento
     private async Task RefreshAppsCatalogAsync()
     {
+        var sw = Stopwatch.StartNew();
         if (BtnVerificarApps != null)
             BtnVerificarApps.IsEnabled = false;
 
@@ -1727,9 +1784,11 @@ public partial class MainWindow : FluentWindow
         {
             await _softwareService.RefreshStatusAsync(_softwareCatalog);
             TxtFooterStatus.Text = "Status de aplicativos instalados atualizado.";
+            AppLoggerService.Info($"Catálogo de apps verificado ({_softwareCatalog.Count} item(ns), Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Atualização do catálogo de aplicativos", ex, sw.Elapsed);
             AppendColoredLog(RichAppsLogs, $"[ERRO] Falha ao verificar aplicativos: {ex.Message}");
         }
         finally
@@ -1760,11 +1819,13 @@ public partial class MainWindow : FluentWindow
         if (pkg.IsInstalling)
             return;
 
+        var sw = Stopwatch.StartNew();
         bool silent = ChkInstallSilent.IsChecked == true;
         pkg.IsInstalling = true;
         if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = false;
         RichAppsLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Instalando {pkg.Name}...";
+        AppLoggerService.Info($"Solicitada instalação pela UI: {pkg.Name} (Id={pkg.Id}, Method={pkg.Method}, Silent={silent}).", nameof(MainWindow));
 
         try
         {
@@ -1776,6 +1837,7 @@ public partial class MainWindow : FluentWindow
             TxtFooterStatus.Text = success
                 ? $"{pkg.Name} pronto para uso!"
                 : $"Instalação de {pkg.Name} finalizada com avisos.";
+            AppLoggerService.Info($"Instalação de {pkg.Name} concluída pela UI (Sucesso={success}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
 
             if (success)
             {
@@ -1789,6 +1851,7 @@ public partial class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Instalação de software '{pkg.Name}' pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichAppsLogs, $"[ERRO] Exceção ao instalar {pkg.Name}: {ex.Message}");
             TxtFooterStatus.Text = $"Erro ao instalar {pkg.Name}.";
         }
@@ -1813,11 +1876,13 @@ public partial class MainWindow : FluentWindow
         if (confirm != System.Windows.MessageBoxResult.Yes)
             return;
 
+        var sw = Stopwatch.StartNew();
         bool silent = ChkInstallSilent.IsChecked == true;
         pkg.IsInstalling = true;
         if (BtnVerificarApps != null) BtnVerificarApps.IsEnabled = false;
         RichAppsLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Desinstalando {pkg.Name}...";
+        AppLoggerService.Info($"Solicitada desinstalação pela UI: {pkg.Name} (Id={pkg.Id}, Silent={silent}).", nameof(MainWindow));
 
         try
         {
@@ -1826,12 +1891,14 @@ public partial class MainWindow : FluentWindow
                 silent,
                 msg => AppendColoredLog(RichAppsLogs, msg));
 
+            AppLoggerService.Info($"Desinstalação de {pkg.Name} concluída pela UI (Sucesso={ok}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
             TxtFooterStatus.Text = ok
                 ? $"{pkg.Name} desinstalado com sucesso!"
                 : $"Desinstalação de {pkg.Name} concluída com avisos.";
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Desinstalação de software '{pkg.Name}' pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichAppsLogs, $"[ERRO] Falha ao desinstalar {pkg.Name}: {ex.Message}");
             TxtFooterStatus.Text = $"Erro ao desinstalar {pkg.Name}.";
         }
@@ -1854,6 +1921,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnRunAnalyzer_Click(object sender, RoutedEventArgs e)
     {
+        var sw = Stopwatch.StartNew();
         string target = string.IsNullOrWhiteSpace(TxtAnalyzerComputer.Text) ? "." : TxtAnalyzerComputer.Text.Trim();
         bool skipMajor = ChkAnalyzerSkipMajor.IsChecked == true;
         bool openFirefox = ChkAnalyzerOpenFirefox.IsChecked == true;
@@ -1864,6 +1932,7 @@ public partial class MainWindow : FluentWindow
         BtnOpenReportExcel.IsEnabled = false;
         RichAnalyzerLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Analisando dispositivo '{target}' e gerando relatórios HTML, PDF e Excel...";
+        AppLoggerService.Info($"Iniciando análise de dispositivo pela UI (Alvo={target}, SkipMajor={skipMajor}, OpenFirefox={openFirefox}).", nameof(MainWindow));
 
         try
         {
@@ -1897,6 +1966,10 @@ public partial class MainWindow : FluentWindow
                 ? $"Análise de '{target}' concluída! Relatórios salvos em {res.OutputFolder}"
                 : $"Análise de '{target}' finalizada com alertas.";
 
+            AppLoggerService.Info(
+                $"Análise de '{target}' pela UI finalizada (Sucesso={res.Success}, HTML={BtnOpenReportHtml.IsEnabled}, PDF={BtnOpenReportPdf.IsEnabled}, Excel={BtnOpenReportExcel.IsEnabled}, Duração={AppLoggerService.FormatElapsed(sw)}).",
+                nameof(MainWindow));
+
             if (res.Success)
             {
                 _trayIconService?.ShowBalloon("Analisador de Dispositivo", $"Diagnóstico de '{target}' concluído com sucesso. Relatórios gerados em DeviceReports.", TrayIconService.NIIF_INFO);
@@ -1904,6 +1977,7 @@ public partial class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Análise de dispositivo '{target}' pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Exceção no analisador: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao executar análise de dispositivo.";
         }
@@ -1925,9 +1999,11 @@ public partial class MainWindow : FluentWindow
                 Arguments = $"\"{folder}\"",
                 UseShellExecute = true
             });
+            AppLoggerService.Info($"Pasta de relatórios aberta: '{folder}'.", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Abrir pasta de relatórios de dispositivo", ex, level: LogLevel.WARNING);
             AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Não foi possível abrir a pasta: {ex.Message}");
         }
     }
@@ -1939,11 +2015,13 @@ public partial class MainWindow : FluentWindow
 
         try
         {
+            AppLoggerService.Info($"Abrindo relatório HTML: '{_lastAnalyzerResult.HtmlPath}'.", nameof(MainWindow));
             var browser = new BrowserLauncherService();
             browser.OpenUrlsInFirefox([_lastAnalyzerResult.HtmlPath]);
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Abrir relatório HTML no Firefox", ex, level: LogLevel.WARNING);
             AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Falha ao abrir HTML no Firefox: {ex.Message}");
         }
     }
@@ -1955,6 +2033,7 @@ public partial class MainWindow : FluentWindow
 
         try
         {
+            AppLoggerService.Info($"Abrindo relatório PDF: '{_lastAnalyzerResult.PdfPath}'.", nameof(MainWindow));
             Process.Start(new ProcessStartInfo
             {
                 FileName = _lastAnalyzerResult.PdfPath,
@@ -1963,6 +2042,7 @@ public partial class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Abrir relatório PDF", ex, level: LogLevel.WARNING);
             AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Falha ao abrir PDF: {ex.Message}");
         }
     }
@@ -1974,6 +2054,7 @@ public partial class MainWindow : FluentWindow
 
         try
         {
+            AppLoggerService.Info($"Abrindo planilha Excel: '{_lastAnalyzerResult.ExcelPath}'.", nameof(MainWindow));
             Process.Start(new ProcessStartInfo
             {
                 FileName = _lastAnalyzerResult.ExcelPath,
@@ -1982,6 +2063,7 @@ public partial class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Abrir planilha Excel de dispositivo", ex, level: LogLevel.WARNING);
             AppendColoredLog(RichAnalyzerLogs, $"[ERRO] Falha ao abrir planilha Excel: {ex.Message}");
         }
     }
@@ -2021,6 +2103,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnAnalyzeRemoteMaint_Click(object sender, RoutedEventArgs e)
     {
+        var sw = Stopwatch.StartNew();
         string target = string.IsNullOrWhiteSpace(TxtRemoteMaintComputer.Text) ? "." : TxtRemoteMaintComputer.Text.Trim();
         var options = BuildRemoteMaintOptionsFromUi();
 
@@ -2028,6 +2111,7 @@ public partial class MainWindow : FluentWindow
         BtnExecuteRemoteMaint.IsEnabled = false;
         RichRemoteMaintLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Inspecionando caches e espaço livre em '{target}'...";
+        AppLoggerService.Info($"Iniciando análise de limpeza remota pela UI (Alvo={target}).", nameof(MainWindow));
 
         try
         {
@@ -2042,14 +2126,17 @@ public partial class MainWindow : FluentWindow
                 TxtRmCleanableEstimate.Text = $"~{res.EstimatedCleanableGb:N2} GB em arquivos de cache";
                 TxtRmFreeAfter.Text = "Aguardando execução...";
                 TxtFooterStatus.Text = $"Análise de '{res.ComputerName}' concluída (~{res.EstimatedCleanableGb:N2} GB limpáveis).";
+                AppLoggerService.Success($"Inspeção de limpeza remota '{res.ComputerName}' concluída (~{res.EstimatedCleanableGb:N2} GB limpáveis, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
             }
             else
             {
                 TxtFooterStatus.Text = $"Falha ao inspecionar '{target}'.";
+                AppLoggerService.Warning($"Inspeção de limpeza remota falhou para '{target}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             }
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Inspeção de limpeza remota '{target}'", ex, sw.Elapsed);
             AppendColoredLog(RichRemoteMaintLogs, $"[ERRO] Exceção na inspeção: {ex.Message}");
             TxtFooterStatus.Text = "Erro durante análise de limpeza.";
         }
@@ -2074,10 +2161,12 @@ public partial class MainWindow : FluentWindow
         if (confirm != System.Windows.MessageBoxResult.Yes)
             return;
 
+        var sw = Stopwatch.StartNew();
         BtnAnalyzeRemoteMaint.IsEnabled = false;
         BtnExecuteRemoteMaint.IsEnabled = false;
         RichRemoteMaintLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Executando limpeza e manutenção em '{target}'...";
+        AppLoggerService.Info($"Iniciando execução de manutenção remota pela UI (Alvo={target}).", nameof(MainWindow));
 
         try
         {
@@ -2091,16 +2180,19 @@ public partial class MainWindow : FluentWindow
                 TxtRmFreeBefore.Text = $"{res.FreeSpaceBeforeGb:N2} GB livres (de {res.TotalSpaceGb:N2} GB)";
                 TxtRmFreeAfter.Text = $"{res.FreeSpaceAfterGb:N2} GB livres (+{res.FreedGb:N2} GB recuperados)";
                 TxtFooterStatus.Text = $"Manutenção em '{res.ComputerName}' concluída! (+{res.FreedGb:N2} GB livres)";
+                AppLoggerService.Success($"Manutenção remota '{res.ComputerName}' concluída (+{res.FreedGb:N2} GB recuperados, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
                 _trayIconService?.ShowBalloon("Manutenção Remota Concluída", $"Máquina '{res.ComputerName}': +{res.FreedGb:N2} GB de espaço recuperados.", TrayIconService.NIIF_INFO);
             }
             else
             {
                 TxtFooterStatus.Text = $"Manutenção em '{target}' encerrada com alertas.";
+                AppLoggerService.Warning($"Manutenção remota '{target}' finalizada com alertas em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
                 _trayIconService?.ShowBalloon("Manutenção Remota", $"Operação em '{target}' finalizada com alertas.", TrayIconService.NIIF_WARNING);
             }
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Execução de manutenção remota '{target}'", ex, sw.Elapsed);
             AppendColoredLog(RichRemoteMaintLogs, $"[ERRO] Exceção na manutenção: {ex.Message}");
             TxtFooterStatus.Text = "Erro durante manutenção remota.";
         }
@@ -2123,6 +2215,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnQueryRemoteProfiles_Click(object sender, RoutedEventArgs e)
     {
+        var sw = Stopwatch.StartNew();
         string target = string.IsNullOrWhiteSpace(TxtRemoteProfilesComputer.Text) ? "." : TxtRemoteProfilesComputer.Text.Trim();
 
         BtnQueryRemoteProfiles.IsEnabled = false;
@@ -2130,6 +2223,7 @@ public partial class MainWindow : FluentWindow
         RichRemoteProfilesLogs.Document.Blocks.Clear();
         _remoteProfilesList.Clear();
         TxtFooterStatus.Text = $"Consultando perfis de usuários em '{target}'...";
+        AppLoggerService.Info($"Consultando perfis remotos via UI (Alvo={target}).", nameof(MainWindow));
 
         try
         {
@@ -2147,9 +2241,11 @@ public partial class MainWindow : FluentWindow
             int removable = profiles.Count(p => p.CanBeRemoved);
             TxtProfilesListHeader.Text = $"Perfis em '{RemoteManagementHelper.NormalizeTargetHost(target)}': {profiles.Count} encontrado(s) ({removable} inativos removíveis | Total: {totalGb:N2} GB)";
             TxtFooterStatus.Text = $"Consulta de perfis concluída ({profiles.Count} perfis encontrados).";
+            AppLoggerService.Info($"Consulta de perfis '{target}' retornou {profiles.Count} perfil(is) ({removable} removíveis, {totalGb:N2} GB, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Consulta de perfis remotos '{target}'", ex, sw.Elapsed);
             AppendColoredLog(RichRemoteProfilesLogs, $"[ERRO] Exceção ao listar perfis: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao listar perfis de usuários.";
         }
@@ -2214,10 +2310,12 @@ public partial class MainWindow : FluentWindow
         if (confirm != System.Windows.MessageBoxResult.Yes)
             return;
 
+        var sw = Stopwatch.StartNew();
         BtnQueryRemoteProfiles.IsEnabled = false;
         BtnPurgeRemoteProfiles.IsEnabled = false;
         RichRemoteProfilesLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Removendo {selectedUsers.Count} perfil(is) em '{target}'...";
+        AppLoggerService.Info($"Iniciando remoção de {selectedUsers.Count} perfil(is) em '{target}': [{string.Join(", ", selectedUsers)}].", nameof(MainWindow));
 
         try
         {
@@ -2236,10 +2334,12 @@ public partial class MainWindow : FluentWindow
 
             TxtProfilesListHeader.Text = $"Perfis em '{res.ComputerName}': {updated.Count} restante(s) ({res.RemovedCount} removido(s), ~{res.FreedEstimateGb:N2} GB liberados)";
             TxtFooterStatus.Text = $"Remoção concluída: {res.RemovedCount} perfil(is) excluído(s) (~{res.FreedEstimateGb:N2} GB liberados).";
+            AppLoggerService.Success($"Remoção de perfis em '{res.ComputerName}' concluída: Removidos={res.RemovedCount}, Liberado~={res.FreedEstimateGb:N2} GB, Duração={AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             _trayIconService?.ShowBalloon("Perfis Remotos Excluídos", $"{res.RemovedCount} perfil(is) removido(s) na máquina '{res.ComputerName}' (~{res.FreedEstimateGb:N2} GB liberados).", TrayIconService.NIIF_INFO);
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Remoção de perfis remotos em '{target}'", ex, sw.Elapsed);
             AppendColoredLog(RichRemoteProfilesLogs, $"[ERRO] Exceção ao remover perfis: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao remover perfis de usuários.";
         }
@@ -2269,6 +2369,7 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        var sw = Stopwatch.StartNew();
         BtnConsultarUsuarioAd.IsEnabled = false;
         PlaceholderAdUserCard.Visibility = Visibility.Collapsed;
         BorderAdUserPagination.Visibility = Visibility.Collapsed;
@@ -2279,6 +2380,7 @@ public partial class MainWindow : FluentWindow
         LoadingAdUserCard.Visibility = Visibility.Visible;
         RichAdUsersLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Consultando usuários no Active Directory para '{query}'...";
+        AppLoggerService.Info($"Iniciando consulta de usuários AD via UI (Termo={query}).", nameof(MainWindow));
 
         try
         {
@@ -2295,6 +2397,7 @@ public partial class MainWindow : FluentWindow
                 ApplyAdUserFilters();
                 PlaceholderAdUserCard.Visibility = Visibility.Collapsed;
                 TxtFooterStatus.Text = $"{_allAdUsersFound.Count} usuário(s) encontrado(s) no Active Directory para '{query}'.";
+                AppLoggerService.Success($"Consulta de usuários AD '{query}' retornou {_allAdUsersFound.Count} registro(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             }
             else
             {
@@ -2302,12 +2405,13 @@ public partial class MainWindow : FluentWindow
                 BorderAdUserPagination.Visibility = Visibility.Collapsed;
                 AppendColoredLog(RichAdUsersLogs, $"[i] Nenhum usuário encontrado no Active Directory correspondente a '{query}'.");
                 TxtFooterStatus.Text = $"Nenhum usuário AD encontrado para '{query}'.";
+                AppLoggerService.Warning($"Consulta de usuários AD '{query}' sem resultados em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
             }
         }
         catch (Exception ex)
         {
             AppendColoredLog(RichAdUsersLogs, $"[ERRO] Falha na consulta de usuários AD: {ex.Message}");
-            AppLoggerService.Danger($"Erro na consulta de usuários AD '{query}': {ex.Message}", nameof(MainWindow));
+            AppLoggerService.LogException(nameof(MainWindow), $"Consulta de usuários AD '{query}'", ex, sw.Elapsed);
             PlaceholderAdUserCard.Visibility = Visibility.Visible;
             BorderAdUserPagination.Visibility = Visibility.Collapsed;
         }
@@ -2582,11 +2686,13 @@ public partial class MainWindow : FluentWindow
     #region Painel 11: Bancada Streamlit (Docker WSL)
     private async Task CheckBancadaStatusAsync()
     {
+        var sw = Stopwatch.StartNew();
         TxtBancadaDetails.Text = $"URL: {ConfigService.UrlBancadaLocal} | WSL: {ConfigService.BancadaWslDistro} ({ConfigService.BancadaWslDir})";
         TxtBancadaStatus.Text = "⚪ Verificando...";
         BadgeBancadaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#1e293b"));
 
         bool online = await _bancadaService.IsBancadaOnlineAsync();
+        AppLoggerService.Info($"Status Bancada verificado na UI (Online={online}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
         if (online)
         {
             TxtBancadaStatus.Text = "🟢 ONLINE (Streamlit 8501)";
@@ -2621,6 +2727,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnStartBancada_Click(object sender, RoutedEventArgs e)
     {
+        AppLoggerService.Info("Solicitada inicialização da stack Docker da Bancada pela UI.", nameof(MainWindow));
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
@@ -2654,6 +2761,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnStopBancada_Click(object sender, RoutedEventArgs e)
     {
+        AppLoggerService.Info("Solicitada parada dos containers Docker da Bancada pela UI.", nameof(MainWindow));
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
@@ -2676,6 +2784,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnRestartBancada_Click(object sender, RoutedEventArgs e)
     {
+        AppLoggerService.Info("Solicitado reinício dos containers Docker da Bancada pela UI.", nameof(MainWindow));
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
@@ -2702,6 +2811,7 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnRebuildBancada_Click(object sender, RoutedEventArgs e)
     {
+        AppLoggerService.Info("Solicitado rebuild (--no-cache) dos containers Docker da Bancada pela UI.", nameof(MainWindow));
         BtnStartBancada.IsEnabled = false;
         BtnStopBancada.IsEnabled = false;
         BtnRestartBancada.IsEnabled = false;
@@ -3095,11 +3205,13 @@ public partial class MainWindow : FluentWindow
 
     private async Task ScanRegistryTweaksAsync()
     {
+        var sw = Stopwatch.StartNew();
         BtnScanRegistryTweaks.IsEnabled = false;
         BtnApplySelectedRegistryTweaks.IsEnabled = false;
         BtnRollbackSelectedRegistryTweaks.IsEnabled = false;
         RichRegistryLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = "Escaneando chaves do Registro do Windows...";
+        AppLoggerService.Info($"Iniciando escaneamento de {_allRegistryTweaks.Count} tweaks de registro pela UI.", nameof(MainWindow));
 
         try
         {
@@ -3113,9 +3225,11 @@ public partial class MainWindow : FluentWindow
 
             UpdateRegistryOptBadge();
             TxtFooterStatus.Text = "Escaneamento de registro concluído.";
+            AppLoggerService.Info($"Escaneamento de registro via UI concluído em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Escaneamento de registro pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichRegistryLogs, $"[ERRO] Falha no escaneamento: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao escanear o registro.";
         }
@@ -3188,10 +3302,12 @@ public partial class MainWindow : FluentWindow
 
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
+        var sw = Stopwatch.StartNew();
         BtnScanRegistryTweaks.IsEnabled = false;
         BtnApplySelectedRegistryTweaks.IsEnabled = false;
         BtnRollbackSelectedRegistryTweaks.IsEnabled = false;
         TxtFooterStatus.Text = $"Aplicando {selected.Count} otimização(ões) no registro...";
+        AppLoggerService.Info($"Aplicando {selected.Count} tweak(s) de registro selecionados pela UI.", nameof(MainWindow));
 
         try
         {
@@ -3202,10 +3318,12 @@ public partial class MainWindow : FluentWindow
 
             UpdateRegistryOptBadge();
             TxtFooterStatus.Text = $"Tweaks aplicados: {applied} sucesso(s), {failed} falha(s).";
+            AppLoggerService.Info($"Aplicação em lote de registro concluída na UI (Aplicados={applied}, Falhas={failed}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
             _trayIconService?.ShowBalloon("Otimizações de Registro", $"{applied} tweak(s) aplicados com sucesso! Ponto de restauração salvo em Backups.", TrayIconService.NIIF_INFO);
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Aplicação de tweaks de registro pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichRegistryLogs, $"[ERRO] Exceção durante aplicação: {ex.Message}");
             TxtFooterStatus.Text = "Erro ao aplicar tweaks de registro.";
             _trayIconService?.ShowBalloon("Ajustes de Registro", "Falha ao aplicar tweaks de registro.", TrayIconService.NIIF_WARNING);
@@ -3235,10 +3353,12 @@ public partial class MainWindow : FluentWindow
 
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
+        var sw = Stopwatch.StartNew();
         BtnScanRegistryTweaks.IsEnabled = false;
         BtnApplySelectedRegistryTweaks.IsEnabled = false;
         BtnRollbackSelectedRegistryTweaks.IsEnabled = false;
         TxtFooterStatus.Text = $"Restaurando {selected.Count} tweak(s)...";
+        AppLoggerService.Info($"Iniciando rollback de {selected.Count} tweak(s) de registro selecionados pela UI.", nameof(MainWindow));
 
         try
         {
@@ -3249,10 +3369,12 @@ public partial class MainWindow : FluentWindow
 
             UpdateRegistryOptBadge();
             TxtFooterStatus.Text = $"Rollback finalizado: {restored} restaurado(s), {failed} falha(s).";
+            AppLoggerService.Info($"Rollback em lote de registro concluído na UI (Restaurados={restored}, Falhas={failed}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
             _trayIconService?.ShowBalloon("Restauração de Registro", $"{restored} tweak(s) restaurados com sucesso aos valores originais.", TrayIconService.NIIF_INFO);
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Rollback de tweaks de registro pela UI", ex, sw.Elapsed);
             AppendColoredLog(RichRegistryLogs, $"[ERRO] Exceção durante rollback: {ex.Message}");
             TxtFooterStatus.Text = "Erro no rollback de registro.";
             _trayIconService?.ShowBalloon("Restauração de Registro", "Falha durante o rollback de registro.", TrayIconService.NIIF_WARNING);
@@ -3367,9 +3489,11 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnCfgDownloadUsmt_Click(object sender, RoutedEventArgs e)
     {
+        var sw = Stopwatch.StartNew();
         BtnCfgDownloadUsmt.IsEnabled = false;
         BtnUsmtDownloadBin.IsEnabled = false;
         TxtFooterStatus.Text = "Verificando / baixando Windows ADK USMT...";
+        AppLoggerService.Info("Iniciando detecção/instalação do Windows ADK USMT pela UI.", nameof(MainWindow));
 
         try
         {
@@ -3382,11 +3506,13 @@ public partial class MainWindow : FluentWindow
                 TxtCfgUsmtPath.Text = usmtPath;
                 RefreshUsmtBinStatusBadge();
                 TxtFooterStatus.Text = $"USMT configurado em: {usmtPath}";
+                AppLoggerService.Success($"USMT configurado em '{usmtPath}' ({AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
                 _trayIconService?.ShowBalloon("USMT Pronto", $"USMT detectado/instalado e salvo em USMT_PATH: {usmtPath}", TrayIconService.NIIF_INFO);
                 System.Windows.MessageBox.Show($"USMT pronto e salvo automaticamente no .env:\n{usmtPath}", "USMT Configurado", System.Windows.MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
+                AppLoggerService.Warning($"Detecção/instalação USMT não concluída em {AppLoggerService.FormatElapsed(sw)}: {message}", nameof(MainWindow));
                 TxtFooterStatus.Text = "Falha ao baixar/detectar USMT.";
                 System.Windows.MessageBox.Show(message, "USMT", System.Windows.MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -3412,11 +3538,13 @@ public partial class MainWindow : FluentWindow
 
     private async void BtnUsmtQueryUsers_Click(object sender, RoutedEventArgs e)
     {
+        var sw = Stopwatch.StartNew();
         string target = string.IsNullOrWhiteSpace(TxtUsmtTargetComputer.Text) ? "." : TxtUsmtTargetComputer.Text.Trim();
         BtnUsmtQueryUsers.IsEnabled = false;
         _usmtUsersList.Clear();
         RichUsmtLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Listando perfis de usuário em '{target}'...";
+        AppLoggerService.Info($"Consultando perfis USMT via UI (Alvo={target}).", nameof(MainWindow));
 
         try
         {
@@ -3430,9 +3558,11 @@ public partial class MainWindow : FluentWindow
 
             TxtUsmtUsersHeader.Text = $"Perfis em '{RemoteManagementHelper.NormalizeTargetHost(target)}': {profiles.Count} usuário(s) — marque os perfis desejados (nenhum será excluído)";
             TxtFooterStatus.Text = $"{profiles.Count} perfil(is) listado(s) para Backup/Restore USMT.";
+            AppLoggerService.Info($"Consulta USMT de perfis em '{target}' retornou {profiles.Count} perfil(is) em {AppLoggerService.FormatElapsed(sw)}.", nameof(MainWindow));
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), $"Consulta de perfis USMT em '{target}'", ex, sw.Elapsed);
             AppendColoredLog(RichUsmtLogs, $"[ERRO] Falha ao listar perfis: {ex.Message}");
         }
         finally
@@ -3504,14 +3634,17 @@ public partial class MainWindow : FluentWindow
 
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
+        var sw = Stopwatch.StartNew();
         SetUsmtButtonsEnabled(false);
         RichUsmtLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Executando Backup USMT em '{opts.TargetComputer}'...";
+        AppLoggerService.Info($"Executando Backup USMT via UI (Alvo={opts.TargetComputer}, Usuários={opts.SelectedUsers.Count}, Store='{opts.StorePath}').", nameof(MainWindow));
 
         try
         {
             var res = await _usmtService.ExecuteBackupAsync(opts, msg => Dispatcher.Invoke(() => AppendColoredLog(RichUsmtLogs, msg)));
             TxtFooterStatus.Text = res.Message;
+            AppLoggerService.Info($"Backup USMT em '{opts.TargetComputer}' concluído via UI (Sucesso={res.Success}, ExitCode={res.ExitCode}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
             _trayIconService?.ShowBalloon(
                 res.Success ? "Backup USMT Concluído" : "Backup USMT — Alerta",
                 res.Message,
@@ -3544,14 +3677,17 @@ public partial class MainWindow : FluentWindow
 
         if (confirm != System.Windows.MessageBoxResult.Yes) return;
 
+        var sw = Stopwatch.StartNew();
         SetUsmtButtonsEnabled(false);
         RichUsmtLogs.Document.Blocks.Clear();
         TxtFooterStatus.Text = $"Executando Restore USMT em '{opts.TargetComputer}'...";
+        AppLoggerService.Info($"Executando Restore USMT via UI (Alvo={opts.TargetComputer}, Usuários={opts.SelectedUsers.Count}, Store='{opts.StorePath}').", nameof(MainWindow));
 
         try
         {
             var res = await _usmtService.ExecuteRestoreAsync(opts, msg => Dispatcher.Invoke(() => AppendColoredLog(RichUsmtLogs, msg)));
             TxtFooterStatus.Text = res.Message;
+            AppLoggerService.Info($"Restore USMT em '{opts.TargetComputer}' concluído via UI (Sucesso={res.Success}, ExitCode={res.ExitCode}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
             _trayIconService?.ShowBalloon(
                 res.Success ? "Restore USMT Concluído" : "Restore USMT — Alerta",
                 res.Message,
@@ -3588,6 +3724,7 @@ public partial class MainWindow : FluentWindow
 
     private async System.Threading.Tasks.Task LoadChamadosAsync()
     {
+        var sw = Stopwatch.StartNew();
         string baseFilter = (CmbChamadosBase?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Bases";
         string statusFilter = (CmbChamadosStatus?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Aberto";
         string tagFilter = (CmbChamadosTag?.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Todas as Tags";
@@ -3595,6 +3732,7 @@ public partial class MainWindow : FluentWindow
 
         if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando PostgreSQL da Bancada...";
         if (BtnRefreshChamados != null) BtnRefreshChamados.IsEnabled = false;
+        AppLoggerService.Info($"Carregando chamados na UI (Base={baseFilter}, Status={statusFilter}, Tag={tagFilter}, Localidades={_selectedLocalidades.Count}).", nameof(MainWindow));
 
         try
         {
@@ -3617,6 +3755,11 @@ public partial class MainWindow : FluentWindow
                 if (TxtChamadosKpiAbertos != null) TxtChamadosKpiAbertos.Text = summary.Abertos.ToString();
                 if (TxtChamadosKpiOtrs != null) TxtChamadosKpiOtrs.Text = summary.OtrsCount.ToString();
                 if (TxtChamadosKpiCitSmart != null) TxtChamadosKpiCitSmart.Text = summary.CitSmartCount.ToString();
+                AppLoggerService.Info($"Painel Chamados atualizado ({items.Count} itens exibidos, Total={summary.Total}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
+            }
+            else
+            {
+                AppLoggerService.Warning($"Falha ao carregar chamados na UI ({AppLoggerService.FormatElapsed(sw)}): {error}", nameof(MainWindow));
             }
 
             if (TxtFooterStatus != null)
@@ -3630,6 +3773,7 @@ public partial class MainWindow : FluentWindow
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Carregamento de chamados pela UI", ex, sw.Elapsed);
             if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar chamados: {ex.Message}";
         }
         finally
@@ -3990,6 +4134,7 @@ public partial class MainWindow : FluentWindow
         System.IO.Directory.CreateDirectory(outDir);
         string outPath = System.IO.Path.Combine(outDir, $"chamados_relatorio_{DateTime.Now:yyyyMMdd_HHmmss}.html");
         System.IO.File.WriteAllText(outPath, sb.ToString(), System.Text.Encoding.UTF8);
+        AppLoggerService.Success($"Relatório HTML de chamados exportado ({_allChamadosFound.Count} chamado(s)): '{outPath}'.", nameof(MainWindow));
         if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Relatório HTML gerado com {_allChamadosFound.Count} chamado(s): {outPath}";
         Process.Start(new ProcessStartInfo(outPath) { UseShellExecute = true });
     }
@@ -4245,12 +4390,14 @@ public partial class MainWindow : FluentWindow
                 item.LocalidadeFisica = txtEditLocalidade.Text.Trim();
                 item.Descricao = txtEditDesc.Text.Trim();
                 item.Andamento = txtEditAndamento.Text.Trim();
+                AppLoggerService.Success($"Chamado '{item.Id}' atualizado via modal de detalhes (Status='{item.Status}', Tag='{item.Tag}').", nameof(MainWindow));
                 if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
                 _ = LoadChamadosAsync();
                 System.Windows.MessageBox.Show(msg, "Salvo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
             else
             {
+                AppLoggerService.Warning($"Falha ao atualizar chamado '{item.Id}' via modal: {msg}", nameof(MainWindow));
                 System.Windows.MessageBox.Show(msg, "Erro ao Salvar", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         };
@@ -4321,12 +4468,14 @@ public partial class MainWindow : FluentWindow
                 item.LocalidadeFisica = txtEditLocalidade.Text.Trim();
                 item.Descricao = txtEditDesc.Text.Trim();
                 item.Andamento = txtEditAndamento.Text.Trim();
+                AppLoggerService.Success($"Chamado '{item.Id}' atualizado via modal de detalhes (Status='{item.Status}', Tag='{item.Tag}').", nameof(MainWindow));
                 if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
                 _ = LoadChamadosAsync();
                 System.Windows.MessageBox.Show(msg, "Salvo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
             else
             {
+                AppLoggerService.Warning($"Falha ao atualizar chamado '{item.Id}' via modal: {msg}", nameof(MainWindow));
                 System.Windows.MessageBox.Show(msg, "Erro ao Salvar", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         };
@@ -4573,8 +4722,10 @@ public partial class MainWindow : FluentWindow
 
     private async System.Threading.Tasks.Task LoadOxeAsync()
     {
+        var sw = Stopwatch.StartNew();
         if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando ramais da Central Telefônica OXE...";
         if (BtnRefreshOxe != null) BtnRefreshOxe.IsEnabled = false;
+        AppLoggerService.Info("Carregando ramais OXE pela UI.", nameof(MainWindow));
 
         try
         {
@@ -4589,12 +4740,18 @@ public partial class MainWindow : FluentWindow
                 if (TxtOxeKpiTotal != null) TxtOxeKpiTotal.Text = summary.Total.ToString();
                 if (TxtOxeKpiComNome != null) TxtOxeKpiComNome.Text = summary.ComNome.ToString();
                 if (TxtOxeKpiComIpMac != null) TxtOxeKpiComIpMac.Text = summary.ComIpOuMac.ToString();
+                AppLoggerService.Info($"Painel OXE atualizado ({items.Count} ramal(is), ComNome={summary.ComNome}, ComIpMac={summary.ComIpOuMac}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
+            }
+            else
+            {
+                AppLoggerService.Warning($"Falha ao carregar ramais OXE ({AppLoggerService.FormatElapsed(sw)}): {message}", nameof(MainWindow));
             }
 
             if (TxtFooterStatus != null) TxtFooterStatus.Text = message;
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Carregamento de ramais OXE pela UI", ex, sw.Elapsed);
             if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar ramais OXE: {ex.Message}";
         }
         finally
@@ -5050,8 +5207,10 @@ public partial class MainWindow : FluentWindow
 
     private async System.Threading.Tasks.Task LoadImpressorasAsync()
     {
+        var sw = Stopwatch.StartNew();
         if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando impressoras do PaperCut no PostgreSQL...";
         if (BtnRefreshImpressoras != null) BtnRefreshImpressoras.IsEnabled = false;
+        AppLoggerService.Info("Carregando impressoras PaperCut pela UI.", nameof(MainWindow));
 
         try
         {
@@ -5067,12 +5226,18 @@ public partial class MainWindow : FluentWindow
                 if (TxtImpressorasKpiOk != null) TxtImpressorasKpiOk.Text = summary.OkCount.ToString();
                 if (TxtImpressorasKpiAlert != null) TxtImpressorasKpiAlert.Text = summary.AlertCount.ToString();
                 if (TxtImpressorasKpiPaginas != null) TxtImpressorasKpiPaginas.Text = summary.TotalPaginasSoma.ToString("N0", new System.Globalization.CultureInfo("pt-BR"));
+                AppLoggerService.Info($"Painel Impressoras atualizado ({items.Count} item(ns), OK={summary.OkCount}, Alertas={summary.AlertCount}, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
+            }
+            else
+            {
+                AppLoggerService.Warning($"Falha ao carregar impressoras ({AppLoggerService.FormatElapsed(sw)}): {message}", nameof(MainWindow));
             }
 
             if (TxtFooterStatus != null) TxtFooterStatus.Text = message;
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Carregamento de impressoras PaperCut pela UI", ex, sw.Elapsed);
             if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar impressoras: {ex.Message}";
         }
         finally
@@ -5390,8 +5555,10 @@ public partial class MainWindow : FluentWindow
 
     private async System.Threading.Tasks.Task LoadCronJobsAsync()
     {
+        var sw = Stopwatch.StartNew();
         if (TxtFooterStatus != null) TxtFooterStatus.Text = "Consultando agendadores (cron_schedules) no PostgreSQL...";
         if (BtnRefreshCron != null) BtnRefreshCron.IsEnabled = false;
+        AppLoggerService.Info("Carregando agendadores/cron jobs pela UI.", nameof(MainWindow));
 
         try
         {
@@ -5419,12 +5586,18 @@ public partial class MainWindow : FluentWindow
                 if (TxtCronKpiAtivas != null) TxtCronKpiAtivas.Text = summary.Ativas.ToString();
                 if (TxtCronKpiExec != null) TxtCronKpiExec.Text = summary.Executando.ToString();
                 if (TxtCronKpiErro != null) TxtCronKpiErro.Text = summary.ComErro.ToString();
+                AppLoggerService.Info($"Painel Cron Jobs atualizado ({schedules.Count} tarefas, {logs.Count} logs recentes, Duração={AppLoggerService.FormatElapsed(sw)}).", nameof(MainWindow));
+            }
+            else
+            {
+                AppLoggerService.Warning($"Falha ao carregar Cron Jobs ({AppLoggerService.FormatElapsed(sw)}): {message}", nameof(MainWindow));
             }
 
             if (TxtFooterStatus != null) TxtFooterStatus.Text = message;
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(MainWindow), "Carregamento de Cron Jobs pela UI", ex, sw.Elapsed);
             if (TxtFooterStatus != null) TxtFooterStatus.Text = $"Erro ao carregar agendadores: {ex.Message}";
         }
         finally
@@ -5482,15 +5655,18 @@ public partial class MainWindow : FluentWindow
         if (sender is not System.Windows.FrameworkElement fe || fe.Tag is not CronScheduleItem item)
             return;
 
+        AppLoggerService.Info($"Solicitada execução imediata de tarefa cron via UI (TaskId={item.TaskId}).", nameof(MainWindow));
         var (ok, msg) = await _cronService.TriggerTaskNowAsync(item.TaskId);
         if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
 
         if (!ok)
         {
+            AppLoggerService.Warning($"Falha ao disparar tarefa cron '{item.TaskId}' pela UI: {msg}", nameof(MainWindow));
             System.Windows.MessageBox.Show(msg, "Agendador", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             return;
         }
 
+        AppLoggerService.Success($"Tarefa cron '{item.TaskId}' disparada com sucesso pela UI.", nameof(MainWindow));
         await LoadCronJobsAsync();
         await System.Threading.Tasks.Task.Delay(3500);
         if (PanelCronJobs?.Visibility == Visibility.Visible)
@@ -5503,10 +5679,18 @@ public partial class MainWindow : FluentWindow
             return;
 
         bool newActive = cb.IsChecked == true;
+        AppLoggerService.Info($"Alternando estado de tarefa cron pela UI (TaskId={item.TaskId}, Ativo={newActive}).", nameof(MainWindow));
         var (ok, msg) = await _cronService.SetTaskActiveAsync(item.TaskId, newActive);
         if (TxtFooterStatus != null) TxtFooterStatus.Text = msg;
         if (ok)
+        {
+            AppLoggerService.Info($"Estado da tarefa cron '{item.TaskId}' alterado para Ativo={newActive}.", nameof(MainWindow));
             await LoadCronJobsAsync();
+        }
+        else
+        {
+            AppLoggerService.Warning($"Falha ao alterar estado da tarefa cron '{item.TaskId}': {msg}", nameof(MainWindow));
+        }
     }
 
     private void BtnOpenCronLogsModal_Click(object sender, RoutedEventArgs e)

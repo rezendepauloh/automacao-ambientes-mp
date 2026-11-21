@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 
 namespace AmbientesHub.Services;
@@ -61,7 +62,8 @@ public class AppLoggerService
 
                 // Formato enriquecido com milissegundos, PID, ThreadId e privilégio
                 int threadId = Environment.CurrentManagedThreadId;
-                string prefix = caller != null ? $" [{caller}]" : "";
+                string safeCaller = InputValidator.SanitizeLogText(caller);
+                string prefix = !string.IsNullOrEmpty(safeCaller) ? $" [{safeCaller}]" : "";
                 string line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level}] [PID:{CurrentPid}|T:{threadId}|{PrivilegeTag.Value}]{prefix} {InputValidator.SanitizeLogText(message)}";
 
                 File.AppendAllText(currentLogPath, line + Environment.NewLine);
@@ -141,4 +143,32 @@ public class AppLoggerService
     public static void Warning(string msg, string? caller = null) => Log(LogLevel.WARNING, msg, caller);
     public static void Danger(string msg, string? caller = null) => Log(LogLevel.DANGER, msg, caller);
     public static void Success(string msg, string? caller = null) => Log(LogLevel.SUCCESS, msg, caller);
+
+    /// <summary>Formata duração de operação de forma legível em ms/s.</summary>
+    public static string FormatElapsed(Stopwatch sw) => FormatElapsed(sw.Elapsed);
+
+    /// <summary>Formata duração de operação de forma legível em ms/s.</summary>
+    public static string FormatElapsed(TimeSpan elapsed)
+    {
+        long ms = (long)elapsed.TotalMilliseconds;
+        return ms < 1000
+            ? $"{ms} ms"
+            : $"{elapsed.TotalSeconds:F2}s ({ms} ms)";
+    }
+
+    /// <summary>Retorna apenas o status de preenchimento de um segredo sem nunca expor seu valor.</summary>
+    public static string DescribeSecretPresence(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "(ausente)";
+        return $"(configurado, {value.Trim().Length} chars)";
+    }
+
+    /// <summary>Registra exceção detalhada (tipo, HResult, mensagem, inner exception e duração opcional).</summary>
+    public static void LogException(string caller, string operation, Exception ex, TimeSpan? elapsed = null, LogLevel level = LogLevel.DANGER)
+    {
+        string inner = ex.InnerException != null ? $" | Inner({ex.InnerException.GetType().Name}): {ex.InnerException.Message}" : string.Empty;
+        string dur = elapsed.HasValue ? $" | Duração={FormatElapsed(elapsed.Value)}" : string.Empty;
+        string hresult = ex.HResult != 0 ? $" | HRESULT=0x{ex.HResult:X8}" : string.Empty;
+        Log(level, $"{operation} falhou ({ex.GetType().Name}{hresult}): {ex.Message}{inner}{dur}", caller);
+    }
 }

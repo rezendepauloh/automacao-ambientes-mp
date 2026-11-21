@@ -77,6 +77,7 @@ public partial class NetworkPathView : WControls.UserControl
 
         int maxHops = GetSelectedMaxHops();
         var ct = _traceCts.Token;
+        AppLoggerService.Info($"Iniciando traceroute UI (Alvo={validatedTarget}, MaxHops={maxHops}, TimeoutMs=1200, RegrasCidr={_subnetRules.Count}).", nameof(NetworkPathView));
 
         // Dispara um ping inicial rápido em paralelo ao traceroute para alimentar a barra de telemetria
         _ = RunInitialPingBurstAsync(validatedTarget, ct);
@@ -136,11 +137,12 @@ public partial class NetworkPathView : WControls.UserControl
         catch (OperationCanceledException)
         {
             SetTraceStatus("⏹️ Rastreamento interrompido", "#1e293b", "#cbd5e1", "#475569");
+            AppLoggerService.Info($"Traceroute interrompido pelo usuário para '{validatedTarget}'.", nameof(NetworkPathView));
         }
         catch (Exception ex)
         {
             SetTraceStatus($"❌ Falha no rastreamento: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
-            AppLoggerService.Warning($"Erro no traceroute para {validatedTarget}: {ex.Message}", nameof(NetworkPathView));
+            AppLoggerService.LogException(nameof(NetworkPathView), $"Traceroute '{validatedTarget}'", ex, level: LogLevel.WARNING);
         }
         finally
         {
@@ -195,7 +197,9 @@ public partial class NetworkPathView : WControls.UserControl
         UpdateButtonsState();
 
         var ct = _continuousPingCts.Token;
+        var pingSw = Stopwatch.StartNew();
         SetTraceStatus($"📡 Ping contínuo ativo em {validatedTarget}...", "#1e3a8a", "#93c5fd", "#3b82f6");
+        AppLoggerService.Info($"Iniciando ping contínuo em '{validatedTarget}'.", nameof(NetworkPathView));
 
         try
         {
@@ -220,6 +224,14 @@ public partial class NetworkPathView : WControls.UserControl
         catch (OperationCanceledException)
         {
             SetTraceStatus("⏹️ Ping contínuo parado", "#1e293b", "#cbd5e1", "#475569");
+            AppLoggerService.Info(
+                $"Ping contínuo parado em '{validatedTarget}' (Enviados={_pingStats.Sent}, Recebidos={_pingStats.Received}, Perda={_pingStats.LossPercent:0.0}%, Média={_pingStats.AvgRttMs:0.0}ms, Duração={AppLoggerService.FormatElapsed(pingSw)}).",
+                nameof(NetworkPathView));
+        }
+        catch (Exception ex)
+        {
+            SetTraceStatus($"❌ Erro no ping contínuo: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
+            AppLoggerService.LogException(nameof(NetworkPathView), $"Ping contínuo '{validatedTarget}'", ex, pingSw.Elapsed, LogLevel.WARNING);
         }
         finally
         {
@@ -266,6 +278,7 @@ public partial class NetworkPathView : WControls.UserControl
         string report = NetworkPathService.FormatTraceReport(reportModel);
         if (ClipboardHelper.Copy(report))
         {
+            AppLoggerService.Info($"Relatório textual de rota copiado para área de transferência (Alvo={reportModel.TargetInput}, Saltos={reportModel.Hops.Count}).", nameof(NetworkPathView));
             SetTraceStatus("📋 Relatório da rota copiado para a área de transferência!", "#064e3b", "#34d399", "#10b981");
         }
     }
@@ -859,6 +872,7 @@ public partial class NetworkPathView : WControls.UserControl
 
             if (invalidLines.Count > 0)
             {
+                AppLoggerService.Warning($"Falha ao salvar regras CIDR: linhas inválidas [{string.Join(", ", invalidLines)}].", nameof(NetworkPathView));
                 lblInfo.Text = $"⚠️ CIDR inválido na(s) linha(s): {string.Join(", ", invalidLines)}";
                 lblInfo.Foreground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(251, 191, 36));
                 return;
@@ -866,6 +880,7 @@ public partial class NetworkPathView : WControls.UserControl
 
             NetworkPathService.SaveSubnetRules(parsed);
             _subnetRules = NetworkPathService.LoadSubnetRules();
+            AppLoggerService.Success($"Editor CIDR salvo com {_subnetRules.Count} regra(s) ativa(s).", nameof(NetworkPathView));
             SetTraceStatus($"✅ {_subnetRules.Count} regra(s) CIDR salvas em subnet_map.json", "#064e3b", "#34d399", "#10b981");
             win.Close();
         };

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
@@ -69,18 +70,25 @@ public class BancadaChamadosService
 
     public async Task<List<string>> GetDistinctLocalidadesAsync()
     {
+        var sw = Stopwatch.StartNew();
         if (BancadaApiClient.IsApiConfigured())
         {
             var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiLocalidadesResponse>("/api/v1/chamados/localidades");
             if (ok && res?.Localidades != null)
+            {
+                AppLoggerService.Info($"GetDistinctLocalidadesAsync (API REST): {res.Localidades.Count} localidade(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
                 return res.Localidades;
-            AppLoggerService.Warning($"Falha ao listar localidades via API: {err}", nameof(BancadaChamadosService));
+            }
+            AppLoggerService.Warning($"Falha ao listar localidades via API ({AppLoggerService.FormatElapsed(sw)}): {err}", nameof(BancadaChamadosService));
             return [];
         }
 
         var list = new List<string>();
-        if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
+        if (!TryBuildConnectionStringFromConfig(out string connStr, out string cfgErr))
+        {
+            AppLoggerService.Warning($"GetDistinctLocalidadesAsync abortado (PostgreSQL): {cfgErr}", nameof(BancadaChamadosService));
             return list;
+        }
 
         try
         {
@@ -100,10 +108,11 @@ public class BancadaChamadosService
                 if (!string.IsNullOrWhiteSpace(val))
                     list.Add(val);
             }
+            AppLoggerService.Info($"GetDistinctLocalidadesAsync (PostgreSQL {ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort}/{ConfigService.BancadaDbName}): {list.Count} localidade(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao listar localidades físicas: {ex.Message}", nameof(BancadaChamadosService));
+            AppLoggerService.LogException(nameof(BancadaChamadosService), "GetDistinctLocalidadesAsync (PostgreSQL)", ex, sw.Elapsed, LogLevel.WARNING);
         }
 
         return list;
@@ -116,20 +125,29 @@ public class BancadaChamadosService
         string? tagFilter = null,
         List<string>? localidadesFilter = null)
     {
+        var sw = Stopwatch.StartNew();
         if (BancadaApiClient.IsApiConfigured())
         {
             string qs = BuildChamadosQueryString(search, baseFilter, statusFilter, null, tagFilter, localidadesFilter);
             var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiFiltersResponse>($"/api/v1/chamados/filters{qs}");
             if (ok && res != null)
+            {
+                int tCnt = res.Tags?.Count ?? 0;
+                int lCnt = res.Localidades?.Count ?? 0;
+                AppLoggerService.Info($"GetAvailableFiltersAsync (API REST): tags={tCnt}, localidades={lCnt} em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
                 return (res.Tags ?? [], res.Localidades ?? []);
-            AppLoggerService.Warning($"Falha ao atualizar filtros dinâmicos via API: {err}", nameof(BancadaChamadosService));
+            }
+            AppLoggerService.Warning($"Falha ao atualizar filtros dinâmicos via API ({AppLoggerService.FormatElapsed(sw)}): {err}", nameof(BancadaChamadosService));
             return ([], []);
         }
 
         var tags = new List<string>();
         var locs = new List<string>();
-        if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
+        if (!TryBuildConnectionStringFromConfig(out string connStr, out string cfgErr))
+        {
+            AppLoggerService.Warning($"GetAvailableFiltersAsync abortado (PostgreSQL): {cfgErr}", nameof(BancadaChamadosService));
             return (tags, locs);
+        }
 
         try
         {
@@ -190,10 +208,11 @@ public class BancadaChamadosService
                 while (await r.ReadAsync())
                     locs.Add(r.GetString(0));
             }
+            AppLoggerService.Info($"GetAvailableFiltersAsync (PostgreSQL): tags={tags.Count}, localidades={locs.Count} em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao atualizar filtros dinâmicos: {ex.Message}", nameof(BancadaChamadosService));
+            AppLoggerService.LogException(nameof(BancadaChamadosService), "GetAvailableFiltersAsync (PostgreSQL)", ex, sw.Elapsed, LogLevel.WARNING);
         }
 
         return (tags, locs);
@@ -207,12 +226,19 @@ public class BancadaChamadosService
         string? tagFilter = null,
         List<string>? localidadesFilter = null)
     {
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info(
+            $"QueryChamadosAsync via {(useApi ? "API REST" : $"PostgreSQL direto ({ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort}/{ConfigService.BancadaDbName})")} | search='{search}', base='{baseFilter}', status='{statusFilter}', tag='{tagFilter}', locs={localidadesFilter?.Count ?? 0}, limit={limit}.",
+            nameof(BancadaChamadosService));
+
+        if (useApi)
         {
             string qs = BuildChamadosQueryString(search, baseFilter, statusFilter, Math.Clamp(limit, 1, 500), tagFilter, localidadesFilter);
-            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiChamadosListResponse>($"/api/v1/chamados{qs}");
+            var (ok, res, statusCode, err) = await BancadaApiClient.GetAsync<ApiChamadosListResponse>($"/api/v1/chamados{qs}");
             if (!ok || res == null)
             {
+                AppLoggerService.Warning($"QueryChamadosAsync via API REST falhou (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaChamadosService));
                 return (false, [], new ChamadosSummary(), err);
             }
 
@@ -225,11 +251,13 @@ public class BancadaChamadosService
                 CitSmartCount = res.Summary?.CitSmartCount ?? 0
             };
 
+            AppLoggerService.Success($"QueryChamadosAsync (API REST) retornou {apiItems.Count} chamado(s) (Total={apiSummary.Total}, Abertos={apiSummary.Abertos}) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
             return (true, apiItems, apiSummary, $"{apiItems.Count} chamado(s) carregado(s) via API REST da Bancada.");
         }
 
         if (!TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
+            AppLoggerService.Warning($"QueryChamadosAsync abortado (fail-closed): {error}", nameof(BancadaChamadosService));
             return (false, [], new ChamadosSummary(), error);
         }
 
@@ -351,17 +379,21 @@ public class BancadaChamadosService
                 });
             }
 
+            AppLoggerService.Success(
+                $"QueryChamadosAsync (PostgreSQL) retornou {items.Count} chamado(s) (Total={summary.Total}, Abertos={summary.Abertos}, OTRS={summary.OtrsCount}, CitSmart={summary.CitSmartCount}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaChamadosService));
             return (true, items, summary, $"{items.Count} chamado(s) carregado(s) do PostgreSQL da Bancada.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao consultar PostgreSQL da Bancada: {ex.Message}", nameof(BancadaChamadosService));
+            AppLoggerService.LogException(nameof(BancadaChamadosService), $"QueryChamadosAsync PostgreSQL ({ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort})", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, items, summary, $"Erro ao conectar no PostgreSQL ({ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort}): {ex.Message}");
         }
     }
 
     public async Task<List<ChamadoComentario>> GetComentariosChamadoAsync(string chamadoId)
     {
+        var sw = Stopwatch.StartNew();
         var list = new List<ChamadoComentario>();
         if (string.IsNullOrWhiteSpace(chamadoId))
             return list;
@@ -372,6 +404,7 @@ public class BancadaChamadosService
             var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiComentariosResponse>($"/api/v1/chamados/{encodedId}/comentarios");
             if (ok && res?.Comentarios != null)
             {
+                AppLoggerService.Info($"GetComentariosChamadoAsync (API REST) #{chamadoId}: {res.Comentarios.Count} comentário(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
                 return res.Comentarios.Select(c => new ChamadoComentario
                 {
                     Data = c.Data ?? string.Empty,
@@ -379,12 +412,15 @@ public class BancadaChamadosService
                     Texto = c.Texto ?? string.Empty
                 }).ToList();
             }
-            AppLoggerService.Warning($"Falha ao carregar comentários via API do chamado #{chamadoId}: {err}", nameof(BancadaChamadosService));
+            AppLoggerService.Warning($"Falha ao carregar comentários via API do chamado #{chamadoId} ({AppLoggerService.FormatElapsed(sw)}): {err}", nameof(BancadaChamadosService));
             return list;
         }
 
-        if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
+        if (!TryBuildConnectionStringFromConfig(out string connStr, out string cfgErr))
+        {
+            AppLoggerService.Warning($"GetComentariosChamadoAsync #{chamadoId} abortado: {cfgErr}", nameof(BancadaChamadosService));
             return list;
+        }
 
         try
         {
@@ -410,10 +446,11 @@ public class BancadaChamadosService
                     Texto = reader.GetString(2)
                 });
             }
+            AppLoggerService.Info($"GetComentariosChamadoAsync (PostgreSQL) #{chamadoId}: {list.Count} comentário(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao carregar comentários do chamado #{chamadoId}: {ex.Message}", nameof(BancadaChamadosService));
+            AppLoggerService.LogException(nameof(BancadaChamadosService), $"GetComentariosChamadoAsync #{chamadoId}", ex, sw.Elapsed, LogLevel.WARNING);
         }
 
         return list;
@@ -421,6 +458,7 @@ public class BancadaChamadosService
 
     public async Task<Dictionary<string, List<ChamadoComentario>>> GetComentariosPorChamadosAsync(IEnumerable<string> chamadoIds)
     {
+        var sw = Stopwatch.StartNew();
         var result = new Dictionary<string, List<ChamadoComentario>>(StringComparer.OrdinalIgnoreCase);
         var ids = chamadoIds?
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -446,16 +484,20 @@ public class BancadaChamadosService
                         Texto = c.Texto ?? string.Empty
                     }).ToList();
                 }
+                AppLoggerService.Info($"GetComentariosPorChamadosAsync (API REST): {result.Count} chamado(s) com comentários de {ids.Length} solicitado(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
             }
             else if (!ok)
             {
-                AppLoggerService.Warning($"Falha ao carregar comentários em lote via API: {err}", nameof(BancadaChamadosService));
+                AppLoggerService.Warning($"Falha ao carregar comentários em lote via API ({AppLoggerService.FormatElapsed(sw)}): {err}", nameof(BancadaChamadosService));
             }
             return result;
         }
 
-        if (!TryBuildConnectionStringFromConfig(out string connStr, out _))
+        if (!TryBuildConnectionStringFromConfig(out string connStr, out string cfgErr))
+        {
+            AppLoggerService.Warning($"GetComentariosPorChamadosAsync abortado: {cfgErr}", nameof(BancadaChamadosService));
             return result;
+        }
 
         try
         {
@@ -487,10 +529,11 @@ public class BancadaChamadosService
                     Texto = reader.GetString(3)
                 });
             }
+            AppLoggerService.Info($"GetComentariosPorChamadosAsync (PostgreSQL): {result.Count} chamado(s) com comentários de {ids.Length} solicitado(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao carregar comentários em lote: {ex.Message}", nameof(BancadaChamadosService));
+            AppLoggerService.LogException(nameof(BancadaChamadosService), $"GetComentariosPorChamadosAsync ({ids.Length} IDs)", ex, sw.Elapsed, LogLevel.WARNING);
         }
 
         return result;
@@ -510,7 +553,13 @@ public class BancadaChamadosService
         if (string.IsNullOrWhiteSpace(id))
             return (false, "ID do chamado inválido.");
 
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info(
+            $"UpdateChamadoAsync #{id} via {(useApi ? "API REST" : "PostgreSQL direto")} (status='{status}', tag='{tag}', hostname='{hostname}').",
+            nameof(BancadaChamadosService));
+
+        if (useApi)
         {
             string encodedId = Uri.EscapeDataString(id.Trim());
             var payload = new ApiChamadoUpdateRequest
@@ -526,14 +575,21 @@ public class BancadaChamadosService
                 TagManual = true,
                 DadosManuais = true
             };
-            var (ok, res, _, err) = await BancadaApiClient.PatchAsync<ApiChamadoUpdateRequest, ApiMutationResponse>($"/api/v1/chamados/{encodedId}", payload);
+            var (ok, res, statusCode, err) = await BancadaApiClient.PatchAsync<ApiChamadoUpdateRequest, ApiMutationResponse>($"/api/v1/chamados/{encodedId}", payload);
+            if (ok)
+                AppLoggerService.Success($"Chamado #{id} atualizado via API REST em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
+            else
+                AppLoggerService.Warning($"Falha ao atualizar chamado #{id} via API REST (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaChamadosService));
             return ok
                 ? (true, res?.Message ?? $"Chamado #{id} atualizado via API REST com sucesso.")
                 : (false, err);
         }
 
         if (!TryBuildConnectionStringFromConfig(out string connStr, out string error))
+        {
+            AppLoggerService.Warning($"UpdateChamadoAsync #{id} abortado: {error}", nameof(BancadaChamadosService));
             return (false, error);
+        }
 
         try
         {
@@ -570,13 +626,17 @@ public class BancadaChamadosService
 
             int rows = await cmd.ExecuteNonQueryAsync();
             if (rows == 0)
+            {
+                AppLoggerService.Warning($"UpdateChamadoAsync #{id} (PostgreSQL): nenhuma linha afetada em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
                 return (false, $"Chamado #{id} não encontrado no PostgreSQL.");
+            }
 
+            AppLoggerService.Success($"Chamado #{id} atualizado no PostgreSQL ({rows} linha) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
             return (true, $"Chamado #{id} atualizado no PostgreSQL com sucesso.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao atualizar chamado #{id}: {ex.Message}", nameof(BancadaChamadosService));
+            AppLoggerService.LogException(nameof(BancadaChamadosService), $"UpdateChamadoAsync #{id} PostgreSQL", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, $"Erro ao salvar no PostgreSQL: {ex.Message}");
         }
     }
@@ -587,15 +647,23 @@ public class BancadaChamadosService
             return (false, "Chamado, autor e texto são obrigatórios.");
 
         if (!BancadaApiClient.IsApiConfigured())
+        {
+            AppLoggerService.Warning($"AddComentarioChamadoAsync #{id} bloqueado: BANCADA_API_URL/KEY não configurados.", nameof(BancadaChamadosService));
             return (false, "Configure BANCADA_API_URL e BANCADA_API_KEY para adicionar comentários via API.");
+        }
 
+        var sw = Stopwatch.StartNew();
         string encodedId = Uri.EscapeDataString(id.Trim());
         var payload = new ApiComentarioCreateRequest
         {
             Autor = autor.Trim(),
             Texto = texto.Trim()
         };
-        var (ok, _, _, err) = await BancadaApiClient.PostAsync<ApiComentarioCreateRequest, ApiMutationResponse>($"/api/v1/chamados/{encodedId}/comentarios", payload);
+        var (ok, _, statusCode, err) = await BancadaApiClient.PostAsync<ApiComentarioCreateRequest, ApiMutationResponse>($"/api/v1/chamados/{encodedId}/comentarios", payload);
+        if (ok)
+            AppLoggerService.Success($"Comentário adicionado ao chamado #{id} por '{autor.Trim()}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaChamadosService));
+        else
+            AppLoggerService.Warning($"Falha ao adicionar comentário ao chamado #{id} (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaChamadosService));
         return ok
             ? (true, $"Comentário registrado no chamado #{id}.")
             : (false, err);

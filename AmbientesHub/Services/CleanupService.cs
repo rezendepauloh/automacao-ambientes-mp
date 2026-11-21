@@ -19,6 +19,7 @@ public class CleanupService
 
     public (int closedCount, List<string> logs) CleanEnvironment(CleanupOptions? options = null, Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         options ??= new CleanupOptions();
         var logs = new List<string>();
 
@@ -29,7 +30,7 @@ public class CleanupService
             AppLoggerService.Info(msg, nameof(CleanupService));
         }
 
-        Log("Iniciando rotina de fechamento prévio e limpeza de ambiente...");
+        Log($"Iniciando rotina de fechamento prévio e limpeza de ambiente (Office={options.CloseOffice}, Browsers={options.CloseBrowsers}, Firefox={options.CloseFirefox}, Teams={options.CloseTeams}, AdminTools={options.CloseAdministrativeTools}, Utilities={options.CloseUtilities}, Telemetry={options.StopTelemetry}, RestartExplorer={options.RestartExplorer})...");
 
         // 1. Salvar e Fechar Office se selecionado
         if (options.CloseOffice)
@@ -96,7 +97,10 @@ public class CleanupService
         GC.Collect();
         GC.WaitForPendingFinalizers();
 
-        Log($"Fechamento concluído: {closed} processos finalizados.");
+        string summary = $"Fechamento concluído: {closed} processos finalizados em {AppLoggerService.FormatElapsed(sw)}.";
+        logs.Add(summary);
+        onLog?.Invoke(summary);
+        AppLoggerService.Success(summary, nameof(CleanupService));
         return (closed, logs);
     }
 
@@ -105,6 +109,7 @@ public class CleanupService
         int myPid = Environment.ProcessId;
         int parentPid = GetParentProcessId(myPid);
         int closedCount = 0;
+        int failedCount = 0;
 
         foreach (var proc in Process.GetProcesses())
         {
@@ -120,19 +125,28 @@ public class CleanupService
                 string title = proc.MainWindowTitle;
                 if (!string.IsNullOrEmpty(title) && title.Contains("🛠️ Modo", StringComparison.OrdinalIgnoreCase))
                 {
-                    log($"Escudo ativo: mantendo {pName} (Título: {title})");
+                    log($"Escudo ativo: mantendo {pName} (PID={proc.Id}, Título: {title})");
                     continue;
                 }
 
+                int pid = proc.Id;
                 proc.Kill();
                 closedCount++;
+                AppLoggerService.Info($"Processo encerrado: {pName} (PID={pid}).", nameof(CleanupService));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                failedCount++;
+                AppLoggerService.Warning($"Não foi possível encerrar processo (PID={proc.Id}): {ex.Message}", nameof(CleanupService));
+            }
             finally
             {
                 proc.Dispose();
             }
         }
+
+        if (failedCount > 0)
+            AppLoggerService.Warning($"CloseProcesses: {closedCount} encerrado(s), {failedCount} falha(s) (acesso negado ou já encerrado).", nameof(CleanupService));
 
         return closedCount;
     }
@@ -173,6 +187,7 @@ public class CleanupService
             }
             catch (Exception ex)
             {
+                AppLoggerService.Warning($"Nota ao encerrar Excel via COM: {ex.Message}", nameof(CleanupService));
                 log($"Nota no Excel: {ex.Message}");
             }
         }
@@ -209,6 +224,7 @@ public class CleanupService
             }
             catch (Exception ex)
             {
+                AppLoggerService.Warning($"Nota ao encerrar Word via COM: {ex.Message}", nameof(CleanupService));
                 log($"Nota no Word: {ex.Message}");
             }
         }
@@ -218,14 +234,27 @@ public class CleanupService
     {
         try
         {
-            foreach (var p in Process.GetProcessesByName("CompatTelRunner"))
+            var procs = Process.GetProcessesByName("CompatTelRunner");
+            int count = 0;
+            foreach (var p in procs)
             {
-                p.Kill();
-                p.Dispose();
+                try
+                {
+                    p.Kill();
+                    count++;
+                }
+                catch (Exception ex)
+                {
+                    AppLoggerService.Warning($"Falha ao parar CompatTelRunner (PID={p.Id}): {ex.Message}", nameof(CleanupService));
+                }
+                finally { p.Dispose(); }
             }
-            log("Telemetria CompatTelRunner finalizada.");
+            log($"Telemetria CompatTelRunner finalizada ({count} instância(s)).");
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Erro ao consultar telemetria CompatTelRunner: {ex.Message}", nameof(CleanupService));
+        }
     }
 
     private void RestartExplorerNative(Action<string> log)
@@ -235,7 +264,8 @@ public class CleanupService
             log("Reiniciando o Explorador de Arquivos (Modo Nuclear nativo C#)...");
             foreach (var p in Process.GetProcessesByName("explorer"))
             {
-                try { p.Kill(); } catch { }
+                try { p.Kill(); }
+                catch (Exception ex) { AppLoggerService.Warning($"Falha ao encerrar explorer (PID={p.Id}): {ex.Message}", nameof(CleanupService)); }
                 finally { p.Dispose(); }
             }
             Thread.Sleep(2500);
@@ -252,6 +282,7 @@ public class CleanupService
         }
         catch (Exception ex)
         {
+            AppLoggerService.Warning($"Aviso ao reiniciar Explorer: {ex.Message}", nameof(CleanupService));
             log($"Aviso ao reiniciar Explorer: {ex.Message}");
         }
     }

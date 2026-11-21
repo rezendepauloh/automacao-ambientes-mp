@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -54,8 +55,10 @@ public class ZabbixEnrichmentService
         if (uniqueIps.Count == 0)
             return result;
 
+        var sw = Stopwatch.StartNew();
         try
         {
+            AppLoggerService.Info($"Zabbix API LookupByIpsAsync iniciando para {uniqueIps.Count} IP(s) em '{url}'.", nameof(ZabbixEnrichmentService));
             var ifacePayload = new
             {
                 jsonrpc = "2.0",
@@ -71,7 +74,10 @@ public class ZabbixEnrichmentService
             string ifaceJson = await PostJsonRpcAsync(url, token, ifacePayload, cancellationToken);
             var hostIdToIps = ParseHostInterfaceResponse(ifaceJson);
             if (hostIdToIps.Count == 0)
+            {
+                AppLoggerService.Info($"Zabbix API: 0 host(s) correspondente(s) para {uniqueIps.Count} IP(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(ZabbixEnrichmentService));
                 return result;
+            }
 
             var hostPayload = new
             {
@@ -89,12 +95,12 @@ public class ZabbixEnrichmentService
 
             string hostJson = await PostJsonRpcAsync(url, token, hostPayload, cancellationToken);
             var parsed = ParseHostDetailsResponse(hostJson, hostIdToIps);
-            AppLoggerService.Info($"Zabbix API: {uniqueIps.Count} IP(s) consultado(s), {parsed.Count} equipamento(s) identificado(s).", nameof(ZabbixEnrichmentService));
+            AppLoggerService.Success($"Zabbix API: {uniqueIps.Count} IP(s) consultado(s), {parsed.Count} equipamento(s) identificado(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(ZabbixEnrichmentService));
             return parsed;
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Enriquecimento Zabbix ignorado: {ex.Message}", nameof(ZabbixEnrichmentService));
+            AppLoggerService.LogException(nameof(ZabbixEnrichmentService), $"Enriquecimento Zabbix ({uniqueIps.Count} IPs)", ex, sw.Elapsed, LogLevel.WARNING);
             return result;
         }
     }

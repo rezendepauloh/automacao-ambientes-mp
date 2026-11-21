@@ -28,6 +28,7 @@ public class BrowserLauncherService
 
     public void ClearFirefoxSession()
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -35,13 +36,17 @@ public class BrowserLauncherService
 
             if (Directory.Exists(profilesDir))
             {
+                int profilesCount = 0;
+                int deletedFiles = 0;
                 foreach (var profile in Directory.GetDirectories(profilesDir))
                 {
+                    profilesCount++;
                     // Apaga sessionstore.jsonlz4 e a pasta sessionstore-backups
                     string sessionFile = Path.Combine(profile, "sessionstore.jsonlz4");
                     if (File.Exists(sessionFile))
                     {
                         File.Delete(sessionFile);
+                        deletedFiles++;
                     }
 
                     string backupsDir = Path.Combine(profile, "sessionstore-backups");
@@ -49,34 +54,50 @@ public class BrowserLauncherService
                     {
                         foreach (var f in Directory.GetFiles(backupsDir))
                         {
-                            try { File.Delete(f); } catch { }
+                            try { File.Delete(f); deletedFiles++; } catch { }
                         }
                     }
                 }
-                AppLoggerService.Info("Arquivos de sessão anterior do Firefox limpos com sucesso.", nameof(BrowserLauncherService));
+                AppLoggerService.Info(
+                    $"Sessão anterior do Firefox limpa ({profilesCount} perfil(is), {deletedFiles} arquivo(s) removido(s)) em {AppLoggerService.FormatElapsed(sw)}.",
+                    nameof(BrowserLauncherService));
+            }
+            else
+            {
+                AppLoggerService.Info($"Diretório de perfis do Firefox não encontrado ('{profilesDir}'); limpeza de sessão ignorada.", nameof(BrowserLauncherService));
             }
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Aviso ao limpar sessão do Firefox: {ex.Message}", nameof(BrowserLauncherService));
+            AppLoggerService.LogException(nameof(BrowserLauncherService), "Limpar sessão do Firefox", ex, sw.Elapsed, LogLevel.WARNING);
         }
     }
 
     public void OpenUrlsInFirefox(IEnumerable<string> urls)
     {
+        var sw = Stopwatch.StartNew();
         // Fail-closed: somente http/https sem credenciais embutidas; demais esquemas (file:, javascript:, caminhos) são descartados.
         var urlList = new List<string>();
+        int rejectedCount = 0;
         foreach (var raw in urls.Where(u => !string.IsNullOrWhiteSpace(u)))
         {
             string candidate = raw.Trim();
             if (InputValidator.IsSafeHttpUrl(candidate))
                 urlList.Add(candidate);
             else
-                AppLoggerService.Warning("URL rejeitada pela validação (apenas http/https são permitidos).", nameof(BrowserLauncherService));
+            {
+                rejectedCount++;
+                AppLoggerService.Warning($"URL rejeitada pela validação (apenas http/https são permitidos): '{candidate}'.", nameof(BrowserLauncherService));
+            }
         }
-        if (urlList.Count == 0) return;
+        if (urlList.Count == 0)
+        {
+            AppLoggerService.Warning($"OpenUrlsInFirefox sem URLs válidas para abrir (rejeitadas={rejectedCount}).", nameof(BrowserLauncherService));
+            return;
+        }
 
         string firefoxPath = GetFirefoxPath();
+        AppLoggerService.Info($"Abrindo {urlList.Count} URL(s) no Firefox ('{firefoxPath}'): {string.Join(", ", urlList)}", nameof(BrowserLauncherService));
 
         // Abre cada URL como uma nova aba na janela já existente do Firefox (sem forçar nova janela isolada)
         foreach (var url in urlList)
@@ -87,18 +108,22 @@ public class BrowserLauncherService
                 info.ArgumentList.Add(url);
                 Process.Start(info);
             }
-            catch
+            catch (Exception ex)
             {
+                AppLoggerService.Warning($"Firefox falhou ao abrir '{url}' ({ex.Message}); usando fallback explorer.exe.", nameof(BrowserLauncherService));
                 var info = new ProcessStartInfo { FileName = "explorer.exe", UseShellExecute = true };
                 info.ArgumentList.Add(url);
                 Process.Start(info);
             }
             Thread.Sleep(200);
         }
+
+        AppLoggerService.Success($"OpenUrlsInFirefox concluído ({urlList.Count} URL(s)) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BrowserLauncherService));
     }
 
     public void OpenWhatsappPwa()
     {
+        var sw = Stopwatch.StartNew();
         string firefoxPath = GetFirefoxPath();
         string args = ConfigService.WhatsappPwaArgs;
 
@@ -108,15 +133,24 @@ public class BrowserLauncherService
             return;
         }
 
-        // Argumentos (que podem conter caminhos de perfil) não são mais gravados no log.
-        AppLoggerService.Info("Iniciando WhatsApp PWA via Firefox.", nameof(BrowserLauncherService));
+        // Argumentos (que podem conter caminhos de perfil) não são gravados no log.
+        AppLoggerService.Info($"Iniciando WhatsApp PWA via Firefox ('{firefoxPath}').", nameof(BrowserLauncherService));
 
-        Process.Start(new ProcessStartInfo
+        try
         {
-            FileName = firefoxPath,
-            Arguments = args,
-            UseShellExecute = true
-        });
+            var proc = Process.Start(new ProcessStartInfo
+            {
+                FileName = firefoxPath,
+                Arguments = args,
+                UseShellExecute = true
+            });
+            AppLoggerService.Success($"WhatsApp PWA disparado (PID={proc?.Id}) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BrowserLauncherService));
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.LogException(nameof(BrowserLauncherService), "Iniciar WhatsApp PWA", ex, sw.Elapsed);
+            throw;
+        }
     }
 
     /// <summary>Whitelist de argumentos de navegador: rejeita metacaracteres de shell/controle.</summary>

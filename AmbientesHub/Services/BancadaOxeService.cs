@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
@@ -8,12 +9,21 @@ public class BancadaOxeService
 {
     public async Task<(bool Success, List<OxeRamalItem> Items, OxeSummary Summary, string Message)> QueryRamaisAsync(string? search = null)
     {
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info(
+            $"QueryRamaisAsync via {(useApi ? "API REST" : $"PostgreSQL direto ({ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort}/{ConfigService.BancadaDbName})")} (search='{search}').",
+            nameof(BancadaOxeService));
+
+        if (useApi)
         {
             string qs = string.IsNullOrWhiteSpace(search) ? string.Empty : $"?search={Uri.EscapeDataString(search.Trim())}";
-            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiOxeResponse>($"/api/v1/oxe{qs}");
+            var (ok, res, statusCode, err) = await BancadaApiClient.GetAsync<ApiOxeResponse>($"/api/v1/oxe{qs}");
             if (!ok || res == null)
+            {
+                AppLoggerService.Warning($"QueryRamaisAsync (API REST) falhou (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaOxeService));
                 return (false, [], new OxeSummary(), err);
+            }
 
             var apiItems = (res.Items ?? []).Select(x => new OxeRamalItem
             {
@@ -40,11 +50,13 @@ public class BancadaOxeService
                 ComIpOuMac = res.Summary?.ComIpOuMac ?? apiItems.Count(x => HasRealValue(x.Ip) || HasRealValue(x.Mac))
             };
 
+            AppLoggerService.Success($"QueryRamaisAsync (API REST): {apiItems.Count} ramal(is) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaOxeService));
             return (true, apiItems, apiSummary, $"{apiItems.Count} ramal(is) carregado(s) da Central OXE via API REST.");
         }
 
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
+            AppLoggerService.Warning($"QueryRamaisAsync abortado (fail-closed): {error}", nameof(BancadaOxeService));
             return (false, [], new OxeSummary(), error);
         }
 
@@ -108,11 +120,14 @@ public class BancadaOxeService
                     item.AllFields.Values.Any(v => v.Contains(q, StringComparison.OrdinalIgnoreCase))
                 ).ToList();
 
+            AppLoggerService.Success(
+                $"QueryRamaisAsync (PostgreSQL) concluído: {filtered.Count}/{allItems.Count} ramal(is) (comNome={summary.ComNome}, comIpOuMac={summary.ComIpOuMac}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaOxeService));
             return (true, filtered, summary, $"{filtered.Count} ramal(is) carregado(s) da Central OXE.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao consultar tabela central_telefonica: {ex.Message}", nameof(BancadaOxeService));
+            AppLoggerService.LogException(nameof(BancadaOxeService), "QueryRamaisAsync PostgreSQL (central_telefonica)", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, [], new OxeSummary(), $"Erro ao consultar OXE no PostgreSQL: {ex.Message}");
         }
     }

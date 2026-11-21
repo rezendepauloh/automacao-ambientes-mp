@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Management;
 using AmbientesHub.Models;
@@ -29,7 +30,10 @@ public class RemoteMaintenanceService
                 }
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"GetLogicalDiskCStats falhou em '{computerName}': {ex.Message}", nameof(RemoteMaintenanceService));
+        }
 
         return (0, 0);
     }
@@ -39,16 +43,19 @@ public class RemoteMaintenanceService
         RemoteMaintenanceOptions options,
         Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         string target = RemoteManagementHelper.NormalizeTargetHost(computerName);
         var result = new RemoteMaintenanceResult { ComputerName = target };
 
         void Log(string msg) => onLog?.Invoke(msg);
 
         Log($"=== ANALISANDO ESPAÇO E CACHES EM: {target} (MODO DIAGNÓSTICO) ===");
+        AppLoggerService.Info($"AnalyzeRemoteCleanup iniciado em '{target}'.", nameof(RemoteMaintenanceService));
 
         if (!RemoteManagementHelper.PingHost(target))
         {
             Log($"[ERRO] Máquina '{target}' inacessível via ICMP.");
+            AppLoggerService.Warning($"AnalyzeRemoteCleanup abortado em '{target}': sem resposta ICMP ({AppLoggerService.FormatElapsed(sw)}).", nameof(RemoteMaintenanceService));
             return result;
         }
 
@@ -208,10 +215,14 @@ public class RemoteMaintenanceService
             Log("------------------------------------------------------------------");
             Log($"[DIAGNÓSTICO CONCLUÍDO] Potencial estimado de limpeza direta em arquivos: ~{totalFormatted}");
             Log("Clique em 'Executar Limpeza & Manutenção' para processar os itens selecionados.");
+            AppLoggerService.Success(
+                $"AnalyzeRemoteCleanup em '{target}' concluído em {AppLoggerService.FormatElapsed(sw)}: Livre={result.FreeSpaceBeforeGb:N2}/{result.TotalSpaceGb:N2} GB, Limpável=~{result.EstimatedCleanableGb:N2} GB ({result.InspectionItems.Count} categorias).",
+                nameof(RemoteMaintenanceService));
         }
         catch (Exception ex)
         {
             Log($"[ERRO] Falha durante a análise em '{target}': {ex.Message}");
+            AppLoggerService.LogException(nameof(RemoteMaintenanceService), $"AnalyzeRemoteCleanup em '{target}'", ex, sw.Elapsed);
         }
 
         return result;
@@ -222,16 +233,21 @@ public class RemoteMaintenanceService
         RemoteMaintenanceOptions options,
         Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         string target = RemoteManagementHelper.NormalizeTargetHost(computerName);
         var result = new RemoteMaintenanceResult { ComputerName = target };
 
         void Log(string msg) => onLog?.Invoke(msg);
 
         Log($"=== INICIANDO MANUTENÇÃO & LIMPEZA EM: {target} ===");
+        AppLoggerService.Info(
+            $"ExecuteMaintenance iniciado em '{target}' (Temp={options.CleanTempFiles}, WuCache={options.CleanWindowsUpdateCache}, WinSxS={options.CleanWinSxS}, WindowsOld={options.CleanWindowsOld}, RepairVol={options.RunRepairVolume}, Defrag={options.RunDefragIfHdd}, SFC={options.RunSfcIfCorrupted}).",
+            nameof(RemoteMaintenanceService));
 
         if (!RemoteManagementHelper.PingHost(target))
         {
             Log($"[ERRO] Máquina '{target}' inacessível via ICMP. Abortando.");
+            AppLoggerService.Warning($"ExecuteMaintenance abortado em '{target}': sem resposta ICMP ({AppLoggerService.FormatElapsed(sw)}).", nameof(RemoteMaintenanceService));
             return result;
         }
 
@@ -485,10 +501,14 @@ public class RemoteMaintenanceService
             Log($"[DEPOIS]     Espaço livre em C: : {result.FreeSpaceAfterGb:N2} GB");
             Log($"[RECUPERADO] Total liberado     : {result.FreedGb:N2} GB");
             Log($"[SUCESSO] Manutenção e limpeza em '{target}' concluídas com êxito!");
+            AppLoggerService.Success(
+                $"ExecuteMaintenance em '{target}' concluído em {AppLoggerService.FormatElapsed(sw)}: Antes={result.FreeSpaceBeforeGb:N2} GB, Depois={result.FreeSpaceAfterGb:N2} GB, Recuperado=+{result.FreedGb:N2} GB.",
+                nameof(RemoteMaintenanceService));
         }
         catch (Exception ex)
         {
             Log($"[ERRO] Falha durante a manutenção em '{target}': {ex.Message}");
+            AppLoggerService.LogException(nameof(RemoteMaintenanceService), $"ExecuteMaintenance em '{target}'", ex, sw.Elapsed);
         }
 
         return result;
@@ -588,7 +608,10 @@ public class RemoteMaintenanceService
             }
             Thread.Sleep(800);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"ControlServiceViaWmi ({serviceName}, start={start}) em '{computerName}' falhou: {ex.Message}", nameof(RemoteMaintenanceService));
+        }
     }
 
     private static bool CheckIfSystemHasHdd(string computerName)
@@ -612,8 +635,9 @@ public class RemoteMaintenanceService
             }
             return false;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.Warning($"CheckIfSystemHasHdd em '{computerName}' falhou: {ex.Message}", nameof(RemoteMaintenanceService));
             return false;
         }
     }

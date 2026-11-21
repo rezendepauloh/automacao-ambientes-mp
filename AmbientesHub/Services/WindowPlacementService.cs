@@ -53,9 +53,9 @@ public static class WindowPlacementService
                 window.Loaded += (_, _) => window.WindowState = WindowState.Maximized;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignora arquivo corrompido ou sem permissão
+            AppLoggerService.Warning($"Falha ao restaurar posição da janela ('{StateFilePath}'): {ex.Message}", nameof(WindowPlacementService));
         }
     }
 
@@ -84,9 +84,9 @@ public static class WindowPlacementService
 
             File.WriteAllText(StateFilePath, JsonSerializer.Serialize(state));
         }
-        catch
+        catch (Exception ex)
         {
-            // Falha silenciosa para não interromper uso da UI
+            AppLoggerService.Warning($"Falha ao salvar posição da janela ('{StateFilePath}'): {ex.Message}", nameof(WindowPlacementService));
         }
     }
 }

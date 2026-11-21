@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -71,16 +72,25 @@ public static class BancadaApiClient
     {
         string rawUrl = ConfigService.BancadaApiUrl?.Trim() ?? string.Empty;
         if (!InputValidator.IsSafeHttpUrl(rawUrl))
+        {
+            AppLoggerService.Info("BancadaApiClient.CheckHealthAsync ignorado: BANCADA_API_URL ausente ou inválida.", nameof(BancadaApiClient));
             return false;
+        }
 
+        var sw = Stopwatch.StartNew();
+        string healthUrl = $"{rawUrl.TrimEnd('/')}/health";
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Get, $"{rawUrl.TrimEnd('/')}/health");
+            using var req = new HttpRequestMessage(HttpMethod.Get, healthUrl);
             using var res = await SharedClient.SendAsync(req);
+            AppLoggerService.Info(
+                $"Healthcheck API Bancada '{healthUrl}': HTTP {(int)res.StatusCode} ({res.StatusCode}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaApiClient));
             return res.IsSuccessStatusCode;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(BancadaApiClient), $"Healthcheck API Bancada '{healthUrl}'", ex, sw.Elapsed, LogLevel.WARNING);
             return false;
         }
     }
@@ -111,6 +121,7 @@ public static class BancadaApiClient
 
         string path = relativePath.StartsWith('/') ? relativePath : $"/{relativePath}";
         string targetUrl = $"{baseUrl}{path}";
+        var sw = Stopwatch.StartNew();
 
         try
         {
@@ -133,21 +144,36 @@ public static class BancadaApiClient
                 string msg = string.IsNullOrWhiteSpace(detail)
                     ? $"API Bancada retornou HTTP {(int)res.StatusCode}."
                     : detail;
+                AppLoggerService.Warning(
+                    $"API Bancada {method.Method} '{targetUrl}' falhou: HTTP {(int)res.StatusCode} ({msg}) em {AppLoggerService.FormatElapsed(sw)}.",
+                    nameof(BancadaApiClient));
                 return (false, default, (int)res.StatusCode, msg);
             }
 
             if (string.IsNullOrWhiteSpace(raw))
+            {
+                AppLoggerService.Info(
+                    $"API Bancada {method.Method} '{targetUrl}' -> HTTP {(int)res.StatusCode} (corpo vazio) em {AppLoggerService.FormatElapsed(sw)}.",
+                    nameof(BancadaApiClient));
                 return (true, default, (int)res.StatusCode, string.Empty);
+            }
 
             var parsed = JsonSerializer.Deserialize<TRes>(raw, JsonOptions);
+            AppLoggerService.Info(
+                $"API Bancada {method.Method} '{targetUrl}' -> HTTP {(int)res.StatusCode} ({raw.Length} bytes) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaApiClient));
             return (true, parsed, (int)res.StatusCode, string.Empty);
         }
-        catch (TaskCanceledException)
+        catch (TaskCanceledException ex)
         {
+            AppLoggerService.Warning(
+                $"Timeout (408) na API Bancada {method.Method} '{targetUrl}' após {AppLoggerService.FormatElapsed(sw)}: {ex.Message}",
+                nameof(BancadaApiClient));
             return (false, default, 408, "Tempo limite excedido ao comunicar com a API REST da Bancada.");
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(BancadaApiClient), $"API Bancada {method.Method} '{targetUrl}'", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, default, 0, $"Falha ao comunicar com a API REST ({baseUrl}): {ex.Message}");
         }
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
@@ -8,11 +9,20 @@ public class BancadaCronService
 {
     public async Task<(bool Success, List<CronScheduleItem> Schedules, List<CronLogItem> Logs, CronSummary Summary, string Message)> QueryCronDataAsync()
     {
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info(
+            $"QueryCronDataAsync via {(useApi ? "API REST" : $"PostgreSQL direto ({ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort}/{ConfigService.BancadaDbName})")}.",
+            nameof(BancadaCronService));
+
+        if (useApi)
         {
-            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiCronResponse>("/api/v1/cron");
+            var (ok, res, statusCode, err) = await BancadaApiClient.GetAsync<ApiCronResponse>("/api/v1/cron");
             if (!ok || res == null)
+            {
+                AppLoggerService.Warning($"QueryCronDataAsync (API REST) falhou (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaCronService));
                 return (false, [], [], new CronSummary(), err);
+            }
 
             var apiSchedules = (res.Schedules ?? []).Select(s => new CronScheduleItem
             {
@@ -50,11 +60,15 @@ public class BancadaCronService
                 ComErro = res.Summary?.ComErro ?? apiSchedules.Count(x => x.UltimoStatus.Equals("erro", StringComparison.OrdinalIgnoreCase))
             };
 
+            AppLoggerService.Success(
+                $"QueryCronDataAsync (API REST): {apiSchedules.Count} rotina(s), {apiLogs.Count} log(s) (Ativas={apiSummary.Ativas}, Exec={apiSummary.Executando}, Erro={apiSummary.ComErro}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaCronService));
             return (true, apiSchedules, apiLogs, apiSummary, $"{apiSchedules.Count} rotina(s) de agendamento carregada(s) via API REST.");
         }
 
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
+            AppLoggerService.Warning($"QueryCronDataAsync abortado (fail-closed): {error}", nameof(BancadaCronService));
             return (false, [], [], new CronSummary(), error);
         }
 
@@ -161,11 +175,14 @@ public class BancadaCronService
                 ComErro = schedules.Count(s => s.UltimoStatus.Equals("erro", StringComparison.OrdinalIgnoreCase))
             };
 
+            AppLoggerService.Success(
+                $"QueryCronDataAsync (PostgreSQL): {schedules.Count} rotina(s), {logs.Count} log(s) (Ativas={summary.Ativas}, Exec={summary.Executando}, Erro={summary.ComErro}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaCronService));
             return (true, schedules, logs, summary, $"{schedules.Count} rotina(s) de agendamento carregada(s) do PostgreSQL.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao consultar agendamentos no PostgreSQL: {ex.Message}", nameof(BancadaCronService));
+            AppLoggerService.LogException(nameof(BancadaCronService), "QueryCronDataAsync PostgreSQL", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, [], [], new CronSummary(), $"Erro ao consultar Agendadores no PostgreSQL: {ex.Message}");
         }
     }
@@ -175,17 +192,28 @@ public class BancadaCronService
         if (string.IsNullOrWhiteSpace(taskId))
             return (false, "ID da tarefa inválido.");
 
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info($"TriggerTaskNowAsync '{taskId}' via {(useApi ? "API REST" : "PostgreSQL direto")}.", nameof(BancadaCronService));
+
+        if (useApi)
         {
             string encodedId = Uri.EscapeDataString(taskId.Trim());
-            var (ok, res, _, err) = await BancadaApiClient.PostAsync<object, ApiCronActionResponse>($"/api/v1/cron/{encodedId}/trigger", new { });
+            var (ok, res, statusCode, err) = await BancadaApiClient.PostAsync<object, ApiCronActionResponse>($"/api/v1/cron/{encodedId}/trigger", new { });
+            if (ok)
+                AppLoggerService.Success($"Execução solicitada via API REST para '{taskId}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaCronService));
+            else
+                AppLoggerService.Warning($"Falha ao solicitar execução via API REST para '{taskId}' (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaCronService));
             return ok
                 ? (true, res?.Message ?? $"Execução solicitada para '{taskId}'.")
                 : (false, err);
         }
 
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
+        {
+            AppLoggerService.Warning($"TriggerTaskNowAsync '{taskId}' abortado: {error}", nameof(BancadaCronService));
             return (false, error);
+        }
 
         try
         {
@@ -210,13 +238,18 @@ public class BancadaCronService
             cmd.Parameters.AddWithValue("@taskId", taskId.Trim());
             int rows = await cmd.ExecuteNonQueryAsync();
 
-            return rows > 0
-                ? (true, $"Execução solicitada para '{taskId}'. O container (WSL/RedHat) iniciará em segundos.")
-                : (false, $"A tarefa '{taskId}' já está em execução ou não foi encontrada.");
+            if (rows > 0)
+            {
+                AppLoggerService.Success($"Execução solicitada no PostgreSQL para '{taskId}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaCronService));
+                return (true, $"Execução solicitada para '{taskId}'. O container (WSL/RedHat) iniciará em segundos.");
+            }
+
+            AppLoggerService.Warning($"TriggerTaskNowAsync '{taskId}': nenhuma linha atualizada (já executando ou não encontrada) [{AppLoggerService.FormatElapsed(sw)}].", nameof(BancadaCronService));
+            return (false, $"A tarefa '{taskId}' já está em execução ou não foi encontrada.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao disparar tarefa {taskId}: {ex.Message}", nameof(BancadaCronService));
+            AppLoggerService.LogException(nameof(BancadaCronService), $"TriggerTaskNowAsync '{taskId}' PostgreSQL", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, $"Erro ao solicitar execução: {ex.Message}");
         }
     }
@@ -226,19 +259,30 @@ public class BancadaCronService
         if (string.IsNullOrWhiteSpace(taskId))
             return (false, "ID da tarefa inválido.");
 
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info($"SetTaskActiveAsync '{taskId}' ativo={ativo} via {(useApi ? "API REST" : "PostgreSQL direto")}.", nameof(BancadaCronService));
+
+        if (useApi)
         {
             string encodedId = Uri.EscapeDataString(taskId.Trim());
-            var (ok, res, _, err) = await BancadaApiClient.PatchAsync<ApiCronToggleRequest, ApiCronActionResponse>(
+            var (ok, res, statusCode, err) = await BancadaApiClient.PatchAsync<ApiCronToggleRequest, ApiCronActionResponse>(
                 $"/api/v1/cron/{encodedId}",
                 new ApiCronToggleRequest { Ativo = ativo });
+            if (ok)
+                AppLoggerService.Success($"Rotina '{taskId}' {(ativo ? "habilitada" : "desabilitada")} via API REST em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaCronService));
+            else
+                AppLoggerService.Warning($"Falha ao alterar rotina '{taskId}' via API REST (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaCronService));
             return ok
                 ? (true, res?.Message ?? $"Rotina '{taskId}' {(ativo ? "habilitada" : "desabilitada")}.")
                 : (false, err);
         }
 
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
+        {
+            AppLoggerService.Warning($"SetTaskActiveAsync '{taskId}' abortado: {error}", nameof(BancadaCronService));
             return (false, error);
+        }
 
         try
         {
@@ -257,13 +301,18 @@ public class BancadaCronService
             cmd.Parameters.AddWithValue("@ativo", ativo ? 1 : 0);
             int rows = await cmd.ExecuteNonQueryAsync();
 
-            return rows > 0
-                ? (true, $"Rotina '{taskId}' {(ativo ? "habilitada" : "desabilitada")}.")
-                : (false, $"Rotina '{taskId}' não encontrada.");
+            if (rows > 0)
+            {
+                AppLoggerService.Success($"Rotina '{taskId}' {(ativo ? "habilitada" : "desabilitada")} no PostgreSQL em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaCronService));
+                return (true, $"Rotina '{taskId}' {(ativo ? "habilitada" : "desabilitada")}.");
+            }
+
+            AppLoggerService.Warning($"SetTaskActiveAsync '{taskId}': rotina não encontrada no PostgreSQL.", nameof(BancadaCronService));
+            return (false, $"Rotina '{taskId}' não encontrada.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao alterar status da rotina {taskId}: {ex.Message}", nameof(BancadaCronService));
+            AppLoggerService.LogException(nameof(BancadaCronService), $"SetTaskActiveAsync '{taskId}' PostgreSQL", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, $"Erro ao atualizar rotina: {ex.Message}");
         }
     }

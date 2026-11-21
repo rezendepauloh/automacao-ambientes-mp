@@ -1024,6 +1024,7 @@ public static class DeviceReportExportService
 
     public static bool GeneratePdfReport(string htmlFilePath, string pdfFilePath)
     {
+        var sw = Stopwatch.StartNew();
         string[] browserCandidates =
         [
             @"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
@@ -1034,7 +1035,10 @@ public static class DeviceReportExportService
 
         string? browserExe = browserCandidates.FirstOrDefault(File.Exists);
         if (string.IsNullOrEmpty(browserExe))
+        {
+            AppLoggerService.Warning("GeneratePdfReport abortado: Edge/Chrome não encontrados nos caminhos padrão.", nameof(DeviceReportExportService));
             return false;
+        }
 
         try
         {
@@ -1050,12 +1054,30 @@ public static class DeviceReportExportService
                 RedirectStandardOutput = true
             });
 
-            if (proc == null) return false;
-            proc.WaitForExit(35000);
-            return File.Exists(pdfFilePath);
+            if (proc == null)
+            {
+                AppLoggerService.Warning($"GeneratePdfReport falhou ao iniciar '{browserExe}'.", nameof(DeviceReportExportService));
+                return false;
+            }
+
+            bool exited = proc.WaitForExit(35000);
+            if (!exited)
+            {
+                try { proc.Kill(entireProcessTree: true); } catch { }
+                AppLoggerService.Warning($"GeneratePdfReport excedeu timeout (35s) usando '{browserExe}'.", nameof(DeviceReportExportService));
+                return false;
+            }
+
+            bool exists = File.Exists(pdfFilePath);
+            if (exists)
+                AppLoggerService.Info($"PDF gerado via '{Path.GetFileName(browserExe)}' em '{pdfFilePath}' ({AppLoggerService.FormatElapsed(sw)}).", nameof(DeviceReportExportService));
+            else
+                AppLoggerService.Warning($"PDF não gerado por '{Path.GetFileName(browserExe)}' (ExitCode={proc.ExitCode}) em {AppLoggerService.FormatElapsed(sw)}.", nameof(DeviceReportExportService));
+            return exists;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(DeviceReportExportService), $"Gerar PDF '{pdfFilePath}'", ex, sw.Elapsed, LogLevel.WARNING);
             return false;
         }
     }

@@ -126,6 +126,10 @@ public sealed class TrayIconService : IDisposable
         _isAdded = Shell_NotifyIcon(NIM_ADD, ref data);
         data.uVersion = NOTIFYICON_VERSION_4;
         Shell_NotifyIcon(NIM_SETVERSION, ref data);
+        if (_isAdded)
+            AppLoggerService.Info($"Ícone de bandeja inicializado (íconeLoaded={_hIcon != IntPtr.Zero}).", nameof(TrayIconService));
+        else
+            AppLoggerService.Warning($"Shell_NotifyIcon(NIM_ADD) retornou false ao inicializar bandeja (iconPath='{iconPath}').", nameof(TrayIconService));
     }
 
     public void ShowBalloon(string title, string message, uint infoFlags = NIIF_USER)

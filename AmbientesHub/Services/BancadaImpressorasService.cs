@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using AmbientesHub.Models;
 using Npgsql;
@@ -8,11 +9,20 @@ public class BancadaImpressorasService
 {
     public async Task<(bool Success, List<ImpressoraItem> Items, ImpressorasSummary Summary, string Message)> QueryImpressorasAsync()
     {
-        if (BancadaApiClient.IsApiConfigured())
+        var sw = Stopwatch.StartNew();
+        bool useApi = BancadaApiClient.IsApiConfigured();
+        AppLoggerService.Info(
+            $"QueryImpressorasAsync via {(useApi ? "API REST" : $"PostgreSQL direto ({ConfigService.BancadaDbHost}:{ConfigService.BancadaDbPort}/{ConfigService.BancadaDbName})")}.",
+            nameof(BancadaImpressorasService));
+
+        if (useApi)
         {
-            var (ok, res, _, err) = await BancadaApiClient.GetAsync<ApiImpressorasResponse>("/api/v1/impressoras");
+            var (ok, res, statusCode, err) = await BancadaApiClient.GetAsync<ApiImpressorasResponse>("/api/v1/impressoras");
             if (!ok || res == null)
+            {
+                AppLoggerService.Warning($"QueryImpressorasAsync (API REST) falhou (HTTP {statusCode}) em {AppLoggerService.FormatElapsed(sw)}: {err}", nameof(BancadaImpressorasService));
                 return (false, [], new ImpressorasSummary(), err);
+            }
 
             var apiItems = (res.Items ?? []).Select(x => new ImpressoraItem
             {
@@ -41,11 +51,13 @@ public class BancadaImpressorasService
                 TotalPaginasSoma = res.Summary?.TotalPaginasSoma ?? apiItems.Sum(x => x.TotalPaginas)
             };
 
+            AppLoggerService.Success($"QueryImpressorasAsync (API REST): {apiItems.Count} impressora(s) (OK={apiSummary.OkCount}, Alerta={apiSummary.AlertCount}) em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaImpressorasService));
             return (true, apiItems, apiSummary, $"{apiItems.Count} impressora(s)/dispositivo(s) carregado(s) do PaperCut via API REST.");
         }
 
         if (!BancadaChamadosService.TryBuildConnectionStringFromConfig(out string connStr, out string error))
         {
+            AppLoggerService.Warning($"QueryImpressorasAsync abortado (fail-closed): {error}", nameof(BancadaImpressorasService));
             return (false, [], new ImpressorasSummary(), error);
         }
 
@@ -98,11 +110,14 @@ public class BancadaImpressorasService
                 TotalPaginasSoma = items.Sum(x => x.TotalPaginas)
             };
 
+            AppLoggerService.Success(
+                $"QueryImpressorasAsync (PostgreSQL) concluído: {items.Count} impressora(s) (OK={summary.OkCount}, Alerta={summary.AlertCount}, Páginas={summary.TotalPaginasSoma}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(BancadaImpressorasService));
             return (true, items, summary, $"{items.Count} impressora(s)/dispositivo(s) carregado(s) do PaperCut.");
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao consultar tabela impressoras: {ex.Message}", nameof(BancadaImpressorasService));
+            AppLoggerService.LogException(nameof(BancadaImpressorasService), "QueryImpressorasAsync PostgreSQL (impressoras)", ex, sw.Elapsed, LogLevel.WARNING);
             return (false, [], new ImpressorasSummary(), $"Erro ao consultar Impressoras no PostgreSQL: {ex.Message}");
         }
     }

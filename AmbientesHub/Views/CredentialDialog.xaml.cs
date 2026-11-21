@@ -29,6 +29,7 @@ public partial class CredentialDialog : FluentWindow
 
         if (string.IsNullOrWhiteSpace(user))
         {
+            Services.AppLoggerService.Warning("Tentativa de salvar credencial sem informar o nome do usuário.", nameof(CredentialDialog));
             ShowError("Informe o nome do usuário.");
             TxtUser.Focus();
             return;
@@ -36,6 +37,7 @@ public partial class CredentialDialog : FluentWindow
 
         if (string.IsNullOrEmpty(pass))
         {
+            Services.AppLoggerService.Warning($"Tentativa de salvar credencial com senha vazia para o usuário '{user}'.", nameof(CredentialDialog));
             ShowError("A senha não pode estar vazia.");
             TxtPassword.Focus();
             return;
@@ -43,12 +45,14 @@ public partial class CredentialDialog : FluentWindow
 
         Username = user;
         Password = pass;
+        Services.AppLoggerService.Info($"Credencial confirmada no diálogo para usuário '{user}' (senha omitida).", nameof(CredentialDialog));
         DialogResult = true;
         Close();
     }
 
     private void BtnCancel_Click(object sender, RoutedEventArgs e)
     {
+        Services.AppLoggerService.Info("Diálogo de credencial cancelado pelo usuário.", nameof(CredentialDialog));
         DialogResult = false;
         Close();
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,16 +13,20 @@ public static class CredentialService
 
     public static (bool Success, string Message, string? Username, string? Password) ReadPlaintextCredential(string xmlPath = DefaultAdminCredPath)
     {
+        var sw = Stopwatch.StartNew();
         if (!File.Exists(xmlPath))
         {
+            AppLoggerService.Warning($"Cofre DPAPI não encontrado: '{xmlPath}'.", nameof(CredentialService));
             return (false, $"Arquivo de credencial não encontrado: {xmlPath}", null, null);
         }
 
         try
         {
             // Anti XXE/DoS: arquivo limitado a 64 KB, DTD proibido e resolver de entidades externas desabilitado.
-            if (new FileInfo(xmlPath).Length > 64 * 1024)
+            long fileLen = new FileInfo(xmlPath).Length;
+            if (fileLen > 64 * 1024)
             {
+                AppLoggerService.Warning($"Cofre '{xmlPath}' rejeitado por exceder 64 KB ({fileLen} bytes).", nameof(CredentialService));
                 return (false, "Arquivo de credencial excede o tamanho máximo permitido (64 KB).", null, null);
             }
 
@@ -41,6 +46,7 @@ public static class CredentialService
 
             if (userEl == null || passEl == null)
             {
+                AppLoggerService.Warning($"Formato Clixml inválido em '{xmlPath}': elementos UserName/Password ausentes.", nameof(CredentialService));
                 return (false, "Formato Clixml inválido: elementos de usuário ou senha ausentes.", null, null);
             }
 
@@ -51,14 +57,21 @@ public static class CredentialService
             byte[] decryptedBytes = ProtectedData.Unprotect(encryptedBytes, null, DataProtectionScope.CurrentUser);
             string plainPassword = Encoding.Unicode.GetString(decryptedBytes);
 
+            AppLoggerService.Info(
+                $"Cofre DPAPI '{xmlPath}' lido com sucesso para '{username}' em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(CredentialService));
             return (true, "Credencial DPAPI descriptografada com sucesso.", username, plainPassword);
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
+            AppLoggerService.Danger(
+                $"Falha DPAPI ao descriptografar '{xmlPath}' (provável troca de usuário/máquina): {ex.Message} [{AppLoggerService.FormatElapsed(sw)}].",
+                nameof(CredentialService));
             return (false, "Falha na descriptografia DPAPI: a credencial pertence a outro usuário ou máquina.", null, null);
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(CredentialService), $"Leitura do cofre '{xmlPath}'", ex, sw.Elapsed);
             return (false, $"Erro ao verificar cofre: {ex.Message}", null, null);
         }
     }
@@ -76,13 +89,16 @@ public static class CredentialService
 
     public static (bool Success, string Message) SaveCredential(string xmlPath, string username, string plainPassword)
     {
+        var sw = Stopwatch.StartNew();
         if (string.IsNullOrWhiteSpace(username))
         {
+            AppLoggerService.Warning($"Tentativa de gravação de cofre '{xmlPath}' rejeitada: usuário em branco.", nameof(CredentialService));
             return (false, "O nome de usuário não pode estar em branco.");
         }
 
         if (string.IsNullOrEmpty(plainPassword))
         {
+            AppLoggerService.Warning($"Tentativa de gravação de cofre '{xmlPath}' para '{username.Trim()}' rejeitada: senha em branco.", nameof(CredentialService));
             return (false, "A senha não pode estar em branco.");
         }
 
@@ -116,19 +132,24 @@ $@"<Objs Version=""1.1.0.1"" xmlns=""http://schemas.microsoft.com/powershell/200
 </Objs>";
 
             File.WriteAllText(xmlPath, clixml, new UTF8Encoding(false));
-            ConfigService.HardenFilePermissions(xmlPath);
+            bool aclOk = ConfigService.HardenFilePermissions(xmlPath);
 
             // Teste imediato de validação
             var test = VerifyCredential(xmlPath);
             if (!test.Success)
             {
+                AppLoggerService.Danger($"Cofre '{xmlPath}' gravado, mas validação DPAPI falhou: {test.Message}", nameof(CredentialService));
                 return (false, $"O arquivo foi gravado, mas a validação falhou: {test.Message}");
             }
 
+            AppLoggerService.Success(
+                $"Cofre DPAPI salvo e validado em '{xmlPath}' para '{username.Trim()}' (ACL600={aclOk}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(CredentialService));
             return (true, $"Cofre seguro gravado e validado em: {xmlPath}");
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(CredentialService), $"Gravação do cofre '{xmlPath}'", ex, sw.Elapsed);
             return (false, $"Erro ao gravar credencial no cofre: {ex.Message}");
         }
     }

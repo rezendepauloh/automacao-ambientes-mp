@@ -299,7 +299,9 @@ public class SoftwareProvisioningService
 
     public async Task RefreshStatusAsync(IEnumerable<SoftwarePackageItem> catalog)
     {
+        var sw = Stopwatch.StartNew();
         var items = catalog.ToList();
+        AppLoggerService.Info($"Iniciando verificação do catálogo de softwares ({items.Count} item(ns))...", nameof(SoftwareProvisioningService));
         await Task.Run(() =>
         {
             var updateIds = GetWingetUpgradablePackageIds();
@@ -307,6 +309,11 @@ public class SoftwareProvisioningService
             {
                 RefreshSingleItem(item, updateIds);
             }
+            int installed = items.Count(i => i.IsInstalled);
+            int updates = items.Count(i => i.HasUpdate);
+            AppLoggerService.Info(
+                $"Verificação do catálogo concluída: {installed}/{items.Count} instalado(s), {updates} atualização(ões) winget em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(SoftwareProvisioningService));
         });
     }
 
@@ -603,12 +610,14 @@ public class SoftwareProvisioningService
 
     private bool UninstallSoftwareCore(SoftwarePackageItem item, bool silent, Action<string>? onLog)
     {
+        var sw = Stopwatch.StartNew();
         void Log(string msg)
         {
             onLog?.Invoke(msg);
             AppLoggerService.Info(msg, nameof(SoftwareProvisioningService));
         }
 
+        AppLoggerService.Info($"Iniciando desinstalação: '{item.Name}' (id={item.Id}, method={item.Method}, silent={silent}).", nameof(SoftwareProvisioningService));
         Log("==========================================================");
         Log($"=== DESINSTALAÇÃO DE PACOTE: {item.Name} ===");
         Log("==========================================================");
@@ -691,6 +700,10 @@ public class SoftwareProvisioningService
         }
 
         RefreshSingleItem(item);
+        if (ok)
+            AppLoggerService.Success($"Desinstalação de '{item.Name}' concluída com sucesso em {AppLoggerService.FormatElapsed(sw)}.", nameof(SoftwareProvisioningService));
+        else
+            AppLoggerService.Warning($"Desinstalação de '{item.Name}' finalizada com alertas/falha em {AppLoggerService.FormatElapsed(sw)}.", nameof(SoftwareProvisioningService));
         return ok;
     }
 
@@ -701,12 +714,14 @@ public class SoftwareProvisioningService
 
     private bool InstallSoftwareCore(SoftwarePackageItem item, bool silent, Action<string>? onLog)
     {
+        var sw = Stopwatch.StartNew();
         void Log(string msg)
         {
             onLog?.Invoke(msg);
             AppLoggerService.Info(msg, nameof(SoftwareProvisioningService));
         }
 
+        AppLoggerService.Info($"Iniciando instalação: '{item.Name}' (id={item.Id}, method={item.Method}, silent={silent}).", nameof(SoftwareProvisioningService));
         bool ok = item.Method switch
         {
             SoftwareInstallMethod.RsatAdConsole => InstallAdConsoleCore(silent, Log),
@@ -718,7 +733,12 @@ public class SoftwareProvisioningService
         };
 
         RefreshSingleItem(item);
-        return ok || item.IsInstalled;
+        bool finalResult = ok || item.IsInstalled;
+        if (finalResult)
+            AppLoggerService.Success($"Instalação de '{item.Name}' concluída (Installed={item.IsInstalled}) em {AppLoggerService.FormatElapsed(sw)}.", nameof(SoftwareProvisioningService));
+        else
+            AppLoggerService.Warning($"Instalação de '{item.Name}' finalizada sem confirmação de sucesso em {AppLoggerService.FormatElapsed(sw)}.", nameof(SoftwareProvisioningService));
+        return finalResult;
     }
 
     private bool InstallAdConsoleCore(bool silent, Action<string> log)
@@ -1175,14 +1195,18 @@ public class SoftwareProvisioningService
             if (!proc.WaitForExit(timeoutMs))
             {
                 try { proc.Kill(entireProcessTree: true); } catch { }
+                AppLoggerService.Warning($"Processo '{fileName}' excedeu timeout de {timeoutMs} ms.", nameof(SoftwareProvisioningService));
                 return (-1, stdoutSb.ToString(), "Tempo limite excedido.");
             }
 
             proc.WaitForExit();
+            if (proc.ExitCode != 0 && proc.ExitCode != 3010)
+                AppLoggerService.Info($"Processo '{fileName}' encerrou com ExitCode={proc.ExitCode}.", nameof(SoftwareProvisioningService));
             return (proc.ExitCode, stdoutSb.ToString(), stderrSb.ToString());
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(SoftwareProvisioningService), $"Iniciar '{fileName}'", ex, level: LogLevel.WARNING);
             if (logOutput) onOutput?.Invoke($"  [ERRO] Falha ao iniciar {fileName}: {ex.Message}");
             return (-1, string.Empty, ex.Message);
         }

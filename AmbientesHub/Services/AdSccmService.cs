@@ -71,12 +71,14 @@ public class AdSccmService
             return;
         }
 
+        var swTotal = Stopwatch.StartNew();
         string action = isDelete ? "EXCLUSÃO DIRETA" : "CONSULTA (-WhatIf)";
         onLog($"=== INICIANDO {action}: {cleanName} ===");
-        AppLoggerService.Info($"Iniciando {action} para {cleanName}", nameof(AdSccmService));
+        AppLoggerService.Info($"Iniciando {action} para '{cleanName}' (isDelete={isDelete}).", nameof(AdSccmService));
 
         // 1. ACTIVE DIRECTORY VIA LDAP NATIVO (Busca Ampla com Wildcard / LIKE)
         onLog("[1/2] Consultando Active Directory (LDAP)...");
+        var swAd = Stopwatch.StartNew();
         try
         {
             using var searcher = new DirectorySearcher();
@@ -88,6 +90,7 @@ public class AdSccmService
             searcher.SizeLimit = 15;
 
             var results = searcher.FindAll();
+            AppLoggerService.Info($"AD LDAP ({action}) para '{cleanName}': {results.Count} registro(s) em {AppLoggerService.FormatElapsed(swAd)}.", nameof(AdSccmService));
             if (results.Count > 0)
             {
                 onLog($"  [OK] {results.Count} registro(s) encontrado(s) no Active Directory!");
@@ -112,13 +115,14 @@ public class AdSccmService
                             adEntry.DeleteTree();
                             adEntry.CommitChanges();
                             onLog($"  -> [SUCESSO] Computador '{name}' removido do Active Directory!");
-                            AppLoggerService.Success($"Conta {name} removida do AD.", nameof(AdSccmService));
+                            AppLoggerService.Success($"Conta '{name}' removida do AD.", nameof(AdSccmService));
                         }
                         catch (Exception delEx) when (delEx is UnauthorizedAccessException ||
                                                       delEx.Message.Contains("0x80070005", StringComparison.OrdinalIgnoreCase) ||
                                                       delEx.Message.Contains("Acesso negado", StringComparison.OrdinalIgnoreCase) ||
                                                       delEx.Message.Contains("Access is denied", StringComparison.OrdinalIgnoreCase))
                         {
+                            AppLoggerService.Warning($"Acesso negado ao remover '{name}' no AD com sessão atual ({delEx.Message}). Tentando fallback via cofre cred_admin_ad.xml.", nameof(AdSccmService));
                             onLog("  [i] Acesso negado com usuário atual. Tentando elevação via cofre AD (cred_admin_ad.xml)...");
                             string credAdPath = @"C:\AmbientesVirtuais\Credenciais\cred_admin_ad.xml";
                             var (credOk, credMsg, adUser, adPass) = CredentialService.ReadPlaintextCredential(credAdPath);
@@ -131,7 +135,7 @@ public class AdSccmService
                             elevatedEntry.DeleteTree();
                             elevatedEntry.CommitChanges();
                             onLog($"  -> [SUCESSO] Computador '{name}' removido do Active Directory via '{adUser}'!");
-                            AppLoggerService.Success($"Conta {name} removida do AD via credencial administrativa ({adUser}).", nameof(AdSccmService));
+                            AppLoggerService.Success($"Conta '{name}' removida do AD via credencial administrativa ('{adUser}').", nameof(AdSccmService));
                         }
                     }
                 }
@@ -144,7 +148,7 @@ public class AdSccmService
         catch (Exception ex)
         {
             onLog($"  -> Falha no Active Directory: {ex.Message}");
-            AppLoggerService.Warning($"Erro no AD para {cleanName}: {ex.Message}", nameof(AdSccmService));
+            AppLoggerService.LogException(nameof(AdSccmService), $"AD ({action}) para '{cleanName}'", ex, swAd.Elapsed, LogLevel.WARNING);
         }
 
         // 2. CONFIGURATION MANAGER (SCCM)
@@ -155,13 +159,14 @@ public class AdSccmService
         if (string.IsNullOrWhiteSpace(siteServer) || string.IsNullOrWhiteSpace(siteCode))
         {
             onLog("  [Aviso] SCCM_SITE_SERVER ou SCCM_SITE_CODE não configurados na aba Configurações.");
+            AppLoggerService.Warning($"Etapa SCCM ignorada para '{cleanName}': SCCM_SITE_SERVER ou SCCM_SITE_CODE não configurados.", nameof(AdSccmService));
             return;
         }
 
         if (!InputValidator.IsValidHostName(siteServer) || !InputValidator.IsValidSiteCode(siteCode))
         {
             onLog("  [ERRO] SCCM_SITE_SERVER/SCCM_SITE_CODE com formato inválido. Operação SCCM abortada.");
-            AppLoggerService.Warning("Configuração SCCM rejeitada pela validação.", nameof(AdSccmService));
+            AppLoggerService.Warning($"Configuração SCCM rejeitada pela validação para '{cleanName}'.", nameof(AdSccmService));
             return;
         }
 
@@ -170,14 +175,17 @@ public class AdSccmService
         if (!nativeSuccess)
         {
             // Tentativa 2: Provedor Oficial CMSite com Ambiente PowerShell Sanitizado
+            AppLoggerService.Info($"Fallback SCCM ativado para '{cleanName}': WMI C# Nativo -> Provedor PowerShell CMSite (site={siteCode}, server={siteServer}).", nameof(AdSccmService));
             ExecuteSccmProviderFallback(siteServer, siteCode, cleanName, isDelete, onLog);
         }
 
         onLog($"=== OPERAÇÃO FINALIZADA PARA: {cleanName} ===");
+        AppLoggerService.Info($"Finalizado {action} para '{cleanName}' em {AppLoggerService.FormatElapsed(swTotal)}.", nameof(AdSccmService));
     }
 
     private bool TryExecuteSccmNative(string siteServer, string siteCode, string cleanName, bool isDelete, Action<string> onLog)
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             var options = new ConnectionOptions
@@ -200,6 +208,7 @@ public class AdSccmService
             using var results = searcher.Get();
 
             var list = results.Cast<ManagementObject>().ToList();
+            AppLoggerService.Info($"SCCM WMI Nativo ({scopePath}) retornou {list.Count} registro(s) para '{cleanName}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(AdSccmService));
             if (list.Count > 0)
             {
                 onLog($"  [OK] {list.Count} registro(s) encontrado(s) no SCCM (WMI C# Nativo)!");
@@ -222,7 +231,7 @@ public class AdSccmService
                         onLog($"  -> Excluindo ResourceID {resId} ({name}) via WMI C# Nativo...");
                         dev.Delete();
                         onLog($"  -> [SUCESSO] Registro '{name}' removido do Configuration Manager!");
-                        AppLoggerService.Success($"ResourceID {resId} de {name} excluído via WMI Nativo.", nameof(AdSccmService));
+                        AppLoggerService.Success($"ResourceID {resId} de '{name}' excluído via WMI Nativo.", nameof(AdSccmService));
                     }
                 }
                 return true;
@@ -235,18 +244,20 @@ public class AdSccmService
         }
         catch (Exception ex)
         {
-            AppLoggerService.Info($"WMI C# Nativo não estabeleceu conexão direta ({ex.Message}). Recorrendo ao provedor CMSite com ambiente sanitizado.", nameof(AdSccmService));
+            AppLoggerService.LogException(nameof(AdSccmService), $"SCCM WMI C# Nativo para '{cleanName}' (server={siteServer}, site={siteCode})", ex, sw.Elapsed, LogLevel.WARNING);
             return false;
         }
     }
 
     private void ExecuteSccmProviderFallback(string siteServer, string siteCode, string cleanName, bool isDelete, Action<string> onLog)
     {
+        var sw = Stopwatch.StartNew();
         string? modulePath = FindSccmModulePath();
         if (modulePath == null)
         {
             onLog("  [Aviso] Módulo 'ConfigurationManager.psd1' não encontrado na estação.");
             onLog("          O Console do Configuration Manager precisa estar instalado.");
+            AppLoggerService.Warning($"Fallback CMSite abortado para '{cleanName}': ConfigurationManager.psd1 não encontrado.", nameof(AdSccmService));
             return;
         }
 
@@ -311,6 +322,7 @@ if ($devices.Count -gt 0) {{
             }
 
             using var proc = new Process { StartInfo = startInfo };
+            var stderrErrors = new List<string>();
             proc.OutputDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -319,29 +331,39 @@ if ($devices.Count -gt 0) {{
             proc.ErrorDataReceived += (_, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
+                {
+                    stderrErrors.Add(e.Data);
                     onLog($"  -> Erro SCCM: {e.Data}");
+                }
             };
 
             proc.Start();
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
-            if (!proc.WaitForExit(35000))
+            bool exited = proc.WaitForExit(35000);
+            if (!exited)
             {
                 try { proc.Kill(); } catch { }
                 onLog("  [Aviso] Tempo limite de 35s excedido na consulta SCCM CMSite.");
+                AppLoggerService.Warning($"Fallback SCCM CMSite excedeu timeout de 35s para '{cleanName}'.", nameof(AdSccmService));
             }
 
             try { File.Delete(scriptTemp); } catch { }
 
-            if (proc.ExitCode == 0)
+            if (exited && proc.ExitCode == 0)
             {
-                AppLoggerService.Success($"Operação SCCM para {cleanName} finalizada com sucesso via CMSite.", nameof(AdSccmService));
+                AppLoggerService.Success($"Operação SCCM para '{cleanName}' finalizada com sucesso via CMSite em {AppLoggerService.FormatElapsed(sw)}.", nameof(AdSccmService));
+            }
+            else if (exited)
+            {
+                string errSummary = stderrErrors.Count > 0 ? string.Join(" | ", stderrErrors.Take(3)) : "(sem stderr)";
+                AppLoggerService.Warning($"Fallback SCCM CMSite encerrou com ExitCode={proc.ExitCode} para '{cleanName}' em {AppLoggerService.FormatElapsed(sw)}: {errSummary}", nameof(AdSccmService));
             }
         }
         catch (Exception ex)
         {
             onLog($"  -> Falha ao comunicar com o SCCM: {ex.Message}");
-            AppLoggerService.Danger($"Erro SCCM para {cleanName}: {ex.Message}", nameof(AdSccmService));
+            AppLoggerService.LogException(nameof(AdSccmService), $"Fallback SCCM CMSite para '{cleanName}'", ex, sw.Elapsed);
         }
 
         onLog($"=== OPERAÇÃO FINALIZADA PARA: {cleanName} ===");
@@ -368,11 +390,14 @@ if ($devices.Count -gt 0) {{
             string ldapQuery = InputValidator.EscapeLdap(cleanQuery);
             string wqlQuery = InputValidator.EscapeWql(cleanQuery);
 
+            var swTotal = Stopwatch.StartNew();
             Log($"Iniciando pesquisa ampla (máquina ou usuário) por: '{cleanQuery}'...");
+            AppLoggerService.Info($"Iniciando SearchMachinesAsync para termo='{cleanQuery}'.", nameof(AdSccmService));
             var resultsDict = new Dictionary<string, MachineDetails>(StringComparer.OrdinalIgnoreCase);
 
             // 1. Pesquisa no Active Directory (LDAP) com wildcard
             Log("[1/3] Buscando no Active Directory (LDAP)...");
+            var swAd = Stopwatch.StartNew();
             try
             {
                 using var searcher = new DirectorySearcher();
@@ -402,10 +427,12 @@ if ($devices.Count -gt 0) {{
                     item.Location = entry.Properties["location"].Value?.ToString() ?? "";
                 }
                 Log($"  [OK] {allResults.Count} máquina(s) localizada(s) no Active Directory.");
+                AppLoggerService.Info($"SearchMachines AD LDAP: {allResults.Count} máquina(s) para '{cleanQuery}' em {AppLoggerService.FormatElapsed(swAd)}.", nameof(AdSccmService));
             }
             catch (Exception ex)
             {
                 Log($"  [Aviso] Falha na busca AD: {ex.Message}");
+                AppLoggerService.LogException(nameof(AdSccmService), $"SearchMachines AD LDAP '{cleanQuery}'", ex, swAd.Elapsed, LogLevel.WARNING);
             }
 
             // 2. Pesquisa no Configuration Manager (SCCM) com LIKE
@@ -416,6 +443,7 @@ if ($devices.Count -gt 0) {{
             if (!string.IsNullOrWhiteSpace(siteServer) && !string.IsNullOrWhiteSpace(siteCode))
             {
                 bool sccmOk = false;
+                var swWmi = Stopwatch.StartNew();
 
                 // Tentativa via WMI C# Nativo com LIKE
                 try
@@ -500,11 +528,12 @@ if ($devices.Count -gt 0) {{
                     }
 
                     Log($"  [OK] {wmiFoundCount} registro(s) obtido(s) no SCCM via WMI Nativo.");
+                    AppLoggerService.Info($"SearchMachines SCCM WMI: {wmiFoundCount} registro(s) para '{cleanQuery}' em {AppLoggerService.FormatElapsed(swWmi)}.", nameof(AdSccmService));
                     sccmOk = true;
                 }
                 catch (Exception ex)
                 {
-                    AppLoggerService.Info($"Busca WMI SCCM falhou ({ex.Message}), tentando provedor CMSite...", nameof(AdSccmService));
+                    AppLoggerService.LogException(nameof(AdSccmService), $"SearchMachines SCCM WMI '{cleanQuery}' -> fallback CMSite", ex, swWmi.Elapsed, LogLevel.WARNING);
                 }
 
                 // Fallback via CMSite Provider
@@ -512,6 +541,10 @@ if ($devices.Count -gt 0) {{
                 {
                     TrySearchSccmViaProvider(cleanQuery, resultsDict, siteServer, siteCode, onLog);
                 }
+            }
+            else
+            {
+                AppLoggerService.Warning("SearchMachines etapa SCCM ignorada: SCCM_SITE_SERVER ou SCCM_SITE_CODE ausentes.", nameof(AdSccmService));
             }
 
             // 3. Resolução de Localidade por Usuário Conectado/Primário no AD
@@ -536,12 +569,17 @@ if ($devices.Count -gt 0) {{
                             m.UserOffice = locData.office;
                         }
                     }
+                    AppLoggerService.Info($"SearchMachines localidade AD resolvida para {userLocMap.Count}/{usersToResolve.Count} usuário(s).", nameof(AdSccmService));
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    AppLoggerService.Warning($"Falha ao resolver localidade de usuários no AD: {ex.Message}", nameof(AdSccmService));
+                }
             }
 
             // 4. Verificação de Conectividade de Rede Paralela (Ping com prioridade IPv4)
             Log($"[3/3] Diagnosticando status de rede de {resultsDict.Count} máquina(s)...");
+            var swPing = Stopwatch.StartNew();
             var pingTasks = resultsDict.Values.Select(async item =>
             {
                 try
@@ -608,7 +646,11 @@ if ($devices.Count -gt 0) {{
                 .ThenBy(m => m.ComputerName)
                 .ToList();
 
+            int onlineCount = list.Count(m => m.IsOnline);
             Log($"Pesquisa concluída: {list.Count} máquina(s) encontrada(s).");
+            AppLoggerService.Success(
+                $"SearchMachinesAsync '{cleanQuery}' concluído: total={list.Count}, online={onlineCount}, offline={list.Count - onlineCount} (ping={AppLoggerService.FormatElapsed(swPing)}, total={AppLoggerService.FormatElapsed(swTotal)}).",
+                nameof(AdSccmService));
             return list;
         });
     }
@@ -632,6 +674,7 @@ if ($devices.Count -gt 0) {{
         string qServer = InputValidator.EscapePowerShellSingleQuoted(siteServer);
         string qQuery = InputValidator.EscapePowerShellSingleQuoted(cleanQuery);
 
+        var sw = Stopwatch.StartNew();
         try
         {
             string scriptTemp = Path.Combine(Path.GetTempPath(), $"sccm_search_{Guid.NewGuid():N}.ps1");
@@ -690,10 +733,13 @@ foreach ($dev in $all) {{
 
             using var proc = Process.Start(startInfo);
             string output = proc?.StandardOutput.ReadToEnd() ?? "";
-            if (proc != null && !proc.WaitForExit(35000))
+            string errOutput = proc?.StandardError.ReadToEnd() ?? "";
+            bool exited = proc != null && proc.WaitForExit(35000);
+            if (proc != null && !exited)
             {
                 try { proc.Kill(); } catch { }
                 onLog?.Invoke("  [Aviso] Tempo limite excedido ao consultar SCCM via CMSite.");
+                AppLoggerService.Warning($"TrySearchSccmViaProvider excedeu timeout (35s) para '{cleanQuery}'.", nameof(AdSccmService));
             }
 
             try { File.Delete(scriptTemp); } catch { }
@@ -785,10 +831,14 @@ foreach ($dev in $all) {{
             }
 
             onLog?.Invoke($"  [OK] {devBlocks.Length} registro(s) SCCM via CMSite.");
+            AppLoggerService.Info(
+                $"TrySearchSccmViaProvider '{cleanQuery}' concluído: {devBlocks.Length} registro(s), ExitCode={proc?.ExitCode}, duração={AppLoggerService.FormatElapsed(sw)}" +
+                (!string.IsNullOrWhiteSpace(errOutput) ? $" | StdErr={errOutput.Trim()}" : string.Empty),
+                nameof(AdSccmService));
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Erro ao buscar SCCM via CMSite: {ex.Message}", nameof(AdSccmService));
+            AppLoggerService.LogException(nameof(AdSccmService), $"TrySearchSccmViaProvider '{cleanQuery}'", ex, sw.Elapsed, LogLevel.WARNING);
         }
     }
 
@@ -973,8 +1023,9 @@ foreach ($dev in $all) {{
 
             void Log(string msg) => onLog?.Invoke(msg);
 
+            var sw = Stopwatch.StartNew();
             Log($"=== CONSULTA DE USUÁRIOS ACTIVE DIRECTORY: '{normalizedQuery}' ===");
-            AppLoggerService.Info($"Iniciando consulta de usuário AD para: '{normalizedQuery}'", nameof(AdSccmService));
+            AppLoggerService.Info($"Iniciando SearchUsersAsync para '{normalizedQuery}' (maxResults={maxResults}).", nameof(AdSccmService));
 
             var users = new List<AdUserDetails>();
 
@@ -1122,12 +1173,12 @@ foreach ($dev in $all) {{
                     .ToList();
 
                 Log($"[SUCESSO] Consulta AD concluída: {users.Count} usuário(s) processado(s).");
-                AppLoggerService.Success($"Consulta de usuários AD para '{normalizedQuery}' retornou {users.Count} resultado(s).", nameof(AdSccmService));
+                AppLoggerService.Success($"SearchUsersAsync para '{normalizedQuery}' retornou {users.Count} resultado(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(AdSccmService));
             }
             catch (Exception ex)
             {
                 Log($"[ERRO] Falha ao consultar usuários no Active Directory: {ex.Message}");
-                AppLoggerService.Warning($"Erro na consulta de usuários AD para '{normalizedQuery}': {ex.Message}", nameof(AdSccmService));
+                AppLoggerService.LogException(nameof(AdSccmService), $"SearchUsersAsync '{normalizedQuery}'", ex, sw.Elapsed, LogLevel.WARNING);
             }
 
             return users;

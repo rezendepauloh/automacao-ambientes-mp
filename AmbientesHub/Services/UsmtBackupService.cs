@@ -82,6 +82,7 @@ public class UsmtBackupService
         bool silent,
         Action<string>? onLog)
     {
+        var sw = Stopwatch.StartNew();
         void Log(string msg)
         {
             onLog?.Invoke(msg);
@@ -100,9 +101,11 @@ public class UsmtBackupService
         {
             string err = "Instalar o Windows ADK / USMT exige privilégios de Administrador. Reinicie o Hub como Admin e tente novamente.";
             Log($"[ERRO] {err}");
+            AppLoggerService.Warning("DownloadAndInstallUsmtCore abortado: requer privilégios de Administrador.", nameof(UsmtBackupService));
             return (false, null, err);
         }
 
+        AppLoggerService.Info($"Iniciando download e instalação do Windows ADK USMT (silent={silent}).", nameof(UsmtBackupService));
         Log("==========================================================");
         Log("=== DOWNLOAD & INSTALAÇÃO DO WINDOWS USMT (ADK) ===");
         Log("==========================================================");
@@ -164,6 +167,7 @@ public class UsmtBackupService
         catch (Exception ex)
         {
             Log($"  -> [AVISO] Falha via adksetup.exe direto: {ex.Message}. Tentando fallback via winget...");
+            AppLoggerService.LogException(nameof(UsmtBackupService), "Download/instalação adksetup.exe -> fallback winget", ex, sw.Elapsed, LogLevel.WARNING);
         }
         finally
         {
@@ -173,6 +177,7 @@ public class UsmtBackupService
         if (!setupOk && FindUsmtDirectory() == null)
         {
             Log("[Fallback] Executando: winget install --id Microsoft.WindowsADK --exact --source winget...");
+            AppLoggerService.Info("Acionando fallback winget para Microsoft.WindowsADK.", nameof(UsmtBackupService));
             var wingetPsi = new ProcessStartInfo
             {
                 FileName = "winget.exe",
@@ -193,11 +198,13 @@ public class UsmtBackupService
                     wProc.OutputDataReceived += (_, e) => { if (!string.IsNullOrWhiteSpace(e.Data)) Log($"  {e.Data.Trim()}"); };
                     wProc.BeginOutputReadLine();
                     wProc.WaitForExit(600000);
+                    AppLoggerService.Info($"Fallback winget Microsoft.WindowsADK encerrou com ExitCode={wProc.ExitCode}.", nameof(UsmtBackupService));
                 }
             }
             catch (Exception ex)
             {
                 Log($"  -> [ERRO] Falha no fallback winget: {ex.Message}");
+                AppLoggerService.LogException(nameof(UsmtBackupService), "Fallback winget Microsoft.WindowsADK", ex, sw.Elapsed);
             }
         }
 
@@ -206,12 +213,13 @@ public class UsmtBackupService
         {
             ConfigService.SetAndSave("USMT_PATH", installedDir);
             Log($"[SUCESSO] USMT instalado e USMT_PATH preenchido automaticamente: {installedDir}");
-            AppLoggerService.Success($"USMT instalado e configurado em USMT_PATH={installedDir}", nameof(UsmtBackupService));
+            AppLoggerService.Success($"USMT instalado e configurado em USMT_PATH='{installedDir}' em {AppLoggerService.FormatElapsed(sw)}.", nameof(UsmtBackupService));
             return (true, installedDir, $"USMT instalado em {installedDir}");
         }
 
         string failMsg = "Não foi possível confirmar os executáveis scanstate.exe / loadstate.exe após a instalação.";
         Log($"[ERRO] {failMsg}");
+        AppLoggerService.Danger($"DownloadAndInstallUsmtCore falhou após {AppLoggerService.FormatElapsed(sw)}: {failMsg}", nameof(UsmtBackupService));
         return (false, null, failMsg);
     }
 
@@ -370,6 +378,7 @@ public class UsmtBackupService
         {
             result.Message = "Nome de máquina de destino inválido (fail-closed).";
             Log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"USMT {modeLabel} rejeitado: host inválido '{target}'.", nameof(UsmtBackupService));
             return result;
         }
 
@@ -377,6 +386,7 @@ public class UsmtBackupService
         {
             result.Message = "Caminho de origem/destino inválido ou inseguro (fail-closed).";
             Log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"USMT {modeLabel} rejeitado: StorePath inválido '{options.StorePath}'.", nameof(UsmtBackupService));
             return result;
         }
 
@@ -385,6 +395,7 @@ public class UsmtBackupService
         {
             result.Message = "USMT (scanstate.exe / loadstate.exe) não encontrado. Configure USMT_PATH ou clique em 'Baixar / Instalar USMT'.";
             Log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"USMT {modeLabel} abortado: binários USMT não encontrados.", nameof(UsmtBackupService));
             return result;
         }
 
@@ -407,8 +418,13 @@ public class UsmtBackupService
         {
             result.Message = ex.Message;
             Log($"[ERRO] {ex.Message}");
+            AppLoggerService.Warning($"USMT {modeLabel} abortado na construção de argumentos: {ex.Message}", nameof(UsmtBackupService));
             return result;
         }
+
+        AppLoggerService.Info(
+            $"Iniciando USMT {modeLabel}: alvo='{target}' (local={isLocal}), store='{result.StorePath}', usuarios={options.SelectedUsers.Count}, compress={options.Compress}, encrypted={!string.IsNullOrWhiteSpace(options.EncryptionKey)}, log='{localLogPath}'.",
+            nameof(UsmtBackupService));
 
         Log("==========================================================");
         Log($"=== USMT {modeLabel.ToUpperInvariant()} EM: {target} ===");
@@ -438,9 +454,11 @@ public class UsmtBackupService
         {
             result.Message = "Executar ScanState/LoadState localmente exige privilégios de Administrador.";
             log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"USMT Local ({result.Mode}) abortado: requer privilégios de Administrador.", nameof(UsmtBackupService));
             return result;
         }
 
+        var sw = Stopwatch.StartNew();
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
@@ -478,13 +496,16 @@ public class UsmtBackupService
                 : $"{result.Mode} encerrado com código {proc.ExitCode}. Consulte o log em {logPath}.";
 
             log(result.Success ? $"[SUCESSO] {result.Message}" : $"[ERRO] {result.Message}");
-            AppLoggerService.Info($"USMT Local ({result.Mode}) finalizado em '{result.ComputerName}': ExitCode={proc.ExitCode}", nameof(UsmtBackupService));
+            AppLoggerService.Log(
+                result.Success ? LogLevel.SUCCESS : LogLevel.DANGER,
+                $"USMT Local ({result.Mode}) finalizado em '{result.ComputerName}': ExitCode={proc.ExitCode}, duração={AppLoggerService.FormatElapsed(sw)}.",
+                nameof(UsmtBackupService));
         }
         catch (Exception ex)
         {
             result.Message = $"Falha ao executar USMT localmente: {ex.Message}";
             log($"[ERRO] {result.Message}");
-            AppLoggerService.Danger(result.Message, nameof(UsmtBackupService));
+            AppLoggerService.LogException(nameof(UsmtBackupService), $"USMT Local ({result.Mode})", ex, sw.Elapsed);
         }
 
         return result;
@@ -501,10 +522,12 @@ public class UsmtBackupService
         UsmtOperationResult result,
         Action<string> log)
     {
+        var sw = Stopwatch.StartNew();
         if (!RemoteManagementHelper.PingHost(target))
         {
             result.Message = $"Máquina remota '{target}' não respondeu ao ping (ICMP).";
             log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"USMT Remoto ({result.Mode}) abortado em '{target}': sem resposta ICMP.", nameof(UsmtBackupService));
             return result;
         }
 
@@ -512,6 +535,7 @@ public class UsmtBackupService
         {
             result.Message = $"Não foi possível conectar ao compartilhamento administrativo \\\\{target}\\C$.";
             log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"USMT Remoto ({result.Mode}) abortado em '{target}': falha ao conectar em \\\\{target}\\C$.", nameof(UsmtBackupService));
             return result;
         }
 
@@ -594,13 +618,16 @@ public class UsmtBackupService
                 : $"{result.Mode} remoto em '{target}' finalizou com alertas. Verifique {localLogCopyPath}.";
 
             log(result.Success ? $"[SUCESSO] {result.Message}" : $"[AVISO] {result.Message}");
-            AppLoggerService.Info($"USMT Remoto ({result.Mode}) em '{target}': Success={result.Success}", nameof(UsmtBackupService));
+            AppLoggerService.Log(
+                result.Success ? LogLevel.SUCCESS : LogLevel.WARNING,
+                $"USMT Remoto ({result.Mode}) em '{target}': Success={result.Success}, ExitCode={result.ExitCode}, duração={AppLoggerService.FormatElapsed(sw)}.",
+                nameof(UsmtBackupService));
         }
         catch (Exception ex)
         {
             result.Message = $"Erro durante execução remota do USMT em '{target}': {ex.Message}";
             log($"[ERRO] {result.Message}");
-            AppLoggerService.Danger(result.Message, nameof(UsmtBackupService));
+            AppLoggerService.LogException(nameof(UsmtBackupService), $"USMT Remoto ({result.Mode}) em '{target}'", ex, sw.Elapsed);
         }
         finally
         {
@@ -610,7 +637,10 @@ public class UsmtBackupService
                 if (Directory.Exists(remoteUncStaging))
                     Directory.Delete(remoteUncStaging, recursive: true);
             }
-            catch { }
+            catch (Exception exClean)
+            {
+                AppLoggerService.Warning($"Falha ao remover staging temporário '{remoteUncStaging}': {exClean.Message}", nameof(UsmtBackupService));
+            }
         }
 
         return result;

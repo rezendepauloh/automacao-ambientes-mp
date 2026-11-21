@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Management;
 using AmbientesHub.Models;
@@ -24,16 +25,19 @@ public class RemoteUserProfileService
         Action<string>? onLog = null,
         bool calculateDiskSize = true)
     {
+        var sw = Stopwatch.StartNew();
         var profiles = new List<RemoteUserProfileItem>();
         string target = RemoteManagementHelper.NormalizeTargetHost(computerName);
 
         void Log(string msg) => onLog?.Invoke(msg);
 
         Log($"=== CONSULTANDO PERFIS DE USUÁRIOS EM: {target} ===");
+        AppLoggerService.Info($"QueryUserProfiles iniciado em '{target}' (calculateDiskSize={calculateDiskSize}).", nameof(RemoteUserProfileService));
 
         if (!RemoteManagementHelper.PingHost(target))
         {
             Log($"[ERRO] Máquina '{target}' não respondeu ao ping (ICMP).");
+            AppLoggerService.Warning($"QueryUserProfiles abortado em '{target}': sem resposta ICMP ({AppLoggerService.FormatElapsed(sw)}).", nameof(RemoteUserProfileService));
             return profiles;
         }
 
@@ -119,10 +123,14 @@ public class RemoteUserProfileService
                 string statusTag = p.Loaded ? "[LOGADO - PROTEGIDO]" : "[Inativo]";
                 Log($"  • {p.Usuario,-22} | {p.EspacoDiscoGb,6:N2} GB | Último uso: {p.UltimoUso,-19} | {statusTag} | {p.Nome}");
             }
+            AppLoggerService.Success(
+                $"QueryUserProfiles em '{target}' retornou {profiles.Count} perfil(is) ({removable} removíveis, {totalGb:N2} GB) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(RemoteUserProfileService));
         }
         catch (Exception ex)
         {
             Log($"[ERRO] Falha ao consultar perfis em '{target}': {ex.Message}");
+            AppLoggerService.LogException(nameof(RemoteUserProfileService), $"QueryUserProfiles em '{target}'", ex, sw.Elapsed);
         }
 
         return profiles;
@@ -133,6 +141,7 @@ public class RemoteUserProfileService
         IEnumerable<string> usersToPurge,
         Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         string target = RemoteManagementHelper.NormalizeTargetHost(computerName);
         var result = new RemoteProfilePurgeResult { ComputerName = target };
 
@@ -142,7 +151,7 @@ public class RemoteUserProfileService
         if (!InputValidator.IsValidHostName(target))
         {
             Log($"[ERRO] Nome de máquina inválido. Operação abortada.");
-            AppLoggerService.Warning("PurgeUserProfiles rejeitado: hostname inválido.", nameof(RemoteUserProfileService));
+            AppLoggerService.Warning($"PurgeUserProfiles rejeitado: hostname inválido '{target}'.", nameof(RemoteUserProfileService));
             return result;
         }
 
@@ -156,7 +165,7 @@ public class RemoteUserProfileService
         foreach (var rejected in candidateUsers.Where(u => !InputValidator.IsValidUserName(u)))
         {
             Log("[AVISO] Nome de usuário com caracteres inválidos foi ignorado.");
-            AppLoggerService.Warning("Usuário rejeitado pela validação em PurgeUserProfiles.", nameof(RemoteUserProfileService));
+            AppLoggerService.Warning($"Usuário '{rejected}' rejeitado pela validação em PurgeUserProfiles.", nameof(RemoteUserProfileService));
             result.SkippedCount++;
         }
 
@@ -169,10 +178,12 @@ public class RemoteUserProfileService
         }
 
         Log($"=== INICIANDO REMOÇÃO DE PERFIS EM: {target} ({cleanUsers.Count} usuário(s)) ===");
+        AppLoggerService.Info($"PurgeUserProfiles iniciado em '{target}' para {cleanUsers.Count} usuário(s): [{string.Join(", ", cleanUsers)}].", nameof(RemoteUserProfileService));
 
         if (!RemoteManagementHelper.PingHost(target))
         {
             Log($"[ERRO] Máquina '{target}' inacessível via ICMP. Operação abortada.");
+            AppLoggerService.Warning($"PurgeUserProfiles abortado em '{target}': sem resposta ICMP ({AppLoggerService.FormatElapsed(sw)}).", nameof(RemoteUserProfileService));
             return result;
         }
 
@@ -256,10 +267,12 @@ public class RemoteUserProfileService
                         matchedProfile.Delete();
                         deletedViaWmi = true;
                         Log($"  -> [SUCESSO] Perfil '{user}' excluído via Win32_UserProfile ({sizeBeforeGb:N2} GB liberados).");
+                        AppLoggerService.Success($"Perfil '{user}' (SID={sid}) excluído em '{target}' via WMI ({sizeBeforeGb:N2} GB).", nameof(RemoteUserProfileService));
                     }
                     catch (Exception exWmi)
                     {
                         Log($"  -> [AVISO] WMI Delete falhou ({exWmi.Message}). Acionando fallback (rmdir + ProfileList Registry)...");
+                        AppLoggerService.Warning($"Win32_UserProfile.Delete() falhou para '{user}' em '{target}' ({exWmi.Message}); acionando fallback rmdir + ProfileList.", nameof(RemoteUserProfileService));
                     }
 
                     // 4) Fallback: rmdir /S /Q + limpeza de ProfileList\<SID> no Registro
@@ -277,11 +290,13 @@ public class RemoteUserProfileService
                         if (cmdOk || !Directory.Exists(targetUncPath))
                         {
                             Log($"  -> [SUCESSO] Perfil '{user}' removido via fallback (rmdir + ProfileList) ({sizeBeforeGb:N2} GB).");
+                            AppLoggerService.Success($"Perfil '{user}' removido em '{target}' via fallback rmdir+ProfileList ({sizeBeforeGb:N2} GB).", nameof(RemoteUserProfileService));
                             deletedViaWmi = true;
                         }
                         else
                         {
                             Log($"  -> [ERRO] Não foi possível remover completamente a pasta '{localPath}'.");
+                            AppLoggerService.Danger($"Falha no fallback de exclusão da pasta '{localPath}' em '{target}'.", nameof(RemoteUserProfileService));
                             result.FailedCount++;
                         }
                     }
@@ -297,10 +312,15 @@ public class RemoteUserProfileService
             result.Success = result.FailedCount == 0;
             Log($"==================================================");
             Log($"[CONCLUÍDO] Removidos: {result.RemovedCount} | Ignorados/Ativos: {result.SkippedCount} | Falhas: {result.FailedCount} | Espaço Liberado: ~{result.FreedEstimateGb:N2} GB");
+            AppLoggerService.Log(
+                result.FailedCount == 0 ? LogLevel.SUCCESS : LogLevel.WARNING,
+                $"PurgeUserProfiles em '{target}' finalizado em {AppLoggerService.FormatElapsed(sw)}: removidos={result.RemovedCount}, ignorados={result.SkippedCount}, falhas={result.FailedCount}, liberado=~{result.FreedEstimateGb:N2} GB.",
+                nameof(RemoteUserProfileService));
         }
         catch (Exception ex)
         {
             Log($"[ERRO] Falha geral na limpeza de perfis em '{target}': {ex.Message}");
+            AppLoggerService.LogException(nameof(RemoteUserProfileService), $"PurgeUserProfiles em '{target}'", ex, sw.Elapsed);
         }
 
         return result;

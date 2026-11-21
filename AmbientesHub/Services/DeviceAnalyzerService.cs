@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Text.RegularExpressions;
@@ -16,6 +17,7 @@ public class DeviceAnalyzerService
         string? outputFolder = null,
         Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         string target = RemoteManagementHelper.NormalizeTargetHost(computerName);
         string outDir = string.IsNullOrWhiteSpace(outputFolder) ? DefaultOutputFolder : outputFolder.Trim();
         var result = new DeviceAnalysisResult { OutputFolder = outDir };
@@ -23,11 +25,15 @@ public class DeviceAnalyzerService
         void Log(string msg) => onLog?.Invoke(msg);
 
         Log($"=== INICIANDO ANÁLISE COMPLETA DO DISPOSITIVO: {target} ===");
+        AppLoggerService.Info(
+            $"Iniciando análise de dispositivo: alvo='{target}', skipMajorData={skipMajorData}, autoOpenFirefox={autoOpenHtmlInFirefox}, outDir='{outDir}'.",
+            nameof(DeviceAnalyzerService));
 
         if (!RemoteManagementHelper.PingHost(target))
         {
             result.Message = $"Máquina '{target}' não respondeu ao ping (ICMP).";
             Log($"[ERRO] {result.Message}");
+            AppLoggerService.Warning($"Análise abortada para '{target}': sem resposta ICMP ({AppLoggerService.FormatElapsed(sw)}).", nameof(DeviceAnalyzerService));
             return result;
         }
 
@@ -158,11 +164,15 @@ public class DeviceAnalyzerService
             result.Message = $"Análise de '{target}' concluída com sucesso!";
             Log("==================================================================");
             Log($"[SUCESSO] Relatórios HTML, PDF e Excel gerados em: {outDir}");
+            AppLoggerService.Success(
+                $"Análise de '{target}' concluída em {AppLoggerService.FormatElapsed(sw)}: Usuario='{data.CurrentUser}', RAM={data.HardwareInfo.MemoriaFisicaGb}, Monitores={data.Monitors.Count}, Discos={data.LogicalDisks.Count}, Programas={data.InstalledPrograms.Count}, Processos={data.ActiveProcesses.Count}, HTML='{Path.GetFileName(result.HtmlPath)}', PDF='{(string.IsNullOrEmpty(result.PdfPath) ? "N/A" : Path.GetFileName(result.PdfPath))}', Excel='{Path.GetFileName(result.ExcelPath)}'.",
+                nameof(DeviceAnalyzerService));
         }
         catch (Exception ex)
         {
             result.Message = $"Falha ao analisar '{target}': {ex.Message}";
             Log($"[ERRO] {result.Message}");
+            AppLoggerService.LogException(nameof(DeviceAnalyzerService), $"Análise do dispositivo '{target}'", ex, sw.Elapsed);
         }
 
         return result;
@@ -196,7 +206,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectHardwareBios(Win32_BIOS) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         var activePorts = GetActiveVideoPorts(target);
         string activePortsStr = activePorts.Count > 0 ? string.Join(", ", activePorts) : "Nenhuma detectada";
@@ -247,7 +257,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectHardwareBios(Win32_ComputerSystem) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static List<string> GetActiveVideoPorts(string target)
@@ -295,7 +305,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"GetActiveVideoPorts(root\\wmi) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         return list.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
     }
@@ -341,7 +351,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectOperatingSystem em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectCpuMotherboardAndChassis(ManagementScope cimScope, DeviceReportData data)
@@ -368,7 +378,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectCpu(Win32_Processor) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -387,7 +397,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectMotherboard(Win32_BaseBoard) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -415,7 +425,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectChassis(Win32_SystemEnclosure) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectMemoryModules(ManagementScope cimScope, DeviceReportData data)
@@ -442,7 +452,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectMemoryModules(Win32_PhysicalMemory) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectMonitorsAndVideo(ManagementScope cimScope, string target, DeviceReportData data)
@@ -529,7 +539,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectMonitors(root\\wmi) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -564,7 +574,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectVideoControllers(Win32_VideoController) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectDisks(ManagementScope cimScope, string target, DeviceReportData data)
@@ -593,7 +603,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectDisks(MSFT_PhysicalDisk) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -628,7 +638,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectDisks(Win32_DiskDrive) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -654,7 +664,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectDisks(Win32_LogicalDisk) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectNetworkAndSound(ManagementScope cimScope, DeviceReportData data)
@@ -679,7 +689,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectNetwork(Win32_NetworkAdapterConfiguration) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -709,7 +719,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectSound(Win32_SoundDevice) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectPrinters(ManagementScope cimScope, ManagementScope regScope, string target, DeviceReportData data)
@@ -765,7 +775,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectPrinters(Win32_Printer) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         // Impressoras mapeadas por usuário (HKEY_USERS\<SID>\Printers\Connections)
         try
@@ -797,7 +807,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectPrinters(HKEY_USERS) em '{target}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static void CollectInstalledPrograms(ManagementScope regScope, DeviceReportData data)
@@ -872,7 +882,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectServices(Win32_Service) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
 
         try
         {
@@ -899,7 +909,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectProcesses(Win32_Process) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static readonly Regex SensitiveCmdArgRegex = new(
@@ -954,7 +964,7 @@ public class DeviceAnalyzerService
                 }
             }
         }
-        catch { }
+        catch (Exception ex) { AppLoggerService.Warning($"CollectDrivers(Win32_PnPSignedDriver) em '{data.ComputerName}': {ex.Message}", nameof(DeviceAnalyzerService)); }
     }
 
     private static string DecodeUInt16CharArray(object? raw)

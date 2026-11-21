@@ -153,6 +153,20 @@ public class InputValidatorTests
         Assert.DoesNotContain('\n', sanitized);
     }
 
+    [Fact]
+    public void SanitizeLogText_RemovesAllControlCharactersIncludingTabsNullAndAnsiEscape()
+    {
+        string dirty = "inicio\r\n\tmeio\0\u001b[31mfim";
+        string sanitized = InputValidator.SanitizeLogText(dirty);
+
+        Assert.DoesNotContain('\r', sanitized);
+        Assert.DoesNotContain('\n', sanitized);
+        Assert.DoesNotContain('\t', sanitized);
+        Assert.DoesNotContain('\0', sanitized);
+        Assert.DoesNotContain('\u001b', sanitized);
+        Assert.Equal("inicio   meio  [31mfim", sanitized);
+    }
+
     [Theory]
     [InlineData("*", @"\2a")]
     [InlineData("(", @"\28")]

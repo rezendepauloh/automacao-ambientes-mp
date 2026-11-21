@@ -83,5 +83,64 @@ public class AppLoggerServiceTests
                 Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void FormatElapsed_FormatsMillisecondsAndSecondsConsistently()
+    {
+        Assert.Equal("45 ms", AppLoggerService.FormatElapsed(TimeSpan.FromMilliseconds(45)));
+        string secFormatted = AppLoggerService.FormatElapsed(TimeSpan.FromMilliseconds(1500));
+        Assert.EndsWith("s (1500 ms)", secFormatted);
+        Assert.Equal("0 ms", AppLoggerService.FormatElapsed(TimeSpan.Zero));
+    }
+
+    [Fact]
+    public void DescribeSecretPresence_MasksValueWithoutExposingCharacters()
+    {
+        Assert.Equal("(ausente)", AppLoggerService.DescribeSecretPresence(null));
+        Assert.Equal("(ausente)", AppLoggerService.DescribeSecretPresence(""));
+        Assert.Equal("(ausente)", AppLoggerService.DescribeSecretPresence("   "));
+
+        const string fakeSecret = "S3gr3d0-Super-Confidencial";
+        string description = AppLoggerService.DescribeSecretPresence(fakeSecret);
+
+        Assert.Equal($"(configurado, {fakeSecret.Length} chars)", description);
+        Assert.DoesNotContain(fakeSecret, description);
+    }
+
+    [Fact]
+    public void LogException_IncludesOperationTypeHResultAndInnerExceptionAndSanitizesCaller()
+    {
+        string token = Guid.NewGuid().ToString("N");
+        string? captured = null;
+        Action<string> handler = line => captured = line;
+
+        var inner = new UnauthorizedAccessException($"Acesso negado interno {token}");
+        var outer = new InvalidOperationException($"Falha externa\r\nforjada {token}", inner);
+
+        AppLoggerService.OnLogLineWritten += handler;
+        try
+        {
+            AppLoggerService.LogException(
+                "Caller\nForjado",
+                $"OperacaoTeste_{token}",
+                outer,
+                TimeSpan.FromMilliseconds(250));
+
+            Assert.NotNull(captured);
+            Assert.Contains("[DANGER]", captured);
+            Assert.Contains("[Caller Forjado]", captured);
+            Assert.Contains($"OperacaoTeste_{token}", captured);
+            Assert.Contains("InvalidOperationException", captured);
+            Assert.Contains($"0x{outer.HResult:X8}", captured);
+            Assert.Contains("Inner(UnauthorizedAccessException):", captured);
+            Assert.Contains("Duração=250 ms", captured);
+            Assert.DoesNotContain('\n', captured);
+            Assert.DoesNotContain('\r', captured);
+        }
+        finally
+        {
+            AppLoggerService.OnLogLineWritten -= handler;
+        }
+    }
 }
 

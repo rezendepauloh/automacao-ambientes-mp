@@ -7,27 +7,53 @@ public class FolderLauncherService
 {
     public void OpenFolders(IEnumerable<string> folderPaths)
     {
-        foreach (var path in folderPaths)
+        var paths = folderPaths?.Where(p => !string.IsNullOrWhiteSpace(p)).ToList() ?? [];
+        if (paths.Count == 0)
         {
-            if (string.IsNullOrWhiteSpace(path)) continue;
+            AppLoggerService.Info("Nenhuma pasta informada para abertura no Explorer.", nameof(FolderLauncherService));
+            return;
+        }
 
+        var sw = Stopwatch.StartNew();
+        int opened = 0;
+        int missing = 0;
+        int failed = 0;
+        AppLoggerService.Info($"Iniciando abertura de {paths.Count} pasta(s) no Explorer.", nameof(FolderLauncherService));
+
+        foreach (var path in paths)
+        {
             string expanded = Environment.ExpandEnvironmentVariables(path.Trim());
-            if (Directory.Exists(expanded))
+            if (!Directory.Exists(expanded))
             {
-                Process.Start(new ProcessStartInfo
+                missing++;
+                AppLoggerService.Warning($"Diretório não encontrado: '{expanded}'.", nameof(FolderLauncherService));
+                continue;
+            }
+
+            try
+            {
+                var proc = Process.Start(new ProcessStartInfo
                 {
                     FileName = "explorer.exe",
                     Arguments = $"\"{expanded}\"",
                     UseShellExecute = true
                 });
-                AppLoggerService.Info($"Pasta aberta no Explorer: {expanded}", nameof(FolderLauncherService));
+                opened++;
+                AppLoggerService.Info($"Pasta aberta no Explorer: '{expanded}' (PID={proc?.Id.ToString() ?? "shell"}).", nameof(FolderLauncherService));
                 Thread.Sleep(350);
             }
-            else
+            catch (Exception ex)
             {
-                AppLoggerService.Warning($"Diretório não encontrado: {expanded}", nameof(FolderLauncherService));
+                failed++;
+                AppLoggerService.LogException(nameof(FolderLauncherService), $"Abrir pasta '{expanded}' no Explorer", ex, level: LogLevel.WARNING);
             }
         }
+
+        var level = failed > 0 ? LogLevel.WARNING : LogLevel.SUCCESS;
+        AppLoggerService.Log(
+            level,
+            $"Abertura de pastas concluída: Abertas={opened}, Ausentes={missing}, Falhas={failed}, Duração={AppLoggerService.FormatElapsed(sw)}.",
+            nameof(FolderLauncherService));
     }
 }
 

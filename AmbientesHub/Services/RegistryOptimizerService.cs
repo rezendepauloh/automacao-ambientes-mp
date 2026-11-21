@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using System.Text;
@@ -267,11 +268,13 @@ public class RegistryOptimizerService
             tweak.CurrentRawValue = null;
             tweak.CurrentValueDisplay = $"Erro de acesso: {ex.Message}";
             tweak.Status = RegistryTweakStatus.NotChecked;
+            AppLoggerService.Warning($"ScanTweak '{tweak.FullRegistryPath}\\{tweak.ValueName}' falhou: {ex.Message}", nameof(RegistryOptimizerService));
         }
     }
 
     public void ScanAll(IEnumerable<RegistryTweakItem> tweaks, Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         onLog?.Invoke("[INFO] Iniciando escaneamento cirúrgico de chaves do registro...");
         int count = 0;
         int optCount = 0;
@@ -285,6 +288,7 @@ public class RegistryOptimizerService
         }
 
         onLog?.Invoke($"[SUCESSO] Escaneamento concluído: {optCount} de {count} chaves já otimizadas.");
+        AppLoggerService.Info($"ScanAll registro concluído: {optCount}/{count} otimizado(s) em {AppLoggerService.FormatElapsed(sw)}.", nameof(RegistryOptimizerService));
     }
 
     public string CreateBackup(IEnumerable<RegistryTweakItem> tweaks, string? customPath = null)
@@ -346,7 +350,10 @@ public class RegistryOptimizerService
             File.WriteAllText(LatestRollbackJsonPath, json, Encoding.UTF8);
             ConfigService.HardenFilePermissions(LatestRollbackJsonPath);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"Falha ao gravar snapshot JSON de rollback em '{LatestRollbackJsonPath}': {ex.Message}", nameof(RegistryOptimizerService));
+        }
 
         AppLoggerService.Success($"Backup de registro salvo com sucesso em: {regPath}", nameof(RegistryOptimizerService));
         return regPath;
@@ -468,6 +475,7 @@ public class RegistryOptimizerService
 
     public (int Applied, int Failed) ApplyBatch(IEnumerable<RegistryTweakItem> tweaks, Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         var list = tweaks.Where(t => t.IsSelected).ToList();
         if (list.Count == 0)
         {
@@ -475,6 +483,7 @@ public class RegistryOptimizerService
             return (0, 0);
         }
 
+        AppLoggerService.Info($"ApplyBatch registro iniciado para {list.Count} tweak(s).", nameof(RegistryOptimizerService));
         // Gera backup de segurança obrigatório antes do lote
         try
         {
@@ -484,6 +493,7 @@ public class RegistryOptimizerService
         catch (Exception ex)
         {
             onLog?.Invoke($"[ALERTA] Não foi possível gerar backup automático: {ex.Message}");
+            AppLoggerService.Warning($"Falha ao gerar backup pré-lote de registro: {ex.Message}", nameof(RegistryOptimizerService));
         }
 
         int applied = 0;
@@ -497,11 +507,16 @@ public class RegistryOptimizerService
         }
 
         onLog?.Invoke($"[CONCLUÍDO] Lote finalizado: {applied} aplicado(s), {failed} falha(s).");
+        AppLoggerService.Log(
+            failed == 0 ? LogLevel.SUCCESS : LogLevel.WARNING,
+            $"ApplyBatch registro finalizado em {AppLoggerService.FormatElapsed(sw)}: aplicados={applied}, falhas={failed}.",
+            nameof(RegistryOptimizerService));
         return (applied, failed);
     }
 
     public (int Restored, int Failed) RollbackBatch(IEnumerable<RegistryTweakItem> tweaks, Action<string>? onLog = null)
     {
+        var sw = Stopwatch.StartNew();
         var list = tweaks.Where(t => t.IsSelected).ToList();
         if (list.Count == 0)
         {
@@ -509,6 +524,7 @@ public class RegistryOptimizerService
             return (0, 0);
         }
 
+        AppLoggerService.Info($"RollbackBatch registro iniciado para {list.Count} tweak(s).", nameof(RegistryOptimizerService));
         int restored = 0;
         int failed = 0;
 
@@ -520,6 +536,10 @@ public class RegistryOptimizerService
         }
 
         onLog?.Invoke($"[CONCLUÍDO] Rollback finalizado: {restored} restaurado(s), {failed} falha(s).");
+        AppLoggerService.Log(
+            failed == 0 ? LogLevel.SUCCESS : LogLevel.WARNING,
+            $"RollbackBatch registro finalizado em {AppLoggerService.FormatElapsed(sw)}: restaurados={restored}, falhas={failed}.",
+            nameof(RegistryOptimizerService));
         return (restored, failed);
     }
 

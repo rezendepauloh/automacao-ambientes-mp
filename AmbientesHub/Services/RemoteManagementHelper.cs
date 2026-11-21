@@ -48,36 +48,55 @@ public static class RemoteManagementHelper
     public static bool PingHost(string? computerName, int timeoutMs = -1)
     {
         if (IsLocalMachine(computerName)) return true;
-        if (!InputValidator.IsValidHostName(computerName!.Trim())) return false;
+        string trimmed = computerName!.Trim();
+        if (!InputValidator.IsValidHostName(trimmed))
+        {
+            AppLoggerService.Warning($"PingHost rejeitado: hostname inválido '{trimmed}'.", nameof(RemoteManagementHelper));
+            return false;
+        }
         if (timeoutMs <= 0) timeoutMs = ConfigService.PingTimeoutMs;
         try
         {
             using var ping = new Ping();
-            var reply = ping.Send(computerName!.Trim(), timeoutMs);
-            return reply.Status == IPStatus.Success;
+            var reply = ping.Send(trimmed, timeoutMs);
+            if (reply.Status == IPStatus.Success)
+            {
+                AppLoggerService.Info($"Ping OK para '{trimmed}' ({reply.Address}, RTT={reply.RoundtripTime} ms).", nameof(RemoteManagementHelper));
+                return true;
+            }
+
+            AppLoggerService.Warning($"Ping falhou para '{trimmed}': Status={reply.Status}, Timeout={timeoutMs} ms.", nameof(RemoteManagementHelper));
+            return false;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(RemoteManagementHelper), $"PingHost '{trimmed}'", ex, level: LogLevel.WARNING);
             return false;
         }
     }
 
     public static ManagementScope CreateScope(string? computerName, string wmiNamespace = @"root\cimv2", TimeSpan? timeout = null)
     {
+        var sw = Stopwatch.StartNew();
         bool isLocal = IsLocalMachine(computerName);
         string target = isLocal ? "." : computerName!.Trim();
 
         if (!isLocal && !InputValidator.IsValidHostName(target))
+        {
+            AppLoggerService.Warning($"CreateScope rejeitado (host inválido: '{target}').", nameof(RemoteManagementHelper));
             throw new ArgumentException("Nome de host remoto inválido.", nameof(computerName));
+        }
 
+        var effectiveTimeout = timeout ?? TimeSpan.FromSeconds(25);
         var options = new ConnectionOptions
         {
             Impersonation = ImpersonationLevel.Impersonate,
             Authentication = AuthenticationLevel.PacketPrivacy,
             EnablePrivileges = true,
-            Timeout = timeout ?? TimeSpan.FromSeconds(25)
+            Timeout = effectiveTimeout
         };
 
+        string authMode = "sessão atual";
         if (!isLocal)
         {
             var cred = CredentialService.ReadPlaintextCredential();
@@ -90,19 +109,33 @@ public static class RemoteManagementHelper
                 {
                     options.Username = cred.Username;
                     options.Password = cred.Password;
+                    authMode = $"cofre DPAPI ({cred.Username})";
                 }
             }
         }
 
-        var scope = new ManagementScope($@"\\{target}\{wmiNamespace}", options);
-        scope.Connect();
-        return scope;
+        string scopePath = $@"\\{target}\{wmiNamespace}";
+        try
+        {
+            var scope = new ManagementScope(scopePath, options);
+            scope.Connect();
+            AppLoggerService.Info(
+                $"WMI conectado em '{scopePath}' (auth={authMode}, timeout={effectiveTimeout.TotalSeconds:0.#}s) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(RemoteManagementHelper));
+            return scope;
+        }
+        catch (Exception ex)
+        {
+            AppLoggerService.LogException(nameof(RemoteManagementHelper), $"Conexão WMI '{scopePath}' (auth={authMode})", ex, sw.Elapsed);
+            throw;
+        }
     }
 
     public static void EnableWinRmAndFirewallViaDcom(string computerName, Action<string>? onLog = null)
     {
         if (IsLocalMachine(computerName)) return;
 
+        var sw = Stopwatch.StartNew();
         try
         {
             var scope = CreateScope(computerName, @"root\cimv2", TimeSpan.FromSeconds(15));
@@ -134,17 +167,21 @@ public static class RemoteManagementHelper
 
             // 3. Configurar TrustedHosts via StdRegProv
             var regScope = CreateScope(computerName, @"root\default", TimeSpan.FromSeconds(10));
-            SetStdRegStringValue(
+            bool trustedOk = SetStdRegStringValue(
                 regScope,
                 HKEY_LOCAL_MACHINE,
                 @"SOFTWARE\Policies\Microsoft\Windows\WinRM\Client",
                 "TrustedHosts",
                 Environment.MachineName);
 
+            AppLoggerService.Info(
+                $"[DCOM] WinRM/Firewall/TrustedHosts preparados em '{computerName}' (TrustedHosts={trustedOk}) em {AppLoggerService.FormatElapsed(sw)}.",
+                nameof(RemoteManagementHelper));
             onLog?.Invoke($"  -> [DCOM] Serviço WinRM, Firewall e TrustedHosts preparados em '{computerName}'.");
         }
         catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(RemoteManagementHelper), $"Preparação auxiliar WinRM via DCOM em '{computerName}'", ex, sw.Elapsed, LogLevel.WARNING);
             onLog?.Invoke($"  -> [AVISO DCOM] Preparação auxiliar WinRM em '{computerName}': {ex.Message}");
         }
     }
@@ -152,16 +189,32 @@ public static class RemoteManagementHelper
     public static bool EnsureAdminShareConnected(string computerName)
     {
         if (IsLocalMachine(computerName)) return true;
-        if (!InputValidator.IsValidHostName(computerName.Trim())) return false;
+        string cleanHost = computerName.Trim();
+        if (!InputValidator.IsValidHostName(cleanHost))
+        {
+            AppLoggerService.Warning($"EnsureAdminShareConnected rejeitado (host inválido: '{cleanHost}').", nameof(RemoteManagementHelper));
+            return false;
+        }
 
-        string uncRoot = $@"\\{computerName.Trim()}\C$";
-        if (Directory.Exists(uncRoot)) return true;
+        var sw = Stopwatch.StartNew();
+        string uncRoot = $@"\\{cleanHost}\C$";
+        if (Directory.Exists(uncRoot))
+        {
+            AppLoggerService.Info($"Admin share '{uncRoot}' já acessível ({AppLoggerService.FormatElapsed(sw)}).", nameof(RemoteManagementHelper));
+            return true;
+        }
 
         try
         {
             var cred = CredentialService.ReadPlaintextCredential();
             if (!cred.Success || string.IsNullOrWhiteSpace(cred.Username) || cred.Password == null)
-                return Directory.Exists(uncRoot);
+            {
+                bool fallbackExists = Directory.Exists(uncRoot);
+                AppLoggerService.Warning(
+                    $"Admin share '{uncRoot}' inacessível e cofre DPAPI indisponível ({cred.Message}); fallbackExists={fallbackExists} [{AppLoggerService.FormatElapsed(sw)}].",
+                    nameof(RemoteManagementHelper));
+                return fallbackExists;
+            }
 
             var nr = new NETRESOURCE
             {
@@ -170,10 +223,24 @@ public static class RemoteManagementHelper
             };
 
             int res = WNetAddConnection2(ref nr, cred.Password, cred.Username, 0);
-            return res == 0 || res == 1219 || Directory.Exists(uncRoot);
+            bool ok = res == 0 || res == 1219 || Directory.Exists(uncRoot);
+            if (ok)
+            {
+                AppLoggerService.Info(
+                    $"WNetAddConnection2 para '{uncRoot}' com '{cred.Username}' retornou código {res} em {AppLoggerService.FormatElapsed(sw)}.",
+                    nameof(RemoteManagementHelper));
+            }
+            else
+            {
+                AppLoggerService.Warning(
+                    $"Falha ao autenticar '{uncRoot}' com '{cred.Username}': Win32Error={res} em {AppLoggerService.FormatElapsed(sw)}.",
+                    nameof(RemoteManagementHelper));
+            }
+            return ok;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(RemoteManagementHelper), $"EnsureAdminShareConnected '{uncRoot}'", ex, sw.Elapsed, LogLevel.WARNING);
             return Directory.Exists(uncRoot);
         }
     }
@@ -209,7 +276,10 @@ public static class RemoteManagementHelper
                 return outParams["sNames"] as string[];
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"StdRegProv.EnumKey falhou em '{subKeyName}': {ex.Message}", nameof(RemoteManagementHelper));
+        }
         return null;
     }
 
@@ -228,7 +298,10 @@ public static class RemoteManagementHelper
                 return outParams["sValue"]?.ToString();
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"StdRegProv.GetStringValue falhou em '{subKeyName}\\{valueName}': {ex.Message}", nameof(RemoteManagementHelper));
+        }
         return null;
     }
 
@@ -247,7 +320,10 @@ public static class RemoteManagementHelper
                 return Convert.ToUInt32(outParams["uValue"]);
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"StdRegProv.GetDWORDValue falhou em '{subKeyName}\\{valueName}': {ex.Message}", nameof(RemoteManagementHelper));
+        }
         return null;
     }
 
@@ -267,10 +343,14 @@ public static class RemoteManagementHelper
             inParams["sValueName"] = valueName;
             inParams["sValue"] = value;
             using var outParams = reg.InvokeMethod("SetStringValue", inParams, null);
-            return outParams != null && Convert.ToUInt32(outParams["ReturnValue"]) == 0;
+            uint ret = outParams != null ? Convert.ToUInt32(outParams["ReturnValue"]) : 99;
+            if (ret != 0)
+                AppLoggerService.Warning($"StdRegProv.SetStringValue '{subKeyName}\\{valueName}' retornou código {ret}.", nameof(RemoteManagementHelper));
+            return ret == 0;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.Warning($"StdRegProv.SetStringValue falhou em '{subKeyName}\\{valueName}': {ex.Message}", nameof(RemoteManagementHelper));
             return false;
         }
     }
@@ -284,10 +364,14 @@ public static class RemoteManagementHelper
             inParams["hDefKey"] = hDefKey;
             inParams["sSubKeyName"] = subKeyName;
             using var outParams = reg.InvokeMethod("DeleteKey", inParams, null);
-            return outParams != null && Convert.ToUInt32(outParams["ReturnValue"]) == 0;
+            uint ret = outParams != null ? Convert.ToUInt32(outParams["ReturnValue"]) : 99;
+            if (ret != 0)
+                AppLoggerService.Warning($"StdRegProv.DeleteKey '{subKeyName}' retornou código {ret}.", nameof(RemoteManagementHelper));
+            return ret == 0;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.Warning($"StdRegProv.DeleteKey falhou em '{subKeyName}': {ex.Message}", nameof(RemoteManagementHelper));
             return false;
         }
     }
@@ -296,9 +380,18 @@ public static class RemoteManagementHelper
     {
         // Fail-closed: host remoto fora da whitelist ou comando com caracteres de controle nunca é executado.
         if (string.IsNullOrWhiteSpace(commandLine) || commandLine.IndexOfAny(['\r', '\n', '\0']) >= 0)
+        {
+            AppLoggerService.Warning("InvokeCommandOnTarget rejeitado: comando vazio ou com caracteres de controle.", nameof(RemoteManagementHelper));
             return false;
+        }
         if (!IsLocalMachine(computerName) && !InputValidator.IsValidHostName(computerName?.Trim()))
+        {
+            AppLoggerService.Warning($"InvokeCommandOnTarget rejeitado: host remoto inválido '{computerName}'.", nameof(RemoteManagementHelper));
             return false;
+        }
+
+        var sw = Stopwatch.StartNew();
+        string cmdPreview = commandLine.Length > 120 ? commandLine[..120] + "..." : commandLine;
 
         if (IsLocalMachine(computerName))
         {
@@ -313,12 +406,26 @@ public static class RemoteManagementHelper
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 });
-                if (proc == null) return false;
-                proc.WaitForExit(timeoutSeconds * 1000);
+                if (proc == null)
+                {
+                    AppLoggerService.Warning($"InvokeCommandOnTarget local falhou ao iniciar cmd.exe para '{cmdPreview}'.", nameof(RemoteManagementHelper));
+                    return false;
+                }
+                bool exited = proc.WaitForExit(timeoutSeconds * 1000);
+                if (!exited)
+                {
+                    try { proc.Kill(entireProcessTree: true); } catch { }
+                    AppLoggerService.Warning($"InvokeCommandOnTarget local excedeu timeout ({timeoutSeconds}s) para '{cmdPreview}'.", nameof(RemoteManagementHelper));
+                    return false;
+                }
+                AppLoggerService.Info(
+                    $"InvokeCommandOnTarget local concluído (ExitCode={proc.ExitCode}, duração={AppLoggerService.FormatElapsed(sw)}): {cmdPreview}",
+                    nameof(RemoteManagementHelper));
                 return proc.ExitCode == 0;
             }
-            catch
+            catch (Exception ex)
             {
+                AppLoggerService.LogException(nameof(RemoteManagementHelper), $"InvokeCommandOnTarget local '{cmdPreview}'", ex, sw.Elapsed, LogLevel.WARNING);
                 return false;
             }
         }
@@ -330,22 +437,36 @@ public static class RemoteManagementHelper
             using var inParams = procClass.GetMethodParameters("Create");
             inParams["CommandLine"] = $"cmd.exe /c {commandLine}";
             using var outParams = procClass.InvokeMethod("Create", inParams, null);
-            if (outParams == null || Convert.ToUInt32(outParams["ReturnValue"]) != 0)
+            uint ret = outParams != null ? Convert.ToUInt32(outParams["ReturnValue"]) : 99;
+            if (ret != 0)
+            {
+                AppLoggerService.Warning(
+                    $"Win32_Process.Create em '{computerName}' retornou código {ret} para '{cmdPreview}' [{AppLoggerService.FormatElapsed(sw)}].",
+                    nameof(RemoteManagementHelper));
                 return false;
+            }
 
-            uint pid = Convert.ToUInt32(outParams["ProcessId"]);
-            var sw = Stopwatch.StartNew();
+            uint pid = Convert.ToUInt32(outParams!["ProcessId"]);
             while (sw.Elapsed.TotalSeconds < timeoutSeconds)
             {
                 Thread.Sleep(600);
                 using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery($"SELECT ProcessId FROM Win32_Process WHERE ProcessId = {pid}"));
                 if (searcher.Get().Count == 0)
+                {
+                    AppLoggerService.Info(
+                        $"Win32_Process remoto concluído em '{computerName}' (PID={pid}, duração={AppLoggerService.FormatElapsed(sw)}): {cmdPreview}",
+                        nameof(RemoteManagementHelper));
                     return true;
+                }
             }
+            AppLoggerService.Warning(
+                $"Win32_Process remoto em '{computerName}' (PID={pid}) atingiu limite de aguardo ({timeoutSeconds}s): {cmdPreview}",
+                nameof(RemoteManagementHelper));
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.LogException(nameof(RemoteManagementHelper), $"InvokeCommandOnTarget remoto em '{computerName}' ('{cmdPreview}')", ex, sw.Elapsed, LogLevel.WARNING);
             return false;
         }
     }
@@ -389,8 +510,9 @@ public static class RemoteManagementHelper
 
             return (displayName, desc, office);
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.Warning($"LookupAdUser falhou para '{cleanUser}': {ex.Message}", nameof(RemoteManagementHelper));
             return (string.Empty, string.Empty, string.Empty);
         }
     }

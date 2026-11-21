@@ -154,7 +154,12 @@ public static class InputValidator
     public static string SanitizeLogText(string? value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
-        return value.Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
+        var sb = new System.Text.StringBuilder(value.Length);
+        foreach (char c in value)
+        {
+            sb.Append(char.IsControl(c) ? ' ' : c);
+        }
+        return sb.ToString();
     }
 
     private static bool SafeIsMatch(Regex regex, string value)

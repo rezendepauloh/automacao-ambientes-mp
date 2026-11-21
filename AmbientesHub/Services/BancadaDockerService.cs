@@ -33,12 +33,19 @@ public class BancadaDockerService
             lock (_processLock)
             {
                 if (_activeProcess != null && !_activeProcess.HasExited)
+                {
+                    AppLoggerService.Info("AttachLogsAsync ignorado: stream de logs Docker já ativo.", nameof(BancadaDockerService));
                     return; // Já conectado
+                }
             }
 
-            if (!TryGetValidatedTarget(out string distro, out string wslDir, out string _))
+            if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
+            {
+                AppLoggerService.Warning($"AttachLogsAsync bloqueado: {error}", nameof(BancadaDockerService));
                 return;
+            }
 
+            AppLoggerService.Info($"Conectando ao stream de logs Docker Compose (distro='{distro}', dir='{wslDir}').", nameof(BancadaDockerService));
             string cmd = $"cd '{wslDir}' && docker compose logs -f --tail=30";
             RunWslCommand(distro, cmd, onOutput);
         });
@@ -46,6 +53,7 @@ public class BancadaDockerService
 
     public async Task<bool> IsBancadaOnlineAsync()
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             if (InputValidator.IsSafeHttpUrl(BancadaUrl))
@@ -53,25 +61,33 @@ public class BancadaDockerService
                 var uri = new Uri(BancadaUrl.TrimEnd('/') + "/_stcore/health");
                 var res = await HttpClient.GetAsync(uri);
                 if (res.IsSuccessStatusCode)
+                {
+                    AppLoggerService.Info($"Bancada Streamlit online em '{uri}' (HTTP {(int)res.StatusCode}) [{AppLoggerService.FormatElapsed(sw)}].", nameof(BancadaDockerService));
                     return true;
+                }
+                AppLoggerService.Info($"Healthcheck Streamlit '{uri}' retornou HTTP {(int)res.StatusCode}; tentando fallback para API REST.", nameof(BancadaDockerService));
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback para checagem de saúde da API REST (ex: RedHat ou Streamlit reiniciando)
+            AppLoggerService.Info($"Healthcheck Streamlit '{BancadaUrl}' indisponível ({ex.Message}); tentando fallback para BancadaApiClient.CheckHealthAsync().", nameof(BancadaDockerService));
         }
 
-        return await BancadaApiClient.CheckHealthAsync();
+        bool apiOk = await BancadaApiClient.CheckHealthAsync();
+        AppLoggerService.Info($"Status final Bancada Online={apiOk} em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaDockerService));
+        return apiOk;
     }
 
     public async Task StartDockerBancadaAsync(Action<string> onOutput, bool streamLogs = true)
     {
+        var sw = Stopwatch.StartNew();
         await Task.Run(() =>
         {
             lock (_processLock)
             {
                 if (_activeProcess != null && !_activeProcess.HasExited)
                 {
+                    AppLoggerService.Warning("StartDockerBancadaAsync ignorado: processo Docker já ativo no Hub.", nameof(BancadaDockerService));
                     onOutput("[Aviso] O processo Docker já está em execução no Hub.");
                     return;
                 }
@@ -81,10 +97,12 @@ public class BancadaDockerService
 
             if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
             {
+                AppLoggerService.Warning($"StartDockerBancadaAsync bloqueado (fail-closed): {error}", nameof(BancadaDockerService));
                 onOutput($"[ERRO] {error}");
                 return;
             }
 
+            AppLoggerService.Info($"Iniciando Bancada Docker (distro='{distro}', dir='{wslDir}', streamLogs={streamLogs}).", nameof(BancadaDockerService));
             // Comando a ser executado via WSL: define PYTHONUNBUFFERED=1, sobe os containers e conecta aos logs em tempo real
             string cmd = $"cd '{wslDir}' && export PYTHONUNBUFFERED=1 && docker compose up -d";
             if (streamLogs)
@@ -93,6 +111,7 @@ public class BancadaDockerService
             }
 
             RunWslCommand(distro, cmd, onOutput);
+            AppLoggerService.Info($"StartDockerBancadaAsync disparado em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaDockerService));
         });
     }
 
@@ -137,14 +156,17 @@ public class BancadaDockerService
 
     public async Task StopDockerBancadaAsync(Action<string> onOutput)
     {
+        var sw = Stopwatch.StartNew();
         await Task.Run(() =>
         {
             if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
             {
+                AppLoggerService.Warning($"StopDockerBancadaAsync bloqueado (fail-closed): {error}", nameof(BancadaDockerService));
                 onOutput($"[ERRO] {error}");
                 return;
             }
 
+            AppLoggerService.Info($"Solicitando parada dos containers da Bancada (distro='{distro}', dir='{wslDir}').", nameof(BancadaDockerService));
             onOutput("[WSL/Docker] Solicitando parada dos serviços da Bancada (docker compose down)...");
 
             lock (_processLock)
@@ -164,26 +186,33 @@ public class BancadaDockerService
 
             RunWslCommand(distro, cmd, onOutput, waitForExit: true);
             onOutput("[WSL/Docker] Containers encerrados.");
+            AppLoggerService.Success($"Bancada Docker parada em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaDockerService));
         });
     }
 
     public async Task RestartDockerBancadaAsync(Action<string> onOutput)
     {
+        var sw = Stopwatch.StartNew();
+        AppLoggerService.Info("Reiniciando stack Docker da Bancada...", nameof(BancadaDockerService));
         await StopDockerBancadaAsync(onOutput);
         await Task.Delay(1500);
         await StartDockerBancadaAsync(onOutput);
+        AppLoggerService.Info($"RestartDockerBancadaAsync concluído em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaDockerService));
     }
 
     public async Task RebuildDockerBancadaAsync(Action<string> onOutput, bool streamLogs = true)
     {
+        var sw = Stopwatch.StartNew();
         await Task.Run(() =>
         {
             if (!TryGetValidatedTarget(out string distro, out string wslDir, out string error))
             {
+                AppLoggerService.Warning($"RebuildDockerBancadaAsync bloqueado (fail-closed): {error}", nameof(BancadaDockerService));
                 onOutput($"[ERRO] {error}");
                 return;
             }
 
+            AppLoggerService.Info($"Iniciando rebuild --no-cache da Bancada Docker (distro='{distro}', dir='{wslDir}').", nameof(BancadaDockerService));
             onOutput("[WSL/Docker] Iniciando reconstrução da stack (docker compose build --no-cache)...");
 
             lock (_processLock)
@@ -207,6 +236,7 @@ public class BancadaDockerService
             }
 
             RunWslCommand(distro, buildCmd, onOutput);
+            AppLoggerService.Info($"RebuildDockerBancadaAsync disparado em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaDockerService));
         });
     }
 
@@ -237,16 +267,19 @@ public class BancadaDockerService
         {
             string escapedBash = bashCmd.Replace("\"", "`\"");
             string psCommand = $"Invoke-Command -ComputerName '{remoteHost}' -ScriptBlock {{ wsl.exe -d {distro} -- bash -lic \"{escapedBash}\" }}";
+            AppLoggerService.Info($"BancadaDockerService modo remoto via WinRM -> '{remoteHost}' (distro='{distro}').", nameof(BancadaDockerService));
             onOutput($"[WinRM -> {remoteHost}] Executando no WSL remoto ({distro})...");
             RunProcess("powershell.exe", $"-NoProfile -NonInteractive -Command \"{psCommand.Replace("\"", "\\\"")}\"", onOutput, waitForExit);
             return;
         }
 
+        AppLoggerService.Info($"BancadaDockerService modo local via wsl.exe (distro='{distro}').", nameof(BancadaDockerService));
         RunProcess("wsl.exe", $"-d {distro} -- bash -lic \"{bashCmd}\"", onOutput, waitForExit);
     }
 
     private void RunProcess(string filename, string arguments, Action<string> onOutput, bool waitForExit = false)
     {
+        var sw = Stopwatch.StartNew();
         try
         {
             var psi = new ProcessStartInfo
@@ -283,10 +316,12 @@ public class BancadaDockerService
             p.Start();
             p.BeginOutputReadLine();
             p.BeginErrorReadLine();
+            AppLoggerService.Info($"Processo '{filename}' iniciado (PID={p.Id}, waitForExit={waitForExit}).", nameof(BancadaDockerService));
 
             if (waitForExit)
             {
                 p.WaitForExit();
+                AppLoggerService.Info($"Processo '{filename}' (PID={p.Id}) encerrou com ExitCode={p.ExitCode} em {AppLoggerService.FormatElapsed(sw)}.", nameof(BancadaDockerService));
                 lock (_processLock)
                 {
                     if (_activeProcess == p) _activeProcess = null;
@@ -296,7 +331,7 @@ public class BancadaDockerService
         catch (Exception ex)
         {
             onOutput($"[ERRO] Falha ao executar {filename}: {ex.Message}");
-            AppLoggerService.Danger($"Erro ao executar {filename}: {ex.Message}", nameof(BancadaDockerService));
+            AppLoggerService.LogException(nameof(BancadaDockerService), $"Executar '{filename}'", ex, sw.Elapsed);
         }
     }
 }

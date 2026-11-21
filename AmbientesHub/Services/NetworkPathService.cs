@@ -92,18 +92,23 @@ public class NetworkPathService
         try
         {
             if (!File.Exists(path))
+            {
+                AppLoggerService.Info($"Mapa de sub-redes não encontrado em '{path}'; 0 regras carregadas.", nameof(NetworkPathService));
                 return [];
+            }
 
             string json = File.ReadAllText(path, Encoding.UTF8);
             var raw = JsonSerializer.Deserialize<List<SubnetLocationRule>>(json, JsonOptions) ?? [];
-            return raw
+            var valid = raw
                 .Where(r => SubnetLocationRule.TryParseCidr(r.Cidr, out _, out _, out _))
                 .OrderByDescending(r => r.PrefixLength)
                 .ToList();
+            AppLoggerService.Info($"Mapa de sub-redes carregado de '{path}': {valid.Count} regra(s) válida(s).", nameof(NetworkPathService));
+            return valid;
         }
         catch (Exception ex)
         {
-            AppLoggerService.Warning($"Falha ao ler mapa de sub-redes '{path}': {ex.Message}", nameof(NetworkPathService));
+            AppLoggerService.LogException(nameof(NetworkPathService), $"Ler mapa de sub-redes '{path}'", ex, level: LogLevel.WARNING);
             return [];
         }
     }
@@ -132,6 +137,7 @@ public class NetworkPathService
 
         string json = JsonSerializer.Serialize(validRules, JsonOptions);
         File.WriteAllText(path, json, Encoding.UTF8);
+        AppLoggerService.Success($"Mapa de sub-redes salvo em '{path}' ({validRules.Count} regra(s)).", nameof(NetworkPathService));
     }
 
     /// <summary>
@@ -252,10 +258,13 @@ public class NetworkPathService
         IProgress<NetworkHopNode>? onHopDiscovered = null,
         CancellationToken cancellationToken = default)
     {
+        var swTotal = Stopwatch.StartNew();
         string target = ValidateTarget(rawTarget);
         subnetRules ??= LoadSubnetRules();
         maxHops = Math.Clamp(maxHops, 1, 40);
         timeoutMs = Math.Clamp(timeoutMs, 300, 5000);
+
+        AppLoggerService.Info($"TraceRouteAsync iniciado: alvo='{target}', maxHops={maxHops}, timeoutMs={timeoutMs}, subnetRules={subnetRules.Count}.", nameof(NetworkPathService));
 
         var result = new NetworkTraceResult
         {
@@ -268,10 +277,14 @@ public class NetworkPathService
         onHopDiscovered?.Report(origin);
 
         // 1. Resolve destino (IP + FQDN + OU do AD caso offline)
+        var swDns = Stopwatch.StartNew();
         var (targetIp, resolvedFqdn, adOuLocation) = await ResolveTargetMetadataAsync(target, cancellationToken);
         result.ResolvedTargetIp = targetIp?.ToString() ?? string.Empty;
         result.ResolvedTargetFqdn = resolvedFqdn;
         result.AdOuLocation = adOuLocation;
+        AppLoggerService.Info(
+            $"Resolução destino '{target}' em {AppLoggerService.FormatElapsed(swDns)}: IP='{(targetIp?.ToString() ?? "N/D")}', FQDN='{resolvedFqdn}', AD_OU='{adOuLocation}'.",
+            nameof(NetworkPathService));
 
         if (targetIp == null)
         {
@@ -291,6 +304,7 @@ public class NetworkPathService
             result.Hops.Add(unresolvedDest);
             onHopDiscovered?.Report(unresolvedDest);
             result.CompletedAt = DateTime.Now;
+            AppLoggerService.Warning($"TraceRouteAsync '{target}' encerrado: DNS não resolveu ({AppLoggerService.FormatElapsed(swTotal)}).", nameof(NetworkPathService));
             return result;
         }
 
@@ -398,7 +412,10 @@ public class NetworkPathService
                 // consideramos que a rota parou antes do destino (ex.: máquina desligada após o gateway).
                 int limit = responsiveIntermediateHops > 0 ? 3 : 4;
                 if (consecutiveTimeouts >= limit)
+                {
+                    AppLoggerService.Info($"TraceRouteAsync '{target}' interrompido no TTL={ttl} após {consecutiveTimeouts} timeouts consecutivos.", nameof(NetworkPathService));
                     break;
+                }
             }
         }
 
@@ -455,6 +472,9 @@ public class NetworkPathService
         }
 
         result.CompletedAt = DateTime.Now;
+        AppLoggerService.Success(
+            $"TraceRouteAsync '{target}' finalizado: online={result.TargetOnline}, nós={result.Hops.Count}, ip='{result.ResolvedTargetIp}', duração={AppLoggerService.FormatElapsed(swTotal)}.",
+            nameof(NetworkPathService));
         return result;
     }
 
@@ -834,8 +854,9 @@ public class NetworkPathService
 
             return !string.IsNullOrWhiteSpace(loc) ? loc : ouSummary;
         }
-        catch
+        catch (Exception ex)
         {
+            AppLoggerService.Warning($"TryLookupComputerLocationInAd falhou para '{hostName}': {ex.Message}", nameof(NetworkPathService));
             return string.Empty;
         }
     }
@@ -957,7 +978,11 @@ public class NetworkPathService
             {
                 destNode.InferredLocation = match.EstimatedLocationDisplay;
             }
+            AppLoggerService.Info($"Destino '{target}' enriquecido via AD/SCCM fallback (Usuário='{destNode.ConnectedUser}', MAC='{destNode.MacAddress}').", nameof(NetworkPathService));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            AppLoggerService.Warning($"TryEnrichDestinationFromAdSccmAsync falhou para '{target}': {ex.Message}", nameof(NetworkPathService));
+        }
     }
 }

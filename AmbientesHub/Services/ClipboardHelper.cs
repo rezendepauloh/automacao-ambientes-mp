@@ -34,6 +34,7 @@ public static class ClipboardHelper
                 }
             }
         }
+        AppLoggerService.Warning($"ClipboardHelper.Copy falhou após 5 tentativas (tamanho={text.Trim().Length} chars).", nameof(ClipboardHelper));
         return false;
     }
 }

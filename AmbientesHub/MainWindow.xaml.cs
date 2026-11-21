@@ -75,6 +75,7 @@ public partial class MainWindow : FluentWindow
     private readonly List<CronLogItem> _latestCronLogs = [];
     private bool _isUpdatingCronFilters = false;
     private readonly ObservableCollection<EnvironmentModeItem> _environmentModes = new(EnvironmentLauncherService.CreateDefaultModes());
+    private CancellationTokenSource? _jumpPipeCts;
 
     public MainWindow()
     {
@@ -99,6 +100,8 @@ public partial class MainWindow : FluentWindow
         PopulateFontList();
         LoadSettingsIntoUi();
         InitializeSystemTray();
+        TaskbarJumpListService.RegisterJumpList();
+        _jumpPipeCts = TaskbarJumpListService.StartPipeServer(HandleJumpListAction);
         RefreshPerformanceAdminStatus();
         RefreshUsmtBinStatusBadge();
         if (CmbAdUserStatusFilter != null && CmbAdUserStatusFilter.Items.Count > 0)
@@ -848,10 +851,76 @@ public partial class MainWindow : FluentWindow
     {
         AppLoggerService.Info("Encerramento explícito solicitado pelo usuário (ExitApplication).", nameof(MainWindow));
         _isRealExit = true;
+        _jumpPipeCts?.Cancel();
+        _jumpPipeCts?.Dispose();
+        _jumpPipeCts = null;
         AppLoggerService.OnLogLineWritten -= OnNewLogLineReceived;
         _trayIconService?.Dispose();
         _trayIconService = null;
         System.Windows.Application.Current.Shutdown();
+    }
+
+    private void HandleJumpListAction(string action)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            AppLoggerService.Info($"Executando ação da JumpList na UI: '{action}'.", nameof(MainWindow));
+            if (action.Equals("exit", StringComparison.OrdinalIgnoreCase))
+            {
+                ExitApplication();
+                return;
+            }
+            if (action.Equals("open", StringComparison.OrdinalIgnoreCase))
+            {
+                RestoreFromTray();
+                return;
+            }
+            if (action.Equals("quick-clean", StringComparison.OrdinalIgnoreCase))
+            {
+                TrayQuickClean();
+                return;
+            }
+            if (action.StartsWith("env:", StringComparison.OrdinalIgnoreCase))
+            {
+                string mode = action["env:".Length..].Trim();
+                if (!string.IsNullOrEmpty(mode))
+                    TrayLaunchEnvironment(mode);
+                return;
+            }
+            if (action.Equals("sccm-clipboard", StringComparison.OrdinalIgnoreCase))
+            {
+                TrayRemoteConnect(useSccm: true);
+                return;
+            }
+            if (action.Equals("rdp-clipboard", StringComparison.OrdinalIgnoreCase))
+            {
+                TrayRemoteConnect(useSccm: false);
+                return;
+            }
+            if (action.Equals("start-docker", StringComparison.OrdinalIgnoreCase))
+            {
+                BtnStartBancada_Click(this, new RoutedEventArgs());
+                return;
+            }
+            if (action.Equals("stop-docker", StringComparison.OrdinalIgnoreCase))
+            {
+                BtnStopBancada_Click(this, new RoutedEventArgs());
+                return;
+            }
+            if (action.Equals("open-bancada", StringComparison.OrdinalIgnoreCase))
+            {
+                BtnOpenBancadaBrowser_Click(this, new RoutedEventArgs());
+                return;
+            }
+            if (action.Equals("open-logs", StringComparison.OrdinalIgnoreCase))
+            {
+                RestoreFromTray();
+                NavListBox.SelectedIndex = 15;
+                return;
+            }
+
+            AppLoggerService.Warning($"Ação JumpList desconhecida ignorada: '{action}'.", nameof(MainWindow));
+        });
     }
 
     protected override void OnStateChanged(EventArgs e)

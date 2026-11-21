@@ -13,10 +13,18 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        string? jumpAction = TaskbarJumpListService.ExtractJumpAction(e.Args);
+        if (!string.IsNullOrEmpty(jumpAction))
+        {
+            TaskbarJumpListService.TrySendActionToRunningInstance(jumpAction);
+            Shutdown(0);
+            return;
+        }
+
         base.OnStartup(e);
 
         AppLoggerService.Info(
-            $"Aplicação iniciada (OS={Environment.OSVersion.VersionString}, .NET={Environment.Version}, Admin={AdSccmService.IsRunningAsAdministrator()}, BaseDir='{AppContext.BaseDirectory}', Args={e.Args.Length}).",
+            $"Aplicação iniciada (OS={Environment.OSVersion.VersionString}, .NET={Environment.Version}, Admin={SystemPerformanceService.IsUserAdministrator()}, BaseDir='{AppContext.BaseDirectory}', Args={e.Args.Length}).",
             nameof(App));
 
         AppDomain.CurrentDomain.UnhandledException += (s, args) =>

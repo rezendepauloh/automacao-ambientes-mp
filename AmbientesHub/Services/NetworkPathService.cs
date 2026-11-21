@@ -378,9 +378,6 @@ public class NetworkPathService
 
                 node.MacAddress = TryResolveMacViaArp(hopIp);
 
-                if (isDestination && (string.IsNullOrWhiteSpace(node.ConnectedUser) || string.IsNullOrWhiteSpace(node.MacAddress)))
-                    await TryEnrichDestinationFromAdSccmAsync(target, node, cancellationToken);
-
                 result.Hops.Add(node);
                 onHopDiscovered?.Report(node);
 
@@ -451,7 +448,6 @@ public class NetworkPathService
                 MatchedCidr = matchedDest?.Cidr ?? string.Empty,
                 Details = $"Último salto válido antes do destino: {(result.Hops.LastOrDefault(h => h.Kind != NetworkHopKind.Timeout)?.SubtitleDisplay ?? "nenhum")}. Destino {targetIpStr} não respondeu."
             };
-            await TryEnrichDestinationFromAdSccmAsync(target, offlineDest, cancellationToken);
             result.Hops.Add(offlineDest);
             onHopDiscovered?.Report(offlineDest);
         }
@@ -937,7 +933,7 @@ public class NetworkPathService
             : string.Empty;
     }
 
-    private static async Task TryEnrichDestinationFromAdSccmAsync(
+    public static async Task<bool> TryEnrichDestinationFromAdSccmAsync(
         string target,
         NetworkHopNode destNode,
         CancellationToken ct)
@@ -946,12 +942,12 @@ public class NetworkPathService
         {
             string shortHost = target.Split('.')[0].Trim();
             if (!InputValidator.IsValidHostName(shortHost))
-                return;
+                return false;
 
             var adSccm = new AdSccmService();
             var searchTask = adSccm.SearchMachinesAsync(shortHost);
-            if (await Task.WhenAny(searchTask, Task.Delay(3500, ct)) != searchTask)
-                return;
+            if (await Task.WhenAny(searchTask, Task.Delay(15000, ct)) != searchTask)
+                return false;
 
             var list = await searchTask;
             var match = list.FirstOrDefault(m =>
@@ -959,7 +955,7 @@ public class NetworkPathService
                 string.Equals(m.DnsHostName, target, StringComparison.OrdinalIgnoreCase));
 
             if (match == null)
-                return;
+                return false;
 
             if (string.IsNullOrWhiteSpace(destNode.ConnectedUser))
             {
@@ -979,10 +975,12 @@ public class NetworkPathService
                 destNode.InferredLocation = match.EstimatedLocationDisplay;
             }
             AppLoggerService.Info($"Destino '{target}' enriquecido via AD/SCCM fallback (Usuário='{destNode.ConnectedUser}', MAC='{destNode.MacAddress}').", nameof(NetworkPathService));
+            return !string.IsNullOrWhiteSpace(destNode.ConnectedUser) || !string.IsNullOrWhiteSpace(destNode.MacAddress);
         }
         catch (Exception ex)
         {
             AppLoggerService.Warning($"TryEnrichDestinationFromAdSccmAsync falhou para '{target}': {ex.Message}", nameof(NetworkPathService));
+            return false;
         }
     }
 }

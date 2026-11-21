@@ -108,6 +108,12 @@ public partial class NetworkPathView : WControls.UserControl
                 _selectedNode = last;
                 UpdateInspector(last);
                 RenderNetworkGraph();
+
+                if (last.Kind == NetworkHopKind.Destination &&
+                    (string.IsNullOrWhiteSpace(last.ConnectedUser) || string.IsNullOrWhiteSpace(last.MacAddress)))
+                {
+                    _ = EnrichDestinationInBackgroundAsync(validatedTarget, last, ct);
+                }
             }
 
             if (result.TargetOnline)
@@ -148,6 +154,17 @@ public partial class NetworkPathView : WControls.UserControl
         {
             _isTracing = false;
             UpdateButtonsState();
+        }
+    }
+
+    private async Task EnrichDestinationInBackgroundAsync(string target, NetworkHopNode destNode, CancellationToken ct)
+    {
+        bool updated = await NetworkPathService.TryEnrichDestinationFromAdSccmAsync(target, destNode, ct);
+        if (updated && !ct.IsCancellationRequested)
+        {
+            RenderNetworkGraph();
+            if (ReferenceEquals(_selectedNode, destNode))
+                UpdateInspector(destNode);
         }
     }
 

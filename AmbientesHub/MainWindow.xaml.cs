@@ -926,7 +926,7 @@ public partial class MainWindow : FluentWindow
     protected override void OnStateChanged(EventArgs e)
     {
         base.OnStateChanged(e);
-        if (WindowState == WindowState.Minimized && ConfigService.MinimizeToTray)
+        if (!_isRealExit && WindowState == WindowState.Minimized && ConfigService.MinimizeToTray)
         {
             Hide();
             _trayIconService?.ShowBalloon("Ambientes Hub", "O aplicativo continua ativo na bandeja do sistema.");

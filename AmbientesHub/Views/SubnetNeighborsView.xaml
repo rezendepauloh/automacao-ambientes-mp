@@ -48,7 +48,7 @@
                     <ui:Button x:Name="BtnScanNeighbors" Appearance="Primary" Content="Mapear Vizinhos" Icon="{ui:SymbolIcon Symbol=Play24}" Click="BtnScanNeighbors_Click" Margin="0,0,8,4" Padding="14,7" />
                     <ui:Button x:Name="BtnStopScan" Appearance="Danger" Content="Parar" Icon="{ui:SymbolIcon Symbol=Stop24}" Click="BtnStopScan_Click" IsEnabled="False" Margin="0,0,12,4" Padding="12,7" />
                     <CheckBox x:Name="ChkIncludeRemoteArp" Content="Tentar ARP remoto (WMI)" IsChecked="True" Margin="0,0,14,4" VerticalAlignment="Center" />
-                    <CheckBox x:Name="ChkIncludeSameOu" Content="Incluir mesma OU (AD)" IsChecked="False" Margin="0,0,14,4" VerticalAlignment="Center" ToolTip="Complementa com máquinas da mesma OU no Active Directory (útil se o ICMP estiver bloqueado)" />
+                    <CheckBox x:Name="ChkIncludeSameOu" Content="Incluir mesma OU (AD)" IsChecked="True" Margin="0,0,14,4" VerticalAlignment="Center" ToolTip="Complementa com máquinas da mesma OU no Active Directory (útil se o ICMP estiver bloqueado)" />
                     <ui:Button x:Name="BtnCopyNeighbors" Appearance="Transparent" Content="Copiar Lista" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnCopyNeighbors_Click" Margin="0,0,0,4" Padding="10,7" />
                 </WrapPanel>
             </StackPanel>

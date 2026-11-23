@@ -99,8 +99,10 @@ public partial class SubnetNeighborsView : WControls.UserControl
 
             int onlineCount = result.Neighbors.Count(n => n.IsOnline);
             SetStatus(
-                $"🟢 {onlineCount} online / {result.Neighbors.Count} total em {result.SubnetCidr}",
+                $"🟢 {onlineCount} online / {result.Neighbors.Count} total em {result.SubnetCidr} • Enriquecendo setores...",
                 "#064e3b", "#34d399", "#10b981");
+
+            _ = EnrichAllNeighborsInBackgroundAsync(result.Neighbors, ct);
         }
         catch (OperationCanceledException)
         {
@@ -478,6 +480,74 @@ public partial class SubnetNeighborsView : WControls.UserControl
     #endregion
 
     #region Inspetor, Enriquecimento sob Demanda & Ações
+
+    private async Task EnrichAllNeighborsInBackgroundAsync(List<SubnetNeighborNode> allNodes, CancellationToken ct)
+    {
+        var pending = allNodes
+            .Where(n => string.IsNullOrWhiteSpace(n.ConnectedUser) || string.IsNullOrWhiteSpace(n.LocationOrOu))
+            .Take(60)
+            .ToList();
+
+        if (pending.Count == 0) return;
+
+        using var gate = new SemaphoreSlim(4);
+        int processed = 0;
+
+        var tasks = pending.Select(async node =>
+        {
+            await gate.WaitAsync(ct);
+            try
+            {
+                if (ct.IsCancellationRequested) return;
+                string target = !string.IsNullOrWhiteSpace(node.Hostname) ? node.Hostname : node.IpAddress;
+                if (string.IsNullOrWhiteSpace(target)) return;
+
+                var tempHop = new NetworkHopNode
+                {
+                    Hostname = node.Hostname,
+                    IpAddress = node.IpAddress,
+                    MacAddress = node.MacAddress,
+                    ConnectedUser = node.ConnectedUser
+                };
+
+                bool updated = await NetworkPathService.TryEnrichDestinationFromAdSccmAsync(target, tempHop, ct);
+                if (updated && !ct.IsCancellationRequested)
+                {
+                    node.ConnectedUser = tempHop.ConnectedUser;
+                    node.MacAddress = string.IsNullOrWhiteSpace(node.MacAddress) ? tempHop.MacAddress : node.MacAddress;
+                    node.LocationOrOu = string.IsNullOrWhiteSpace(node.LocationOrOu) ? tempHop.InferredLocation : node.LocationOrOu;
+
+                    int count = Interlocked.Increment(ref processed);
+                    if (count % 3 == 0)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (_selectedNode != null && ReferenceEquals(_selectedNode, node))
+                                UpdateInspector(node);
+                            RenderGraph();
+                        });
+                    }
+                }
+            }
+            catch { }
+            finally
+            {
+                gate.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+
+        if (!ct.IsCancellationRequested && _lastResult != null)
+        {
+            RenderGraph();
+            if (_selectedNode != null) UpdateInspector(_selectedNode);
+            int onlineCount = _lastResult.Neighbors.Count(n => n.IsOnline);
+            SetStatus(
+                $"🟢 {onlineCount} online / {_lastResult.Neighbors.Count} total em {_lastResult.SubnetCidr}",
+                "#064e3b", "#34d399", "#10b981");
+        }
+    }
 
     private async Task EnrichSelectedNeighborInBackgroundAsync(SubnetNeighborNode node, CancellationToken ct)
     {

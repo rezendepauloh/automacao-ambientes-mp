@@ -104,6 +104,16 @@ public partial class MainWindow : FluentWindow
         _jumpPipeCts = TaskbarJumpListService.StartPipeServer(HandleJumpListAction);
         RefreshPerformanceAdminStatus();
         RefreshUsmtBinStatusBadge();
+        PanelZabbixMonitor.OnTraceRouteRequested += target =>
+        {
+            NavListBox.SelectedIndex = 19;
+            PanelNetworkPath.SetTargetAndTrace(target);
+        };
+        PanelSubnetNeighbors.OnTraceRouteRequested += target =>
+        {
+            NavListBox.SelectedIndex = 19;
+            PanelNetworkPath.SetTargetAndTrace(target);
+        };
         if (CmbAdUserStatusFilter != null && CmbAdUserStatusFilter.Items.Count > 0)
         {
             CmbAdUserStatusFilter.SelectedIndex = 0;
@@ -141,6 +151,8 @@ public partial class MainWindow : FluentWindow
             NavLbl17.Visibility = Visibility.Visible;
             NavLbl18.Visibility = Visibility.Visible;
             NavLbl19.Visibility = Visibility.Visible;
+            NavLbl20.Visibility = Visibility.Visible;
+            NavLbl21.Visibility = Visibility.Visible;
         }
         else
         {
@@ -166,6 +178,8 @@ public partial class MainWindow : FluentWindow
             NavLbl17.Visibility = Visibility.Collapsed;
             NavLbl18.Visibility = Visibility.Collapsed;
             NavLbl19.Visibility = Visibility.Collapsed;
+            NavLbl20.Visibility = Visibility.Collapsed;
+            NavLbl21.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -288,6 +302,13 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (lower is "vizinhos" or "arp" or "subrede" or "sub-rede" or "sala")
+        {
+            NavListBox.SelectedIndex = 21;
+            TxtFooterStatus.Text = "Navegado para: Vizinhos de Rede & ARP";
+            return;
+        }
+
         if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
         {
             NavListBox.SelectedIndex = 11;
@@ -403,7 +424,7 @@ public partial class MainWindow : FluentWindow
 
     private void HighlightActiveNavMenuItem(int activeIndex)
     {
-        for (int i = 0; i <= 19; i++)
+        for (int i = 0; i <= 21; i++)
         {
             if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
                 btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
@@ -436,6 +457,8 @@ public partial class MainWindow : FluentWindow
         PanelAppLogs.Visibility = Visibility.Collapsed;
         PanelConfig.Visibility = Visibility.Collapsed;
         PanelNetworkPath.Visibility = Visibility.Collapsed;
+        PanelZabbixMonitor.Visibility = Visibility.Collapsed;
+        PanelSubnetNeighbors.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -512,6 +535,13 @@ public partial class MainWindow : FluentWindow
                 break;
             case 19:
                 PanelNetworkPath.Visibility = Visibility.Visible;
+                break;
+            case 20:
+                PanelZabbixMonitor.Visibility = Visibility.Visible;
+                _ = PanelZabbixMonitor.EnsureLoadedOnceAsync();
+                break;
+            case 21:
+                PanelSubnetNeighbors.Visibility = Visibility.Visible;
                 break;
         }
     }
@@ -844,6 +874,19 @@ public partial class MainWindow : FluentWindow
         {
             AppLoggerService.LogException(nameof(MainWindow), $"Conexão remota via bandeja (SCCM={useSccm}, Alvo={raw})", ex);
             System.Windows.MessageBox.Show($"Falha ao iniciar conexão remota: {ex.Message}", "Erro de Conexão", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void BtnCardTraceRoute_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.FrameworkElement fe && fe.DataContext is MachineDetails machine)
+        {
+            string target = !string.IsNullOrWhiteSpace(machine.ComputerName) ? machine.ComputerName : machine.IpAddress;
+            if (string.IsNullOrWhiteSpace(target)) return;
+
+            NavListBox.SelectedIndex = 19;
+            PanelNetworkPath.SetTargetAndTrace(target);
+            TxtFooterStatus.Text = $"Traçando rota para '{target}'...";
         }
     }
 

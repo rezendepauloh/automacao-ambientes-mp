@@ -35,7 +35,7 @@
   - [3.7 Cofre Seguro de Credenciais DPAPI & Configurações (.env)](#37-cofre-seguro-de-credenciais-dpapi--configurações-env)
   - [3.8 Terminal de Logs, Central de Logs & Notificações Toast](#38-terminal-de-logs-central-de-logs--notificações-toast)
   - [3.9 Escudo de Processos & Proteção de Segurança](#39-escudo-de-processos--proteção-de-segurança)
-  - [3.10 Backup & Restore USMT, Tweaks de Registro e Bancada Docker](#310-backup--restore-usmt-tweaks-de-registro-e-bancada-docker)
+  - [3.10 Backup & Restore USMT, Tweaks de Registro, Mapa de Rota & Ping e Bancada Docker](#310-backup--restore-usmt-tweaks-de-registro-mapa-de-rota--ping-e-bancada-docker)
   - [3.11 Central de Chamados (OTRS & CitSmart — PostgreSQL da Bancada)](#311-central-de-chamados-otrs--citsmart--postgresql-da-bancada)
   - [3.12 Central Telefônica OXE & Impressoras PaperCut (PostgreSQL da Bancada)](#312-central-telefônica-oxe--impressoras-papercut-postgresql-da-bancada)
 - [4. Estrutura de Diretórios](#-4-estrutura-de-diretórios)

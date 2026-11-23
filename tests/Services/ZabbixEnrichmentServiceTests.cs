@@ -88,4 +88,67 @@ public class ZabbixEnrichmentServiceTests
         Assert.Equal("SWE-ANEXO - SWE-1023", match!.DisplayName);
         Assert.Contains("Switches/Anexo", match.Groups);
     }
+
+    [Fact]
+    public void ParseActiveTriggersResponse_ParsesAlertsAndBrazilianDate()
+    {
+        string json = """
+        {
+          "jsonrpc": "2.0",
+          "result": [
+            {
+              "triggerid": "99001",
+              "description": "Link com perda de pacotes",
+              "priority": "4",
+              "lastchange": "1795450000",
+              "hosts": [ { "hostid": "101", "host": "10.0.0.1", "name": "Comarca Teste - Tunel" } ],
+              "groups": [ { "name": "Comarcas / Rede" } ]
+            }
+          ],
+          "id": 3
+        }
+        """;
+
+        var alerts = ZabbixEnrichmentService.ParseActiveTriggersResponse(json);
+        Assert.Single(alerts);
+        Assert.Equal("ALTA", alerts[0].PriorityLabel);
+        Assert.Equal("Comarca Teste - Tunel", alerts[0].HostName);
+        Assert.Equal("Link com perda de pacotes", alerts[0].Description);
+        Assert.Equal("Comarcas / Rede", alerts[0].GroupSummary);
+        Assert.Matches(@"\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}", alerts[0].LastChangeBr);
+    }
+
+    [Fact]
+    public void ParseMonitoredHostsResponse_ParsesOnlineOfflineAndOrdersOfflineFirst()
+    {
+        string json = """
+        {
+          "jsonrpc": "2.0",
+          "result": [
+            {
+              "hostid": "101",
+              "host": "10.0.0.10",
+              "name": "SW-ONLINE",
+              "interfaces": [ { "ip": "10.0.0.10", "available": "1" } ],
+              "hostgroups": [ { "name": "Cidade A" } ]
+            },
+            {
+              "hostid": "102",
+              "host": "10.0.0.20",
+              "name": "SW-OFFLINE",
+              "interfaces": [ { "ip": "10.0.0.20", "available": "2" } ],
+              "hostgroups": [ { "name": "Cidade B" } ]
+            }
+          ],
+          "id": 4
+        }
+        """;
+
+        var hosts = ZabbixEnrichmentService.ParseMonitoredHostsResponse(json);
+        Assert.Equal(2, hosts.Count);
+        Assert.Equal("SW-OFFLINE", hosts[0].DisplayName);
+        Assert.Equal(ZabbixHostAvailability.Offline, hosts[0].Availability);
+        Assert.Equal("SW-ONLINE", hosts[1].DisplayName);
+        Assert.Equal(ZabbixHostAvailability.Online, hosts[1].Availability);
+    }
 }

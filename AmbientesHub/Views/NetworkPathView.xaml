@@ -64,7 +64,8 @@
                     <ui:Button x:Name="BtnStopTrace" Appearance="Danger" Content="Parar" Icon="{ui:SymbolIcon Symbol=Stop24}" Click="BtnStopTrace_Click" IsEnabled="False" Margin="0,0,8,4" Padding="12,7" />
                     <ui:Button x:Name="BtnSubnetMapEditor" Appearance="Secondary" Content="Sub-redes (CIDR)" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnSubnetMapEditor_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Gerenciar tabela local de faixas CIDR -> Prédio / Andar / Switch" />
                     <ui:Button x:Name="BtnCopyReport" Appearance="Transparent" Content="Copiar Texto" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnCopyReport_Click" Margin="0,0,8,4" Padding="10,7" ToolTip="Copia o resumo estruturado da rota e dos saltos para a área de transferência" />
-                    <ui:Button x:Name="BtnExportHtmlReport" Appearance="Secondary" Content="Relatório HTML" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnExportHtmlReport_Click" Margin="0,0,0,4" Padding="12,7" ToolTip="Gera um relatório HTML responsivo (desktop e celular) e abre no navegador" />
+                    <ui:Button x:Name="BtnExportHtmlReport" Appearance="Secondary" Content="Relatório HTML" Icon="{ui:SymbolIcon Symbol=Open24}" Click="BtnExportHtmlReport_Click" Margin="0,0,8,4" Padding="12,7" ToolTip="Gera um relatório HTML responsivo (desktop e celular) e abre no navegador" />
+                    <ui:Button x:Name="BtnZabbixAlerts" Appearance="Secondary" Content="Alertas Zabbix" Click="BtnZabbixAlerts_Click" Margin="0,0,0,4" Padding="12,7" ToolTip="Lista túneis, links e alertas ativos no Zabbix no momento" />
                 </WrapPanel>
             </StackPanel>
         </Border>
@@ -192,7 +193,18 @@
                         <TextBlock x:Name="TxtInspectorCidr" Text="-" FontSize="12" FontFamily="Consolas" Margin="0,2,0,8" />
 
                         <TextBlock Text="Observações:" FontSize="11" Foreground="#94a3b8" />
-                        <TextBlock x:Name="TxtInspectorDetails" Text="-" FontSize="11.5" Foreground="#cbd5e1" Margin="0,2,0,14" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TxtInspectorDetails" Text="-" FontSize="11.5" Foreground="#cbd5e1" Margin="0,2,0,10" TextWrapping="Wrap" />
+
+                        <TextBlock Text="Ações Rápidas no Nó:" FontSize="11" Foreground="#94a3b8" Margin="0,0,0,5" />
+                        <UniformGrid Columns="3" Margin="0,0,0,8">
+                            <ui:Button x:Name="BtnQuickSccm" Content="SCCM" Appearance="Secondary" Padding="6,5" Margin="0,0,4,0" Click="BtnQuickSccm_Click" IsEnabled="False" ToolTip="Abrir Controle Remoto SCCM (CmRcViewer)" />
+                            <ui:Button x:Name="BtnQuickRdp" Content="RDP" Appearance="Secondary" Padding="6,5" Margin="2,0,2,0" Click="BtnQuickRdp_Click" IsEnabled="False" ToolTip="Abrir Área de Trabalho Remota (mstsc)" />
+                            <ui:Button x:Name="BtnQuickExplorer" Content="C$" Appearance="Secondary" Padding="6,5" Margin="4,0,0,0" Click="BtnQuickExplorer_Click" IsEnabled="False" ToolTip="Abrir compartilhamento administrativo \\host\C$" />
+                        </UniformGrid>
+
+                        <ui:Button x:Name="BtnTestPorts" Content="🔌 Testar Portas (TCP)" Appearance="Secondary" HorizontalAlignment="Stretch" Padding="8,5" Margin="0,0,0,6" Click="BtnTestPorts_Click" IsEnabled="False" ToolTip="Verifica em 1s se RDP (3389), SMB (445), WMI (135) e WinRM (5985) estão abertas" />
+                        <ui:Button x:Name="BtnWakeOnLan" Content="⚡ Acordar Máquina (WoL)" Appearance="Secondary" HorizontalAlignment="Stretch" Padding="8,5" Margin="0,0,0,6" Click="BtnWakeOnLan_Click" IsEnabled="False" ToolTip="Envia Magic Packet Wake-on-LAN usando o MAC Address do nó" />
+                        <WrapPanel x:Name="PortsResultPanel" Orientation="Horizontal" Margin="0,0,0,10" />
 
                         <Separator Margin="0,0,0,10" />
 

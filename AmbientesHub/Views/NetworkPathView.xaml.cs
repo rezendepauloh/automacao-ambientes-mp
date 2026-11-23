@@ -16,6 +16,7 @@ namespace AmbientesHub.Views;
 public partial class NetworkPathView : WControls.UserControl
 {
     private readonly NetworkPathService _networkService = new();
+    private readonly RemoteToolsService _remoteToolsService = new();
     private readonly NetworkPingStats _pingStats = new();
     private readonly List<NetworkHopNode> _currentHops = [];
     private List<SubnetLocationRule> _subnetRules = [];
@@ -37,6 +38,14 @@ public partial class NetworkPathView : WControls.UserControl
     {
         InitializeComponent();
         _subnetRules = NetworkPathService.LoadSubnetRules();
+    }
+
+    public void SetTargetAndTrace(string target)
+    {
+        if (string.IsNullOrWhiteSpace(target)) return;
+        TxtTargetHost.Text = target.Trim();
+        if (!_isTracing)
+            BtnRunTrace_Click(this, new RoutedEventArgs());
     }
 
     private void TxtTargetHost_KeyDown(object sender, KeyEventArgs e)
@@ -334,6 +343,124 @@ public partial class NetworkPathView : WControls.UserControl
     private void BtnSubnetMapEditor_Click(object sender, RoutedEventArgs e)
     {
         ShowSubnetMapEditorDialog();
+    }
+
+    private async void BtnZabbixAlerts_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ZabbixEnrichmentService.IsConfigured())
+        {
+            SetTraceStatus("⚠️ Configure ZABBIX_API_URL e ZABBIX_API_TOKEN no .env/Configurações.", "#78350f", "#fbbf24", "#f59e0b");
+            return;
+        }
+
+        SetTraceStatus("🔄 Consultando alertas ativos no Zabbix...", "#1e3a8a", "#93c5fd", "#3b82f6");
+        var zabbix = new ZabbixEnrichmentService();
+        var alerts = await zabbix.GetActiveAlertsAsync(minSeverity: 2, limit: 50);
+        SetTraceStatus($"🚨 {alerts.Count} alerta(s) ativo(s) no Zabbix", alerts.Count > 0 ? "#78350f" : "#064e3b", alerts.Count > 0 ? "#fbbf24" : "#34d399", alerts.Count > 0 ? "#f59e0b" : "#10b981");
+
+        var owner = Window.GetWindow(this);
+        var win = new Window
+        {
+            Title = $"Alertas Ativos no Zabbix ({alerts.Count})",
+            Width = 780,
+            Height = 520,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = owner,
+            Background = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(15, 23, 42)),
+            Foreground = WMedia.Brushes.White
+        };
+
+        var root = new WControls.Grid { Margin = new Thickness(18) };
+        root.RowDefinitions.Add(new WControls.RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new WControls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        root.RowDefinitions.Add(new WControls.RowDefinition { Height = GridLength.Auto });
+
+        var header = new WControls.TextBlock
+        {
+            Text = $"🚨 Alertas / Links Ativos no Zabbix ({alerts.Count})",
+            FontSize = 16,
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(0, 0, 0, 12)
+        };
+        WControls.Grid.SetRow(header, 0);
+        root.Children.Add(header);
+
+        var scroll = new WControls.ScrollViewer { VerticalScrollBarVisibility = WControls.ScrollBarVisibility.Auto };
+        var stack = new WControls.StackPanel();
+
+        if (alerts.Count == 0)
+        {
+            stack.Children.Add(new WControls.TextBlock
+            {
+                Text = "Nenhum alerta ativo (severidade >= Aviso) no momento.",
+                Foreground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(52, 211, 153)),
+                FontSize = 13
+            });
+        }
+        else
+        {
+            foreach (var a in alerts)
+            {
+                var card = new WControls.Border
+                {
+                    Background = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(11, 15, 25)),
+                    BorderBrush = new WMedia.SolidColorBrush(ParseColor(a.PriorityColorHex, WMedia.Color.FromRgb(51, 65, 85))),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(12),
+                    Margin = new Thickness(0, 0, 0, 8)
+                };
+
+                var sp = new WControls.StackPanel();
+                sp.Children.Add(new WControls.TextBlock
+                {
+                    Text = $"[{a.PriorityLabel}]  {a.HostName}  •  {a.LastChangeBr}",
+                    FontSize = 12.5,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = new WMedia.SolidColorBrush(ParseColor(a.PriorityColorHex, WMedia.Colors.White)),
+                    TextWrapping = TextWrapping.Wrap
+                });
+                sp.Children.Add(new WControls.TextBlock
+                {
+                    Text = a.Description,
+                    FontSize = 12,
+                    Foreground = WMedia.Brushes.White,
+                    Margin = new Thickness(0, 4, 0, 2),
+                    TextWrapping = TextWrapping.Wrap
+                });
+                if (!string.IsNullOrWhiteSpace(a.GroupSummary))
+                {
+                    sp.Children.Add(new WControls.TextBlock
+                    {
+                        Text = $"📍 {a.GroupSummary}",
+                        FontSize = 11,
+                        Foreground = new WMedia.SolidColorBrush(WMedia.Color.FromRgb(56, 189, 248))
+                    });
+                }
+
+                card.Child = sp;
+                stack.Children.Add(card);
+            }
+        }
+
+        scroll.Content = stack;
+        WControls.Grid.SetRow(scroll, 1);
+        root.Children.Add(scroll);
+
+        var btnClose = new Wpf.Ui.Controls.Button
+        {
+            Content = "Fechar",
+            Appearance = ControlAppearance.Primary,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0),
+            Padding = new Thickness(14, 6, 14, 6)
+        };
+        btnClose.Click += (_, _) => win.Close();
+        WControls.Grid.SetRow(btnClose, 2);
+        root.Children.Add(btnClose);
+
+        win.Content = root;
+        win.ShowDialog();
     }
 
     private void CmbLayoutOrientation_SelectionChanged(object sender, WControls.SelectionChangedEventArgs e)
@@ -685,6 +812,15 @@ public partial class NetworkPathView : WControls.UserControl
         TxtInspectorLocation.Text = node.LocationDisplay;
         TxtInspectorCidr.Text = string.IsNullOrWhiteSpace(node.MatchedCidr) ? "Nenhuma regra CIDR correspondente" : node.MatchedCidr;
         TxtInspectorDetails.Text = string.IsNullOrWhiteSpace(node.Details) ? "-" : node.Details;
+
+        bool canAct = node.Kind != NetworkHopKind.Timeout &&
+                      (!string.IsNullOrWhiteSpace(node.Hostname) || !string.IsNullOrWhiteSpace(node.IpAddress));
+        BtnQuickSccm.IsEnabled = canAct;
+        BtnQuickRdp.IsEnabled = canAct;
+        BtnQuickExplorer.IsEnabled = canAct;
+        BtnTestPorts.IsEnabled = canAct;
+        BtnWakeOnLan.IsEnabled = !string.IsNullOrWhiteSpace(node.MacAddress);
+        PortsResultPanel.Children.Clear();
     }
 
     private void ClearInspector()
@@ -699,6 +835,134 @@ public partial class NetworkPathView : WControls.UserControl
         TxtInspectorLocation.Text = "-";
         TxtInspectorCidr.Text = "-";
         TxtInspectorDetails.Text = "-";
+        BtnQuickSccm.IsEnabled = false;
+        BtnQuickRdp.IsEnabled = false;
+        BtnQuickExplorer.IsEnabled = false;
+        BtnTestPorts.IsEnabled = false;
+        BtnWakeOnLan.IsEnabled = false;
+        PortsResultPanel.Children.Clear();
+    }
+
+    private string GetSelectedNodeTarget()
+    {
+        if (_selectedNode == null) return string.Empty;
+        if (!string.IsNullOrWhiteSpace(_selectedNode.Hostname) && _selectedNode.Hostname != "* * *")
+            return _selectedNode.Hostname.Split('.')[0].Trim();
+        return _selectedNode.IpAddress.Trim();
+    }
+
+    private void BtnQuickSccm_Click(object sender, RoutedEventArgs e)
+    {
+        string target = GetSelectedNodeTarget();
+        if (string.IsNullOrWhiteSpace(target)) return;
+        try
+        {
+            _remoteToolsService.OpenSccmRemoteControl(target, ConfigService.SccmSiteServer);
+            SetTraceStatus($"🖥️ SCCM Remoto aberto para {target}", "#064e3b", "#34d399", "#10b981");
+        }
+        catch (Exception ex)
+        {
+            SetTraceStatus($"❌ SCCM: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
+        }
+    }
+
+    private void BtnQuickRdp_Click(object sender, RoutedEventArgs e)
+    {
+        string target = GetSelectedNodeTarget();
+        if (string.IsNullOrWhiteSpace(target)) return;
+        try
+        {
+            _remoteToolsService.OpenRdp(target);
+            SetTraceStatus($"🖥️ RDP aberto para {target}", "#064e3b", "#34d399", "#10b981");
+        }
+        catch (Exception ex)
+        {
+            SetTraceStatus($"❌ RDP: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
+        }
+    }
+
+    private void BtnQuickExplorer_Click(object sender, RoutedEventArgs e)
+    {
+        string target = GetSelectedNodeTarget();
+        if (string.IsNullOrWhiteSpace(target)) return;
+        try
+        {
+            _remoteToolsService.OpenRemoteExplorer(target);
+            SetTraceStatus($"📂 Explorador C$ aberto para {target}", "#064e3b", "#34d399", "#10b981");
+        }
+        catch (Exception ex)
+        {
+            SetTraceStatus($"❌ C$: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
+        }
+    }
+
+    private async void BtnTestPorts_Click(object sender, RoutedEventArgs e)
+    {
+        string target = GetSelectedNodeTarget();
+        if (string.IsNullOrWhiteSpace(target)) return;
+
+        BtnTestPorts.IsEnabled = false;
+        BtnWakeOnLan.IsEnabled = false;
+        PortsResultPanel.Children.Clear();
+        SetTraceStatus($"🔌 Testando portas TCP em {target}...", "#1e3a8a", "#93c5fd", "#3b82f6");
+
+        try
+        {
+            var results = await _networkService.CheckCommonPortsAsync(target, timeoutMs: 1000);
+            foreach (var r in results)
+            {
+                var chip = new WControls.Border
+                {
+                    Background = new WMedia.SolidColorBrush(r.IsOpen
+                        ? WMedia.Color.FromRgb(6, 78, 59)
+                        : WMedia.Color.FromRgb(69, 10, 10)),
+                    BorderBrush = new WMedia.SolidColorBrush(r.IsOpen
+                        ? WMedia.Color.FromRgb(16, 185, 129)
+                        : WMedia.Color.FromRgb(185, 28, 28)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(7, 3, 7, 3),
+                    Margin = new Thickness(0, 0, 5, 5)
+                };
+                chip.Child = new WControls.TextBlock
+                {
+                    Text = $"{(r.IsOpen ? "🟢" : "🔴")} {r.Port} {r.ServiceName}",
+                    FontSize = 11,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new WMedia.SolidColorBrush(r.IsOpen
+                        ? WMedia.Color.FromRgb(52, 211, 153)
+                        : WMedia.Color.FromRgb(248, 113, 113))
+                };
+                PortsResultPanel.Children.Add(chip);
+            }
+
+            int openCount = results.Count(x => x.IsOpen);
+            SetTraceStatus($"🔌 {openCount}/{results.Count} porta(s) aberta(s) em {target}", "#064e3b", "#34d399", "#10b981");
+        }
+        catch (Exception ex)
+        {
+            SetTraceStatus($"❌ Portas: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
+        }
+        finally
+        {
+            BtnTestPorts.IsEnabled = true;
+        }
+    }
+
+    private async void BtnWakeOnLan_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedNode == null || string.IsNullOrWhiteSpace(_selectedNode.MacAddress))
+            return;
+
+        try
+        {
+            await _networkService.SendWakeOnLanAsync(_selectedNode.MacAddress);
+            SetTraceStatus($"⚡ Magic Packet WoL enviado para {_selectedNode.MacAddress.Split(',')[0].Trim()}", "#064e3b", "#34d399", "#10b981");
+        }
+        catch (Exception ex)
+        {
+            SetTraceStatus($"❌ WoL: {ex.Message}", "#7f1d1d", "#f87171", "#ef4444");
+        }
     }
 
     private void SetTraceStatus(string text, string bgHex, string fgHex, string borderHex)

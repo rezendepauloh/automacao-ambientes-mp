@@ -1,0 +1,138 @@
+<UserControl x:Class="AmbientesHub.Views.SubnetNeighborsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Cabeçalho -->
+        <Grid x:Name="HeaderRow" Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock Text="Vizinhos de Rede &amp; Tabela ARP (Sub-rede / Sala)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                <TextBlock Text="A partir de um hostname ou IP de referência, mapeia a sub-rede /24, tabela ARP remota e mesma OU no AD em árvore Bézier interativa." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+            <Border x:Name="BadgeScanStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="6" Padding="12,6" Background="#1e293b" BorderBrush="#334155" BorderThickness="1">
+                <TextBlock x:Name="TxtScanStatus" Text="⚪ Pronto para mapear" FontSize="12" FontWeight="Bold" Foreground="#94a3b8" />
+            </Border>
+        </Grid>
+
+        <!-- Barra de Controle -->
+        <Border x:Name="ControlsRow" Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+            <StackPanel>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.2*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Estação / IP de Referência (mesma sala/sub-rede):" FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                        <ui:TextBox x:Name="TxtRefTarget" PlaceholderText="Ex: MPE-80600 ou 10.111.129.29" Height="34" KeyDown="TxtRefTarget_KeyDown" Icon="{ui:SymbolIcon Symbol=Search24}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Filtrar Vizinhos Encontrados (Nome, IP, MAC ou Usuário):" FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
+                        <ui:TextBox x:Name="TxtFilterNeighbors" PlaceholderText="Filtrar árvore em tempo real..." Height="34" TextChanged="TxtFilterNeighbors_TextChanged" />
+                    </StackPanel>
+                </Grid>
+
+                <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button x:Name="BtnScanNeighbors" Appearance="Primary" Content="Mapear Vizinhos" Icon="{ui:SymbolIcon Symbol=Play24}" Click="BtnScanNeighbors_Click" Margin="0,0,8,4" Padding="14,7" />
+                    <ui:Button x:Name="BtnStopScan" Appearance="Danger" Content="Parar" Icon="{ui:SymbolIcon Symbol=Stop24}" Click="BtnStopScan_Click" IsEnabled="False" Margin="0,0,12,4" Padding="12,7" />
+                    <CheckBox x:Name="ChkIncludeRemoteArp" Content="Tentar ARP remoto (WMI)" IsChecked="True" Margin="0,0,14,4" VerticalAlignment="Center" />
+                    <CheckBox x:Name="ChkIncludeSameOu" Content="Incluir mesma OU (AD)" IsChecked="False" Margin="0,0,14,4" VerticalAlignment="Center" ToolTip="Complementa com máquinas da mesma OU no Active Directory (útil se o ICMP estiver bloqueado)" />
+                    <ui:Button x:Name="BtnCopyNeighbors" Appearance="Transparent" Content="Copiar Lista" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnCopyNeighbors_Click" Margin="0,0,0,4" Padding="10,7" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Área Visual: Canvas Bézier (Esquerda) + Inspetor (Direita) -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="ColInspector" Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Margin="0,0,10,0" ClipToBounds="True">
+                <Grid>
+                    <ScrollViewer x:Name="GraphScrollViewer"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  PreviewMouseWheel="GraphScrollViewer_PreviewMouseWheel"
+                                  PreviewMouseLeftButtonDown="GraphScrollViewer_PreviewMouseLeftButtonDown"
+                                  PreviewMouseMove="GraphScrollViewer_PreviewMouseMove"
+                                  PreviewMouseLeftButtonUp="GraphScrollViewer_PreviewMouseLeftButtonUp">
+                        <Canvas x:Name="GraphCanvas" MinWidth="800" MinHeight="420" Background="Transparent">
+                            <Canvas.LayoutTransform>
+                                <ScaleTransform x:Name="GraphScaleTransform" ScaleX="1" ScaleY="1" />
+                            </Canvas.LayoutTransform>
+                        </Canvas>
+                    </ScrollViewer>
+
+                    <StackPanel x:Name="GraphEmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" IsHitTestVisible="False">
+                        <TextBlock Text="🗺️" FontSize="42" HorizontalAlignment="Center" Opacity="0.7" />
+                        <TextBlock Text="Informe uma máquina ou IP de referência e clique em 'Mapear Vizinhos'" FontSize="14" FontWeight="SemiBold" Foreground="#94a3b8" Margin="0,8,0,2" HorizontalAlignment="Center" />
+                        <TextBlock Text="Descobre hosts ativos na mesma sub-rede /24 e permite consultar usuário, MAC e acesso remoto em 1 clique." FontSize="12" Foreground="#64748b" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="12" Background="#CC0f172a" BorderBrush="#334155" BorderThickness="1" CornerRadius="6" Padding="6,4">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Content="-" Appearance="Transparent" Padding="8,3" Click="BtnZoomOut_Click" />
+                            <TextBlock x:Name="TxtZoomPercent" Text="100%" FontSize="11.5" FontWeight="SemiBold" Foreground="#cbd5e1" VerticalAlignment="Center" Margin="6,0" MinWidth="38" TextAlignment="Center" />
+                            <ui:Button Content="+" Appearance="Transparent" Padding="8,3" Click="BtnZoomIn_Click" />
+                            <ui:Button Content="Ajustar" Appearance="Transparent" Padding="8,3" Margin="4,0,0,0" Click="BtnZoomFit_Click" />
+                            <ui:Button x:Name="BtnToggleFullWindow" Content="⛶ Expandir" Appearance="Transparent" Padding="8,3" Margin="4,0,0,0" Click="BtnToggleFullWindow_Click" ToolTip="Expandir o mapa para ocupar toda a janela" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Painel Inspetor Lateral -->
+            <Border Grid.Column="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="Detalhes do Vizinho Selecionado" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,10" />
+
+                        <Border Background="#0f172a" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtInspectorBadge" Text="NENHUM HOST SELECIONADO" FontSize="10.5" FontWeight="Bold" Foreground="#38bdf8" />
+                                <TextBlock x:Name="TxtInspectorHost" Text="Clique em um card na árvore" FontSize="14" FontWeight="SemiBold" Foreground="#f8fafc" Margin="0,4,0,2" TextWrapping="Wrap" />
+                                <TextBlock x:Name="TxtInspectorIp" Text="-" FontSize="12" FontFamily="Consolas" Foreground="#94a3b8" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="MAC Address:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorMac" Text="-" FontSize="12" FontFamily="Consolas" Foreground="#cbd5e1" Margin="0,2,0,8" />
+
+                        <TextBlock Text="Usuário Conectado / SCCM:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorUser" Text="-" FontSize="12.5" FontWeight="Medium" Foreground="#34d399" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                        <TextBlock Text="Localização / OU:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorLocation" Text="-" FontSize="12.5" FontWeight="Medium" Foreground="#38bdf8" Margin="0,2,0,8" TextWrapping="Wrap" />
+
+                        <TextBlock Text="Latência / Origem:" FontSize="11" Foreground="#94a3b8" />
+                        <TextBlock x:Name="TxtInspectorLatency" Text="-" FontSize="12" Margin="0,2,0,10" />
+
+                        <TextBlock Text="Ações Rápidas:" FontSize="11" Foreground="#94a3b8" Margin="0,0,0,5" />
+                        <UniformGrid Columns="3" Margin="0,0,0,6">
+                            <ui:Button x:Name="BtnQuickSccm" Content="SCCM" Appearance="Secondary" Padding="6,5" Margin="0,0,4,0" Click="BtnQuickSccm_Click" IsEnabled="False" />
+                            <ui:Button x:Name="BtnQuickRdp" Content="RDP" Appearance="Secondary" Padding="6,5" Margin="2,0,2,0" Click="BtnQuickRdp_Click" IsEnabled="False" />
+                            <ui:Button x:Name="BtnQuickExplorer" Content="C$" Appearance="Secondary" Padding="6,5" Margin="4,0,0,0" Click="BtnQuickExplorer_Click" IsEnabled="False" />
+                        </UniformGrid>
+                        <ui:Button x:Name="BtnQuickTrace" Content="🌐 Traçar Rota Completa" Appearance="Secondary" HorizontalAlignment="Stretch" Padding="8,5" Margin="0,0,0,6" Click="BtnQuickTrace_Click" IsEnabled="False" />
+                        <ui:Button x:Name="BtnTestPorts" Content="🔌 Testar Portas (TCP)" Appearance="Secondary" HorizontalAlignment="Stretch" Padding="8,5" Margin="0,0,0,6" Click="BtnTestPorts_Click" IsEnabled="False" />
+                        <WrapPanel x:Name="PortsResultPanel" Orientation="Horizontal" Margin="0,0,0,8" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

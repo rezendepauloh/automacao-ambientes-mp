@@ -12,6 +12,8 @@ using AmbientesHub.Models;
 
 namespace AmbientesHub.Services;
 
+public record PortCheckResult(int Port, string ServiceName, bool IsOpen, long LatencyMs);
+
 /// <summary>
 /// Serviço nativo de diagnóstico de rede (Ping contínuo, Traceroute L3 assíncrono,
 /// resolução DNS/PTR/AD e inferência de localização por CIDR e nomenclatura).
@@ -208,6 +210,86 @@ public class NetworkPathService
                 ? $"Origem local: {localHost} ({localIp})"
                 : $"Origem local: {localHost} ({localIp}) | Gateway: {gatewayIp}"
         };
+    }
+
+    /// <summary>
+    /// Testa em paralelo as principais portas administrativas (RDP 3389, SMB 445, WMI/RPC 135, WinRM 5985).
+    /// </summary>
+    public async Task<List<PortCheckResult>> CheckCommonPortsAsync(
+        string rawTarget,
+        int timeoutMs = 1000,
+        CancellationToken cancellationToken = default)
+    {
+        string target = ValidateTarget(rawTarget);
+        timeoutMs = Math.Clamp(timeoutMs, 250, 5000);
+
+        (int Port, string Name)[] ports =
+        [
+            (3389, "RDP"),
+            (445, "SMB/C$"),
+            (135, "WMI/RPC"),
+            (5985, "WinRM")
+        ];
+
+        var tasks = ports.Select(async p =>
+        {
+            var sw = Stopwatch.StartNew();
+            try
+            {
+                using var tcp = new TcpClient();
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(timeoutMs);
+                await tcp.ConnectAsync(target, p.Port, cts.Token);
+                sw.Stop();
+                return new PortCheckResult(p.Port, p.Name, true, sw.ElapsedMilliseconds);
+            }
+            catch
+            {
+                sw.Stop();
+                return new PortCheckResult(p.Port, p.Name, false, sw.ElapsedMilliseconds);
+            }
+        });
+
+        var results = await Task.WhenAll(tasks);
+        return [.. results];
+    }
+
+    /// <summary>
+    /// Monta o Magic Packet Wake-on-LAN (102 bytes: 6x 0xFF + 16x MAC). Validação fail-closed.
+    /// </summary>
+    public static byte[] BuildWakeOnLanMagicPacket(string? macAddress)
+    {
+        if (string.IsNullOrWhiteSpace(macAddress))
+            throw new ArgumentException("MAC Address não informado.");
+
+        // Aceita o primeiro MAC caso venha lista separada por vírgula do SCCM
+        string firstMac = macAddress.Split(',')[0].Trim();
+        string hex = firstMac.Replace(":", string.Empty).Replace("-", string.Empty).Trim();
+
+        if (hex.Length != 12 || !hex.All(Uri.IsHexDigit))
+            throw new ArgumentException("MAC Address inválido para Wake-on-LAN.");
+
+        byte[] macBytes = Convert.FromHexString(hex);
+        byte[] packet = new byte[6 + 16 * 6];
+        for (int i = 0; i < 6; i++)
+            packet[i] = 0xFF;
+
+        for (int i = 1; i <= 16; i++)
+            Buffer.BlockCopy(macBytes, 0, packet, i * 6, 6);
+
+        return packet;
+    }
+
+    /// <summary>
+    /// Envia Magic Packet Wake-on-LAN via UDP Broadcast (portas 9 e 7).
+    /// </summary>
+    public async Task SendWakeOnLanAsync(string macAddress)
+    {
+        byte[] packet = BuildWakeOnLanMagicPacket(macAddress);
+        using var udp = new UdpClient { EnableBroadcast = true };
+        await udp.SendAsync(packet, packet.Length, new IPEndPoint(IPAddress.Broadcast, 9));
+        await udp.SendAsync(packet, packet.Length, new IPEndPoint(IPAddress.Broadcast, 7));
+        AppLoggerService.Info($"Magic Packet Wake-on-LAN enviado para MAC '{macAddress.Split(',')[0].Trim()}'.", nameof(NetworkPathService));
     }
 
     /// <summary>

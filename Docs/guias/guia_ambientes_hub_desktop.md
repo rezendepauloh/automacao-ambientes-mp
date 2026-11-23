@@ -99,6 +99,27 @@ _Executável leve disponível em:_
 
 - **Controle da Stack WSL/Docker (`BancadaDockerService`):** Inicia, para (`down`), reinicia e reconstrói (`build --no-cache`) containers com `PYTHONUNBUFFERED=1` e reconexão automática aos logs do `docker compose`, além de disparar notificações toast do Windows ao concluir tarefas em segundo plano.
 
+### G. Aba "Mapa de Rota & Ping" (Item 19)
+
+- **Traceroute Visual Nativo (`NetworkPathService` + `NetworkPathView`):** Traça a árvore L3 da estação local até o destino em tempo real usando `Canvas` WPF + curvas Bézier cúbicas (orientação Horizontal ou Vertical, Zoom e Pan).
+- **Ping Contínuo & Telemetria:** Monitoramento contínuo com contagem de enviados/recebidos/perda, latência (último/mín/méd/máx) e gráfico de barras das últimas 24 amostras.
+- **Enriquecimento Multicamada:**
+  - **MAC Address:** Interface local (`NetworkInterface`), tabela ARP local (`SendARP` via `iphlpapi.dll` para Gateway/mesma sub-rede) e fallback SCCM.
+  - **Usuário Conectado:** Sessão ativa via WMI (`Win32_ComputerSystem`) com fallback em segundo plano para AD/SCCM (`CurrentLogonUser`/`PrimaryUser`).
+  - **Localização & Switches:** Mapeamento local de faixas CIDR (`subnet_map.json`), OU do Active Directory e integração opcional com **Zabbix API** (`ZABBIX_API_URL` e `ZABBIX_API_TOKEN` no `.env`).
+- **Relatório HTML5 Responsivo:** Gera relatório adaptado para desktop e celular com datas no padrão brasileiro (`dd/MM/yyyy HH:mm:ss`) salvo no diretório de `CHAMADOS_REPORTS_DIR`.
+- **Ações Rápidas, Portas TCP & Wake-on-LAN:** No painel inspetor lateral, permite abrir **SCCM**, **RDP** ou **`C$`**, testar em 1 segundo as portas **3389 (RDP)**, **445 (SMB)**, **135 (WMI)** e **5985 (WinRM)**, e enviar **Magic Packet WoL** quando houver MAC Address disponível.
+
+### H. Aba "Monitor Zabbix" (Item 20)
+
+- **Visão de Comarcas, Prédios & Switches (`ZabbixMonitorView`):** Lista todos os hosts monitorados no Zabbix (`host.get`) com KPIs (`Total`, `Online`, `Offline`, `Exibindo Agora`), paginação (25 itens por página) e filtros por cidade/prédio (`hostgroups`), status (`Todos`, `Offline`, `Online`) e busca textual.
+- **Detalhes & Integração:** O botão **ℹ️ Detalhes** carrega inventário, alertas ativos e métricas recentes em tabela organizada; o botão **🌐 Traçar Rota** abre o equipamento direto no *Mapa de Rota & Ping*.
+
+### I. Aba "Vizinhos de Rede" (Item 21)
+
+- **Mapeamento de Sub-rede & Tabela ARP (`SubnetNeighborsService` + `SubnetNeighborsView`):** A partir de um hostname ou IP de referência, mapeia a sub-rede `/24` em paralelo (Ping + PTR + ARP local), tenta coletar a tabela ARP remota via `MSFT_NetNeighbor` (`root\StandardCimv2`) e opcionalmente complementa com máquinas da mesma OU no AD.
+- **Árvore Bézier & Inspetor:** Exibe o nó raiz (sub-rede/gateway/switch Zabbix) conectado por curvas Bézier aos vizinhos encontrados; ao clicar em qualquer vizinho, carrega usuário conectado e MAC em background e libera botões de 1 clique (**SCCM**, **RDP**, **C$**, **Traçar Rota** e **Portas TCP**).
+
 ### G. Aba "Otimizações de Registro (Tweaks & Rollback)" (Item 12)
 
 - **Ajustes Cirúrgicos de Performance:** Lista curada de tweaks no Windows Registry focados em redução de latência (`MenuShowDelay`), eliminação do atraso de boot (`StartupDelayInMSec`), priorização de foreground em multitarefa (`SystemResponsiveness`), desativação de throttling de rede TCP (`NetworkThrottlingIndex`) e supressão de bloatware em segundo plano.

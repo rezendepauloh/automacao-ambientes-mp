@@ -96,6 +96,8 @@
                         <ListBoxItem Content="17" />
                         <ListBoxItem Content="18" />
                         <ListBoxItem Content="19" />
+                        <ListBoxItem Content="20" />
+                        <ListBoxItem Content="21" />
                     </ListBox>
 
                     <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
@@ -178,6 +180,12 @@
                                 </ui:Button>
                                 <ui:Button x:Name="NavBtn19" Tag="19" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="🌐" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl19" Text="Mapa de Rota &amp; Ping" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn20" Tag="20" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="📡" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl20" Text="Monitor Zabbix" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn21" Tag="21" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🗺️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl21" Text="Vizinhos de Rede" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
                                 </ui:Button>
                             </StackPanel>
 
@@ -429,7 +437,10 @@
                                                                         <ColumnDefinition Width="Auto" />
                                                                     </Grid.ColumnDefinitions>
                                                                     <TextBlock Text="{Binding IpWithLatency}" FontSize="13" FontWeight="Medium" Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalAlignment="Center" />
-                                                                    <ui:Button Grid.Column="1" Appearance="Transparent" ToolTip="Copiar Endereço IP" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyIp_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                                        <ui:Button Appearance="Transparent" ToolTip="Copiar Endereço IP" Icon="{ui:SymbolIcon Symbol=Copy24}" Click="BtnCardCopyIp_Click" Width="26" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                        <ui:Button Appearance="Transparent" Content="🌐" ToolTip="Traçar Rota &amp; Ping no Mapa Visual" Click="BtnCardTraceRoute_Click" Width="28" Height="26" Padding="0" Margin="4,0,0,0" />
+                                                                    </StackPanel>
                                                                 </Grid>
 
                                                                 <TextBlock Text="Localidade Provável (Setor / Sala / OU):" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -2665,6 +2676,12 @@
 
                     <!-- PAINEL 19: MAPA VISUAL DE ROTA & PING (TRACEROUTE NATIVO) -->
                     <views:NetworkPathView x:Name="PanelNetworkPath" Visibility="Collapsed" />
+
+                    <!-- PAINEL 20: MONITOR ZABBIX (COMARCAS & SWITCHES) -->
+                    <views:ZabbixMonitorView x:Name="PanelZabbixMonitor" Visibility="Collapsed" />
+
+                    <!-- PAINEL 21: VIZINHOS DE REDE & TABELA ARP -->
+                    <views:SubnetNeighborsView x:Name="PanelSubnetNeighbors" Visibility="Collapsed" />
 
                 </Grid>
             </Border>

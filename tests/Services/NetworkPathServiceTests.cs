@@ -189,4 +189,47 @@ public class NetworkPathServiceTests
         Assert.True(result.Success);
         Assert.NotNull(result.RttMs);
     }
+
+    [Fact]
+    public async Task CheckCommonPortsAsync_RejectsInvalidTarget_FailClosed()
+    {
+        var svc = new NetworkPathService();
+        await Assert.ThrowsAsync<ArgumentException>(() => svc.CheckCommonPortsAsync("10.0.0.1; calc"));
+    }
+
+    [Fact]
+    public async Task CheckCommonPortsAsync_ReturnsAllFourStandardPorts()
+    {
+        var svc = new NetworkPathService();
+        var results = await svc.CheckCommonPortsAsync("127.0.0.1", timeoutMs: 300);
+        Assert.Equal(4, results.Count);
+        Assert.Contains(results, r => r.Port == 3389 && r.ServiceName == "RDP");
+        Assert.Contains(results, r => r.Port == 445 && r.ServiceName == "SMB/C$");
+        Assert.Contains(results, r => r.Port == 135 && r.ServiceName == "WMI/RPC");
+        Assert.Contains(results, r => r.Port == 5985 && r.ServiceName == "WinRM");
+    }
+
+    [Fact]
+    public void BuildWakeOnLanMagicPacket_Builds102BytesCorrectly()
+    {
+        byte[] packet = NetworkPathService.BuildWakeOnLanMagicPacket("AA:BB:CC:DD:EE:FF");
+        Assert.Equal(102, packet.Length);
+        for (int i = 0; i < 6; i++)
+            Assert.Equal(0xFF, packet[i]);
+
+        Assert.Equal(0xAA, packet[6]);
+        Assert.Equal(0xFF, packet[11]);
+        Assert.Equal(0xAA, packet[96]);
+        Assert.Equal(0xFF, packet[101]);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("ZZ:ZZ:ZZ:ZZ:ZZ:ZZ")]
+    [InlineData("AA:BB:CC")]
+    public void BuildWakeOnLanMagicPacket_RejectsInvalidMac_FailClosed(string? invalidMac)
+    {
+        Assert.Throws<ArgumentException>(() => NetworkPathService.BuildWakeOnLanMagicPacket(invalidMac));
+    }
 }

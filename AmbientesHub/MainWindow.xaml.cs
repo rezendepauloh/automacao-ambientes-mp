@@ -153,6 +153,7 @@ public partial class MainWindow : FluentWindow
             NavLbl19.Visibility = Visibility.Visible;
             NavLbl20.Visibility = Visibility.Visible;
             NavLbl21.Visibility = Visibility.Visible;
+            NavLbl22.Visibility = Visibility.Visible;
         }
         else
         {
@@ -180,6 +181,7 @@ public partial class MainWindow : FluentWindow
             NavLbl19.Visibility = Visibility.Collapsed;
             NavLbl20.Visibility = Visibility.Collapsed;
             NavLbl21.Visibility = Visibility.Collapsed;
+            NavLbl22.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -309,6 +311,13 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (lower is "rdm" or "servidores" or "servers" or "segura")
+        {
+            NavListBox.SelectedIndex = 22;
+            TxtFooterStatus.Text = "Navegado para: Servidores & Acesso RDP";
+            return;
+        }
+
         if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
         {
             NavListBox.SelectedIndex = 11;
@@ -424,7 +433,7 @@ public partial class MainWindow : FluentWindow
 
     private void HighlightActiveNavMenuItem(int activeIndex)
     {
-        for (int i = 0; i <= 21; i++)
+        for (int i = 0; i <= 22; i++)
         {
             if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
                 btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
@@ -459,6 +468,7 @@ public partial class MainWindow : FluentWindow
         PanelNetworkPath.Visibility = Visibility.Collapsed;
         PanelZabbixMonitor.Visibility = Visibility.Collapsed;
         PanelSubnetNeighbors.Visibility = Visibility.Collapsed;
+        PanelRdpServers.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -542,6 +552,9 @@ public partial class MainWindow : FluentWindow
                 break;
             case 21:
                 PanelSubnetNeighbors.Visibility = Visibility.Visible;
+                break;
+            case 22:
+                PanelRdpServers.Visibility = Visibility.Visible;
                 break;
         }
     }
@@ -4073,6 +4086,8 @@ public partial class MainWindow : FluentWindow
               .meta { color: var(--muted); font-size: 0.85rem; }
               .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
               .toolbar input { flex: 1 1 220px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; }
+              .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 10px; }
+              .filters-grid select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; background: #fff; color: var(--text); }
               .btn { border: 1px solid var(--border); background: #fff; color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
               .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
               details.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: opacity 0.2s ease; }
@@ -4120,20 +4135,44 @@ public partial class MainWindow : FluentWindow
             <div class="container">
             """);
 
+        static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
+
+        var locs = _allChamadosFound.Select(x => x.LocalizacaoDisplay).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+        var sols = _allChamadosFound.Select(x => x.SolicitanteDisplay).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+        var syss = _allChamadosFound.Select(x => x.BaseDisplay).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+        var tags = _allChamadosFound.Select(x => x.TagDisplay).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+
         sb.AppendLine("<div class='header'>");
         sb.AppendLine($"<h1>Relatório de Chamados (<span id='visibleCount'>{_allChamadosFound.Count}</span> de {_allChamadosFound.Count})</h1>");
         sb.AppendLine($"<div class='meta'>Gerado em {DateTime.Now:dd/MM/yyyy HH:mm:ss} • Toque em qualquer chamado para expandir/recolher</div>");
         sb.AppendLine("""
               <div class="toolbar no-print">
                 <input id="quickSearch" type="search" placeholder="Filtrar rápido por localidade, nome, ID ou título..." oninput="filterCards()" />
+                <button class="btn" onclick="resetFilters()">Limpar Filtros</button>
                 <button class="btn" onclick="toggleAll(true)">Expandir Todos</button>
                 <button class="btn" onclick="toggleAll(false)">Recolher Todos</button>
                 <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir / PDF</button>
               </div>
-            </div>
+              <div class="filters-grid no-print">
             """);
 
-        static string H(string? s) => System.Net.WebUtility.HtmlEncode(s ?? string.Empty);
+        sb.AppendLine("<select id='filterLoc' onchange='filterCards()'><option value=''>📍 Todas Localidades</option>");
+        foreach (var l in locs) sb.AppendLine($"<option value='{H(l.ToLowerInvariant())}'>{H(l)}</option>");
+        sb.AppendLine("</select>");
+
+        sb.AppendLine("<select id='filterSol' onchange='filterCards()'><option value=''>👤 Todos Solicitantes</option>");
+        foreach (var s in sols) sb.AppendLine($"<option value='{H(s.ToLowerInvariant())}'>{H(s)}</option>");
+        sb.AppendLine("</select>");
+
+        sb.AppendLine("<select id='filterSys' onchange='filterCards()'><option value=''>🖥️ Todos Sistemas</option>");
+        foreach (var sy in syss) sb.AppendLine($"<option value='{H(sy.ToLowerInvariant())}'>{H(sy)}</option>");
+        sb.AppendLine("</select>");
+
+        sb.AppendLine("<select id='filterTag' onchange='filterCards()'><option value=''>🏷️ Todas TAGs</option>");
+        foreach (var t in tags) sb.AppendLine($"<option value='{H(t.ToLowerInvariant())}'>{H(t)}</option>");
+        sb.AppendLine("</select>");
+
+        sb.AppendLine("</div></div>");
 
         foreach (var c in _allChamadosFound)
         {
@@ -4141,7 +4180,7 @@ public partial class MainWindow : FluentWindow
             string statusCls = c.Status.Equals("Aberto", StringComparison.OrdinalIgnoreCase) ? "badge badge-open" : "badge";
             string safeIdAttr = H(c.Id);
 
-            sb.AppendLine($"<details class='card' open data-id='{safeIdAttr}' data-search='{H((c.Id + " " + c.TituloDisplay + " " + c.LocalizacaoDisplay + " " + c.SolicitanteDisplay + " " + c.TagDisplay + " " + c.Hostname).ToLowerInvariant())}'>");
+            sb.AppendLine($"<details class='card' open data-id='{safeIdAttr}' data-loc='{H(c.LocalizacaoDisplay.ToLowerInvariant())}' data-sol='{H(c.SolicitanteDisplay.ToLowerInvariant())}' data-sys='{H(c.BaseDisplay.ToLowerInvariant())}' data-tag='{H(c.TagDisplay.ToLowerInvariant())}' data-search='{H((c.Id + " " + c.TituloDisplay + " " + c.LocalizacaoDisplay + " " + c.SolicitanteDisplay + " " + c.TagDisplay + " " + c.Hostname).ToLowerInvariant())}'>");
             sb.AppendLine("<summary class='card-head'>");
             sb.AppendLine("<div class='head-top'>");
             sb.AppendLine($"<div class='badges'><span class='{baseCls}'>{H(c.BaseDisplay)}</span><span class='{statusCls}'>{H(c.Status)}</span><span class='badge'>{H(c.TagDisplay)}</span><span class='id-tag'>#{safeIdAttr}</span></div>");
@@ -4213,12 +4252,28 @@ public partial class MainWindow : FluentWindow
                   if (d.style.display !== 'none') d.open = openState;
                 });
               }
+              function resetFilters() {
+                document.getElementById('quickSearch').value = '';
+                document.getElementById('filterLoc').value = '';
+                document.getElementById('filterSol').value = '';
+                document.getElementById('filterSys').value = '';
+                document.getElementById('filterTag').value = '';
+                filterCards();
+              }
               function filterCards() {
                 const q = (document.getElementById('quickSearch').value || '').toLowerCase().trim();
+                const loc = document.getElementById('filterLoc').value || '';
+                const sol = document.getElementById('filterSol').value || '';
+                const sys = document.getElementById('filterSys').value || '';
+                const tag = document.getElementById('filterTag').value || '';
                 let count = 0;
                 document.querySelectorAll('details.card').forEach(d => {
                   const hay = d.getAttribute('data-search') || '';
-                  const show = !q || hay.includes(q);
+                  const show = (!q || hay.includes(q)) &&
+                               (!loc || d.getAttribute('data-loc') === loc) &&
+                               (!sol || d.getAttribute('data-sol') === sol) &&
+                               (!sys || d.getAttribute('data-sys') === sys) &&
+                               (!tag || d.getAttribute('data-tag') === tag);
                   d.style.display = show ? '' : 'none';
                   if (show) count++;
                 });

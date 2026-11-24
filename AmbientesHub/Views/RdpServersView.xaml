@@ -1,0 +1,202 @@
+<UserControl x:Class="AmbientesHub.Views.RdpServersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <Grid>
+        <TabControl x:Name="MainRdpTabs" Background="Transparent" BorderThickness="0">
+            <!-- ABA 0: CATÁLOGO & EDITOR -->
+            <TabItem Header="📋 Catálogo de Servidores">
+                <Grid Margin="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Cabeçalho -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                            <TextBlock Text="Servidores &amp; Acesso RDP (Cofre Local Criptografado)" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="Importe o JSON do Remote Desktop Manager, edite parâmetros (incluindo Segura® PAM), salve criptografado em DPAPI e conecte em abas ou via mstsc." FontSize="13" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Border x:Name="BadgeRdpStatus" Grid.Column="1" VerticalAlignment="Center" CornerRadius="6" Padding="12,6" Background="#1e293b" BorderBrush="#334155" BorderThickness="1">
+                            <TextBlock x:Name="TxtRdpStatus" Text="0 servidores carregados" FontSize="12" FontWeight="Bold" Foreground="#38bdf8" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Barra de Busca e Importação -->
+                    <Border Grid.Row="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="175" />
+                                    <ColumnDefinition Width="175" />
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox x:Name="TxtSearch" Grid.Column="0" PlaceholderText="Buscar servidor por nome, IP, proxy ou usuário..." Height="34" Margin="0,0,10,0" TextChanged="Filter_Changed" Icon="{ui:SymbolIcon Symbol=Search24}" />
+                                <ComboBox x:Name="CmbGroupFilter" Grid.Column="1" Height="34" Margin="0,0,10,0" SelectionChanged="Filter_Changed" />
+                                <ComboBox x:Name="CmbSeguraFilter" Grid.Column="2" Height="34" SelectedIndex="0" SelectionChanged="Filter_Changed">
+                                    <ComboBoxItem Content="Todos os Modos" Tag="ALL" />
+                                    <ComboBoxItem Content="🔐 Somente Segura®" Tag="SEGURA" />
+                                    <ComboBoxItem Content="🖥️ Direto (Sem Segura)" Tag="DIRECT" />
+                                </ComboBox>
+                            </Grid>
+
+                            <WrapPanel Orientation="Horizontal">
+                                <ui:Button x:Name="BtnImportRdmJson" Appearance="Primary" Content="Importar JSON (RDM)" Icon="{ui:SymbolIcon Symbol=FolderOpen24}" Click="BtnImportRdmJson_Click" Margin="0,0,8,4" Padding="12,6" />
+                                <ui:Button x:Name="BtnExportRdmJson" Appearance="Secondary" Content="Exportar JSON" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnExportRdmJson_Click" Margin="0,0,8,4" Padding="12,6" />
+                                <ui:Button x:Name="BtnNewServer" Appearance="Secondary" Content="+ Novo Servidor" Click="BtnNewServer_Click" Margin="0,0,0,4" Padding="12,6" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Cards Paginados (Esquerda) + Editor/Conexão (Direita) -->
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="430" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Lista Paginada -->
+                        <Grid Grid.Column="0" Margin="0,0,10,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" Background="#0b0f19" BorderBrush="#1e293b" BorderThickness="1" CornerRadius="8" Padding="10">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="ItemsServers">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#0f172a" BorderBrush="{Binding BorderHex}" BorderThickness="1.2" CornerRadius="8" Padding="12,10" Margin="0,0,0,8" Cursor="Hand" MouseLeftButtonDown="ServerCard_MouseDown">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                                            <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border Background="{Binding BadgeBgHex}" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                                                                    <TextBlock Text="{Binding BadgeText}" FontSize="10" FontWeight="Bold" Foreground="{Binding BadgeColorHex}" />
+                                                                </Border>
+                                                                <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" Foreground="#f8fafc" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                            </WrapPanel>
+                                                            <TextBlock Text="{Binding SubtitleDisplay}" FontSize="11.5" FontFamily="Consolas" Foreground="#94a3b8" TextTrimming="CharacterEllipsis" />
+                                                            <TextBlock Text="{Binding UserDisplay}" FontSize="11" Foreground="#38bdf8" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <ui:Button Content="▶ Embutido" Appearance="Primary" Padding="9,5" Margin="0,0,6,0" Tag="{Binding}" Click="BtnCardConnectEmbedded_Click" ToolTip="Abrir sessão RDP em uma aba dentro do AmbientesHub" />
+                                                            <ui:Button Content="🪟 RDP" Appearance="Secondary" Padding="9,5" Tag="{Binding}" Click="BtnCardConnectMstsc_Click" ToolTip="Abrir via mstsc.exe do Windows" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+
+                            <Grid Grid.Row="1" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="TxtPageInfo" Grid.Column="0" Text="Página 1 de 1 (0 servidores)" FontSize="12" Foreground="#94a3b8" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <ui:Button x:Name="BtnPrevPage" Content="◀ Anterior" Appearance="Secondary" Padding="10,5" Margin="0,0,6,0" Click="BtnPrevPage_Click" IsEnabled="False" />
+                                    <ui:Button x:Name="BtnNextPage" Content="Próxima ▶" Appearance="Secondary" Padding="10,5" Click="BtnNextPage_Click" IsEnabled="False" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Editor do Servidor Selecionado -->
+                        <Border Grid.Column="1" Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="14">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Configurações do Servidor" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10" />
+
+                                    <TextBlock Text="Nome de Exibição:" FontSize="11" Foreground="#94a3b8" />
+                                    <ui:TextBox x:Name="TxtEditName" MinHeight="38" Padding="10,6" Margin="0,2,0,8" />
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="90" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <TextBlock Text="Host / IP / Proxy (Url):" FontSize="11" Foreground="#94a3b8" />
+                                            <ui:TextBox x:Name="TxtEditHost" MinHeight="38" Padding="10,6" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Porta:" FontSize="11" Foreground="#94a3b8" />
+                                            <ui:TextBox x:Name="TxtEditPort" Text="3389" MinHeight="38" Padding="10,6" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <TextBlock Text="Usuário (suporta formato Segura® PAM):" FontSize="11" Foreground="#94a3b8" />
+                                    <ui:TextBox x:Name="TxtEditUser" MinHeight="38" Padding="10,6" Margin="0,2,0,8" />
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                            <TextBlock Text="Domínio:" FontSize="11" Foreground="#94a3b8" />
+                                            <ui:TextBox x:Name="TxtEditDomain" MinHeight="38" Padding="10,6" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="Grupo:" FontSize="11" Foreground="#94a3b8" />
+                                            <ui:TextBox x:Name="TxtEditGroup" MinHeight="38" Padding="10,6" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <WrapPanel Orientation="Horizontal" Margin="0,2,0,8">
+                                        <CheckBox x:Name="ChkEditPrompt" Content="Solicitar credenciais" IsChecked="True" Margin="0,0,10,4" />
+                                        <CheckBox x:Name="ChkEditDrives" Content="Mapear discos" IsChecked="False" Margin="0,0,10,4" />
+                                        <CheckBox x:Name="ChkEditEmbedded" Content="Padrão embutido" IsChecked="True" Margin="0,0,10,4" />
+                                        <CheckBox x:Name="ChkEditAutoAdapt" Content="Adaptar resolução ao monitor" IsChecked="True" Margin="0,0,10,4" ToolTip="Ajusta automaticamente a resolução remota ao tamanho do painel/monitor atual" />
+                                        <CheckBox x:Name="ChkEditMultiMon" Content="Multimonitor (mstsc)" IsChecked="False" Margin="0,0,0,4" ToolTip="Usar todos os monitores ao abrir tela cheia via mstsc.exe" />
+                                    </WrapPanel>
+
+                                    <TextBlock Text="Perfil de Desempenho &amp; Qualidade Visual:" FontSize="11" Foreground="#94a3b8" />
+                                    <ComboBox x:Name="CmbEditQualityProfile" MinHeight="38" Padding="10,6" SelectedIndex="0" Margin="0,2,0,8">
+                                        <ComboBoxItem Content="⚖️ Balanceado — Resolução + Estabilidade (24-bit)" Tag="0" />
+                                        <ComboBoxItem Content="🚀 Melhor Estabilidade — Links Lentos / Pior Resolução (16-bit)" Tag="1" />
+                                        <ComboBoxItem Content="✨ Melhor Visualização — Alta Nitidez / LAN (32-bit)" Tag="2" />
+                                    </ComboBox>
+
+                                    <TextBlock Text="Nível de Autenticação NLA (0=Conectar sem aviso, 2=Exigir):" FontSize="11" Foreground="#94a3b8" />
+                                    <ComboBox x:Name="CmbEditAuthLevel" MinHeight="38" Padding="10,6" SelectedIndex="0" Margin="0,2,0,10">
+                                        <ComboBoxItem Content="0 — Conectar e não avisar" Tag="0" />
+                                        <ComboBoxItem Content="1 — Avisar se falhar autenticação" Tag="1" />
+                                        <ComboBoxItem Content="2 — Exigir autenticação do servidor" Tag="2" />
+                                    </ComboBox>
+
+                                    <ui:Button x:Name="BtnApplySegura" Content="🔐 Aplicar Padrão Segura®" Appearance="Secondary" HorizontalAlignment="Stretch" Padding="8,6" Margin="0,0,0,8" Click="BtnApplySegura_Click" />
+
+                                    <UniformGrid Columns="2" Margin="0,0,0,10">
+                                        <ui:Button x:Name="BtnSaveServer" Content="💾 Salvar" Appearance="Primary" Padding="8,6" Margin="0,0,4,0" Click="BtnSaveServer_Click" />
+                                        <ui:Button x:Name="BtnDeleteServer" Content="🗑️ Excluir" Appearance="Danger" Padding="8,6" Margin="4,0,0,0" Click="BtnDeleteServer_Click" />
+                                    </UniformGrid>
+
+                                    <Separator Margin="0,0,0,10" />
+
+                                    <ui:Button x:Name="BtnEditorConnectEmbedded" Content="▶ Conectar em Aba (Embutido)" Appearance="Primary" HorizontalAlignment="Stretch" Padding="10,7" Margin="0,0,0,6" Click="BtnEditorConnectEmbedded_Click" />
+                                    <ui:Button x:Name="BtnEditorConnectMstsc" Content="🪟 Abrir no RDP Windows (mstsc)" Appearance="Secondary" HorizontalAlignment="Stretch" Padding="10,7" Click="BtnEditorConnectMstsc_Click" />
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

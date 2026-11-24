@@ -120,6 +120,12 @@ _Executável leve disponível em:_
 - **Mapeamento de Sub-rede & Tabela ARP (`SubnetNeighborsService` + `SubnetNeighborsView`):** A partir de um hostname ou IP de referência, mapeia a sub-rede `/24` em paralelo (Ping + PTR + ARP local), tenta coletar a tabela ARP remota via `MSFT_NetNeighbor` (`root\StandardCimv2`) e opcionalmente complementa com máquinas da mesma OU no AD.
 - **Árvore Bézier & Inspetor:** Exibe o nó raiz (sub-rede/gateway/switch Zabbix) conectado por curvas Bézier aos vizinhos encontrados; ao clicar em qualquer vizinho, carrega usuário conectado e MAC em background e libera botões de 1 clique (**SCCM**, **RDP**, **C$**, **Traçar Rota** e **Portas TCP**).
 
+### J. Aba "Servidores & RDP" (Item 22)
+
+- **Catálogo Criptografado & Compatível com RDM (`RdpCatalogService` + `RdpServersView`):** Importa e exporta JSON no formato do Devolutions Remote Desktop Manager (`Connections`) e persiste os servidores criptografados com **DPAPI (`CurrentUser`) + ACL 600** em `AmbientesHub\rdp_servers.dat`.
+- **Editor Segura® PAM & Conexão Dual:** Lista servidores em cards paginados com busca e filtro (`Segura®` vs `Direto`), permite editar e aplicar o padrão Segura® (`usuario[dominio\adm@SERVIDOR]`), e conectar tanto **em abas embutidas** dentro do Hub (`EmbeddedRdpHost` via `mstscax.dll`) quanto pelo **`mstsc.exe` do Windows**.
+- **Perfis de Qualidade, Resolução Dinâmica & Tela Cheia por Monitor:** Oferece 3 perfis (`⚖️ Balanceado 24-bit`, `🚀 Melhor Estabilidade 16-bit`, `✨ Melhor Visualização 32-bit`), adaptação dinâmica da resolução e DPI ao painel/monitor atual (`UpdateSessionDisplaySettings` + `SmartSizing`) e botão **`⛶ Tela Cheia`** que abre em resolução nativa no monitor onde a janela está posicionada.
+
 ### G. Aba "Otimizações de Registro (Tweaks & Rollback)" (Item 12)
 
 - **Ajustes Cirúrgicos de Performance:** Lista curada de tweaks no Windows Registry focados em redução de latência (`MenuShowDelay`), eliminação do atraso de boot (`StartupDelayInMSec`), priorização de foreground em multitarefa (`SystemResponsiveness`), desativação de throttling de rede TCP (`NetworkThrottlingIndex`) e supressão de bloatware em segundo plano.

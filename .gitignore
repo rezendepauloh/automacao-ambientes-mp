@@ -24,6 +24,7 @@ Backups/
 *.kdbx
 *.rdp
 *.rdg
+rdp_servers.dat
 secrets/
 *.secret
 *.secrets

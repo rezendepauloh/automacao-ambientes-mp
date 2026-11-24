@@ -98,6 +98,7 @@
                         <ListBoxItem Content="19" />
                         <ListBoxItem Content="20" />
                         <ListBoxItem Content="21" />
+                        <ListBoxItem Content="22" />
                     </ListBox>
 
                     <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
@@ -126,6 +127,9 @@
                                 </ui:Button>
                                 <ui:Button x:Name="NavBtn2" Tag="2" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="🖥️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl2" Text="Acesso Remoto" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn22" Tag="22" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🗄️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl22" Text="Servidores &amp; RDP" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
                                 </ui:Button>
                                 <ui:Button x:Name="NavBtn3" Tag="3" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="🗑️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl3" Text="Limpeza AD &amp; SCCM" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
@@ -2682,6 +2686,9 @@
 
                     <!-- PAINEL 21: VIZINHOS DE REDE & TABELA ARP -->
                     <views:SubnetNeighborsView x:Name="PanelSubnetNeighbors" Visibility="Collapsed" />
+
+                    <!-- PAINEL 22: SERVIDORES & ACESSO RDP (RDM LOCAL) -->
+                    <views:RdpServersView x:Name="PanelRdpServers" Visibility="Collapsed" />
 
                 </Grid>
             </Border>

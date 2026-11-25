@@ -7,6 +7,7 @@ public class EnvironmentLauncherService
 {
     private readonly BrowserLauncherService _browserService = new();
     private readonly CleanupService _cleanupService = new();
+    private readonly SajmpLauncherService _sajmpService = new();
 
     public void LaunchEnvironment(string modeName, bool cleanFirst = true)
     {
@@ -49,6 +50,10 @@ public class EnvironmentLauncherService
 
             case "Estudo":
                 LaunchModoEstudo();
+                break;
+
+            case "SAJMP":
+                _sajmpService.LaunchAndLogin();
                 break;
 
             default:
@@ -176,7 +181,20 @@ public class EnvironmentLauncherService
             ]
         };
 
-        return [chamados, contratos, impressoras, pxe, estudo];
+        var sajmp = new Models.EnvironmentModeItem
+        {
+            ModeKey = "SAJMP",
+            Icon = "⚖️",
+            Title = "Abrir SAJMP",
+            BadgeText = "SAJMP",
+            Subtitle = "Inicia o SAJMP, lê a senha do cofre DPAPI e efetua login automático sem SendKeys.",
+            Steps =
+            [
+                new() { Id = "open_sajmp", Category = "Abertura", Label = "Abrir SAJMP e efetuar login automático" }
+            ]
+        };
+
+        return [chamados, contratos, impressoras, pxe, estudo, sajmp];
     }
 
     public void ExecuteCustomEnvironment(Models.EnvironmentModeItem mode, Action<string> logCallback)
@@ -221,6 +239,13 @@ public class EnvironmentLauncherService
             Log("[▶] Limpando sessão anterior do Firefox...");
             _browserService.ClearFirefoxSession();
             Log("[OK] Sessão do Firefox limpa.");
+        }
+
+        if (enabledIds.Contains("open_sajmp"))
+        {
+            var sajResult = _sajmpService.LaunchAndLogin(Log);
+            if (!sajResult.Success)
+                return;
         }
 
         if (enabledIds.Contains("open_whatsapp"))

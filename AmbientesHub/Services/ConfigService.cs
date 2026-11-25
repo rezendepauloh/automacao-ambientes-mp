@@ -184,6 +184,9 @@ public static class ConfigService
     public static bool MinimizeToTray => bool.TryParse(Get("MINIMIZE_TO_TRAY", "true"), out bool min) ? min : true;
     public static string ZabbixApiUrl => Get("ZABBIX_API_URL", "");
     public static string ZabbixApiToken => Get("ZABBIX_API_TOKEN", "");
+    public static string SajmpExePath => Get("SAJMP_EXE_PATH", "");
+    public static string SajmpCredPath => Get("SAJMP_CRED_PATH", "");
+    public static string SajmpWindowTitle => Get("SAJMP_WINDOW_TITLE", "");
 
     /// <summary>
     /// Retorna valores padrão recomendados e dinâmicos (ex: perfil do usuário atual do Windows)

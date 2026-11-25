@@ -152,12 +152,46 @@ $SendTestPage     = {{sendTestBool}}
 $OpenPrintQueue   = {{openQueueBool}}
 $DryRun           = {{dryRunBool}}
 
-# Função preparada para cenário futuro: criação completa de impressora ainda inexistente no servidor
+# Função completa para criação de impressora ainda inexistente no servidor (Passos 01 a 07)
 function Provision-NewPrinterQueue {
     param([string]$Name, [string]$Port, [string]$Driver, [string]$Loc, [string]$Desc)
-    Write-Host "[CENÁRIO FUTURO] Função Provision-NewPrinterQueue pronta para cadastrar '$Name' na porta '$Port' com driver '$Driver'." -ForegroundColor Yellow
-    # Quando ativado para novas filas:
-    # Add-Printer -Name $Name -DriverName $Driver -PortName $Port -Shared -ShareName $Name -Location $Loc -Comment $Desc
+
+    $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if (-not $isAdmin) {
+        Write-Host "[ERRO DE PRIVILÉGIO] Para cadastrar uma nova impressora e criar a porta PaperCut, abra o PowerShell como Administrador e cole o script novamente." -ForegroundColor Red
+        return
+    }
+
+    if ($DryRun) {
+        Write-Host "[MODO SIMULAÇÃO] Impressora '$Name' seria criada na porta '$Port' com driver '$Driver' (Location='$Loc')." -ForegroundColor Cyan
+        return
+    }
+
+    Ensure-PaperCutTcpPort -PortName $Port -IpAddress $NewIp -TcpPort $PortNumber -Monitor $MonitorName | Out-Null
+
+    $drv = Get-PrinterDriver -Name $Driver -ErrorAction SilentlyContinue
+    if ($null -eq $drv) {
+        throw "Driver '$Driver' não encontrado no servidor. Instale o driver primeiro ou ajuste o campo 'Modelo / Driver Padrão'."
+    }
+
+    Write-Host "  [PASSOS 05-07] Criando fila '$Name' (Shared=$true, Publish=No, Driver='$Driver', Porta='$Port')..." -ForegroundColor Cyan
+    $addParams = @{
+        Name       = $Name
+        DriverName = $Driver
+        PortName   = $Port
+        Shared     = $true
+        ShareName  = $Name
+        Published  = $false
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Loc))  { $addParams['Location'] = $Loc }
+    if (-not [string]::IsNullOrWhiteSpace($Desc)) { $addParams['Comment']  = $Desc }
+
+    Add-Printer @addParams
+    Write-Host "  [SUCESSO] Impressora '$Name' cadastrada no Print Management!" -ForegroundColor Green
+
+    Invoke-TestAndQueueUI -Name $Name -DoTest $SendTestPage -DoQueue $OpenPrintQueue
+    Write-Host ""
+    Write-Host "=== [PASSO 11 - LEMBRETE] Lembre-se de conferir/atualizar '$Name' ($NewIp) no PaperCut Admin! ===" -ForegroundColor Magenta
 }
 
 # Função auxiliar: cria a porta PaperCut TCP/IP Port (PAPERCUT_<IP>) no monitor do PaperCut

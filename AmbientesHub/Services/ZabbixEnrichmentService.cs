@@ -238,7 +238,7 @@ public class ZabbixEnrichmentService
         }
     }
 
-    internal static Dictionary<string, List<string>> ParseHostInterfaceResponse(string json)
+    public static Dictionary<string, List<string>> ParseHostInterfaceResponse(string json)
     {
         var map = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(json))
@@ -267,7 +267,7 @@ public class ZabbixEnrichmentService
         return map;
     }
 
-    internal static Dictionary<string, ZabbixHostMatch> ParseHostDetailsResponse(
+    public static Dictionary<string, ZabbixHostMatch> ParseHostDetailsResponse(
         string json,
         IReadOnlyDictionary<string, List<string>> hostIdToIps)
     {

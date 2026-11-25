@@ -81,6 +81,7 @@ public class PrinterMigrationServiceTests
         Assert.Contains("PaperCut TCP/IP Port", script);
         Assert.Contains("Ensure-PaperCutTcpPort", script);
         Assert.Contains("Provision-NewPrinterQueue", script);
+        Assert.Contains("Add-Printer @addParams", script);
         Assert.Contains("Set-Printer -Name $PrinterName -PortName $ExpectedPortName", script);
         Assert.Contains("PrintTestPage", script);
     }

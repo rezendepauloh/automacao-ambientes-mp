@@ -35,7 +35,7 @@
 
                     <StackPanel Grid.Column="0" Margin="0,0,10,0">
                         <TextBlock Text="Estação / IP de Referência (mesma sala/sub-rede):" FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4" />
-                        <ui:TextBox x:Name="TxtRefTarget" PlaceholderText="Ex: MPE-80600 ou 10.111.129.29" Height="34" KeyDown="TxtRefTarget_KeyDown" Icon="{ui:SymbolIcon Symbol=Search24}" />
+                        <ui:TextBox x:Name="TxtRefTarget" PlaceholderText="Ex: DOMINIO-PC01 ou 10.0.0.50" Height="34" KeyDown="TxtRefTarget_KeyDown" Icon="{ui:SymbolIcon Symbol=Search24}" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="1">

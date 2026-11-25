@@ -99,6 +99,7 @@
                         <ListBoxItem Content="20" />
                         <ListBoxItem Content="21" />
                         <ListBoxItem Content="22" />
+                        <ListBoxItem Content="23" />
                     </ListBox>
 
                     <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
@@ -190,6 +191,9 @@
                                 </ui:Button>
                                 <ui:Button x:Name="NavBtn21" Tag="21" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="🗺️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl21" Text="Vizinhos de Rede" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                                </ui:Button>
+                                <ui:Button x:Name="NavBtn23" Tag="23" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,6" Margin="0,1">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="🖨️" FontSize="13" Width="22" TextAlignment="Center" /><TextBlock x:Name="NavLbl23" Text="Print Server &amp; Portas" FontSize="12.5" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
                                 </ui:Button>
                             </StackPanel>
 
@@ -2689,6 +2693,9 @@
 
                     <!-- PAINEL 22: SERVIDORES & ACESSO RDP (RDM LOCAL) -->
                     <views:RdpServersView x:Name="PanelRdpServers" Visibility="Collapsed" />
+
+                    <!-- PAINEL 23: MIGRAÇÃO & PORTAS DE IMPRESSORAS NO PRINT SERVER -->
+                    <views:PrinterMigrationView x:Name="PanelPrinterMigration" Visibility="Collapsed" />
 
                 </Grid>
             </Border>

@@ -126,6 +126,14 @@ _Executável leve disponível em:_
 - **Editor Segura® PAM & Conexão Dual:** Lista servidores em cards paginados com busca e filtro (`Segura®` vs `Direto`), permite editar e aplicar o padrão Segura® (`usuario[dominio\adm@SERVIDOR]`), e conectar tanto **em abas embutidas** dentro do Hub (`EmbeddedRdpHost` via `mstscax.dll`) quanto pelo **`mstsc.exe` do Windows**.
 - **Perfis de Qualidade, Resolução Dinâmica & Tela Cheia por Monitor:** Oferece 3 perfis (`⚖️ Balanceado 24-bit`, `🚀 Melhor Estabilidade 16-bit`, `✨ Melhor Visualização 32-bit`), adaptação dinâmica da resolução e DPI ao painel/monitor atual (`UpdateSessionDisplaySettings` + `SmartSizing`) e botão **`⛶ Tela Cheia`** que abre em resolução nativa no monitor onde a janela está posicionada.
 
+### K. Aba "Print Server & Portas" (Item 23)
+
+- **Automação de Portas PaperCut no Print Management (`PrinterMigrationService` + `PrinterMigrationView`):** Verifica a conectividade da impressora no novo IP (Ping ICMP + porta RAW `9100` + interface web + MAC ARP) e automatiza o fluxo no servidor de impressão:
+  - Se a impressora já estiver com a porta `PAPERCUT_<NOVO_IP>`, interrompe a alteração e oferece envio de **Página de Teste** + abertura da **Fila de Impressão**.
+  - Se estiver com IP antigo, cria a porta `PAPERCUT_<NOVO_IP>` (`PaperCut TCP/IP Port` na porta `9100`) caso ainda não exista e atualiza a impressora (`Set-Printer`).
+  - Mantém estruturada a função `Provision-NewPrinterQueue` para criação de filas novas e o atalho direto para o **PaperCut Admin** (`URL_PAPERCUT`).
+  - **Execução em ambientes com PAM / 2FA:** Quando a conta administrativa exige autenticação intermediada por proxy PAM com 2FA (ex.: formato `usuario[dominio\adm@SERVIDOR]`), o WinRM direto (`Invoke-Command`) não autentica; nesse caso, utilize **Copiar Script PowerShell**, abra o servidor na aba **Servidores & RDP** e cole no **PowerShell (Admin)** dentro da sessão.
+
 ### G. Aba "Otimizações de Registro (Tweaks & Rollback)" (Item 12)
 
 - **Ajustes Cirúrgicos de Performance:** Lista curada de tweaks no Windows Registry focados em redução de latência (`MenuShowDelay`), eliminação do atraso de boot (`StartupDelayInMSec`), priorização de foreground em multitarefa (`SystemResponsiveness`), desativação de throttling de rede TCP (`NetworkThrottlingIndex`) e supressão de bloatware em segundo plano.

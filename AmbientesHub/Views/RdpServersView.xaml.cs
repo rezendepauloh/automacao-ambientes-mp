@@ -29,6 +29,15 @@ public partial class RdpServersView : WControls.UserControl
         LoadCatalogFromDisk();
     }
 
+    public void FilterByServerQuery(string serverQuery)
+    {
+        MainRdpTabs.SelectedIndex = 0;
+        TxtSearch.Text = (serverQuery ?? string.Empty).Trim();
+        ApplyFilters();
+        if (_filteredAll.Count > 0)
+            SelectServer(_filteredAll[0]);
+    }
+
     private void LoadCatalogFromDisk()
     {
         _catalog = RdpCatalogService.LoadEncryptedCatalog();

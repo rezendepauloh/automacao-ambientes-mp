@@ -114,6 +114,11 @@ public partial class MainWindow : FluentWindow
             NavListBox.SelectedIndex = 19;
             PanelNetworkPath.SetTargetAndTrace(target);
         };
+        PanelPrinterMigration.OnOpenServerInRdpRequested += server =>
+        {
+            NavListBox.SelectedIndex = 22;
+            PanelRdpServers.FilterByServerQuery(server);
+        };
         if (CmbAdUserStatusFilter != null && CmbAdUserStatusFilter.Items.Count > 0)
         {
             CmbAdUserStatusFilter.SelectedIndex = 0;
@@ -154,6 +159,7 @@ public partial class MainWindow : FluentWindow
             NavLbl20.Visibility = Visibility.Visible;
             NavLbl21.Visibility = Visibility.Visible;
             NavLbl22.Visibility = Visibility.Visible;
+            NavLbl23.Visibility = Visibility.Visible;
         }
         else
         {
@@ -182,6 +188,7 @@ public partial class MainWindow : FluentWindow
             NavLbl20.Visibility = Visibility.Collapsed;
             NavLbl21.Visibility = Visibility.Collapsed;
             NavLbl22.Visibility = Visibility.Collapsed;
+            NavLbl23.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -318,6 +325,13 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (lower is "print server" or "porta impressora" or "migrar impressora" or "papercut port")
+        {
+            NavListBox.SelectedIndex = 23;
+            TxtFooterStatus.Text = "Navegado para: Print Server & Portas de Impressoras";
+            return;
+        }
+
         if (lower is "bancada" or "docker" or "wsl" or "streamlit" or "8501" or "chamados bancada")
         {
             NavListBox.SelectedIndex = 11;
@@ -433,7 +447,7 @@ public partial class MainWindow : FluentWindow
 
     private void HighlightActiveNavMenuItem(int activeIndex)
     {
-        for (int i = 0; i <= 22; i++)
+        for (int i = 0; i <= 23; i++)
         {
             if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
                 btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
@@ -469,6 +483,7 @@ public partial class MainWindow : FluentWindow
         PanelZabbixMonitor.Visibility = Visibility.Collapsed;
         PanelSubnetNeighbors.Visibility = Visibility.Collapsed;
         PanelRdpServers.Visibility = Visibility.Collapsed;
+        PanelPrinterMigration.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -555,6 +570,9 @@ public partial class MainWindow : FluentWindow
                 break;
             case 22:
                 PanelRdpServers.Visibility = Visibility.Visible;
+                break;
+            case 23:
+                PanelPrinterMigration.Visibility = Visibility.Visible;
                 break;
         }
     }

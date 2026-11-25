@@ -100,6 +100,7 @@
                         <ListBoxItem Content="21" />
                         <ListBoxItem Content="22" />
                         <ListBoxItem Content="23" />
+                        <ListBoxItem Content="24" />
                     </ListBox>
 
                     <!-- Menu Lateral Estilo PowerToys com Dropdowns -->
@@ -226,7 +227,10 @@
 
                             <Separator Margin="4,8" />
 
-                            <!-- Fixo Rodapé: Logs & Configurações -->
+                            <!-- Fixo Rodapé: Documentação, Logs & Configurações -->
+                            <ui:Button x:Name="NavBtn24" Tag="24" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,8" Margin="0,1">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="📚" FontSize="15" Width="26" TextAlignment="Center" /><TextBlock x:Name="NavLbl24" Text="Documentação" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
+                            </ui:Button>
                             <ui:Button x:Name="NavBtn15" Tag="15" Click="NavMenuItem_Click" Appearance="Transparent" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="8,8" Margin="0,1">
                                 <StackPanel Orientation="Horizontal"><TextBlock Text="📜" FontSize="15" Width="26" TextAlignment="Center" /><TextBlock x:Name="NavLbl15" Text="Logs da Aplicação" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" /></StackPanel>
                             </ui:Button>
@@ -2696,6 +2700,9 @@
 
                     <!-- PAINEL 23: MIGRAÇÃO & PORTAS DE IMPRESSORAS NO PRINT SERVER -->
                     <views:PrinterMigrationView x:Name="PanelPrinterMigration" Visibility="Collapsed" />
+
+                    <!-- PAINEL 24: DOCUMENTAÇÃO TÉCNICA & MANUAIS (MARKDOWN NATIVO) -->
+                    <views:DocumentationView x:Name="PanelDocumentation" Visibility="Collapsed" />
 
                 </Grid>
             </Border>

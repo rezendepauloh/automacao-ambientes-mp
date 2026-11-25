@@ -1,0 +1,295 @@
+<UserControl x:Class="AmbientesHub.Views.DocumentationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Cabeçalho -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock Text="Documentação Técnica &amp; Manuais Operacionais"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="Consulte guias de operação, decisões arquiteturais, hardening SecOps e checklists diretamente da pasta Docs/ já formatados."
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Margin="0,3,0,0"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+            <Border x:Name="BadgeDocsStatus"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    CornerRadius="6"
+                    Padding="12,6"
+                    Background="#1e293b"
+                    BorderBrush="#334155"
+                    BorderThickness="1">
+                <TextBlock x:Name="TxtDocsStatus"
+                           Text="📚 0 documentos"
+                           FontSize="12"
+                           FontWeight="Bold"
+                           Foreground="#38bdf8" />
+            </Border>
+        </Grid>
+
+        <!-- Corpo Mestre-Detalhe: Catálogo lateral de Docs + Leitor Markdown -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="335" MinWidth="240" MaxWidth="480" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Coluna Esquerda: Busca, Filtro de Categoria e Lista de Documentos -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <ui:TextBox x:Name="TxtSearchDocs"
+                                Grid.Row="0"
+                                PlaceholderText="Buscar por título ou conteúdo..."
+                                Icon="{ui:SymbolIcon Symbol=Search24}"
+                                Height="34"
+                                Margin="0,0,0,8"
+                                TextChanged="TxtSearchDocs_TextChanged" />
+
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="CmbDocCategory"
+                                  Grid.Column="0"
+                                  Height="34"
+                                  Margin="0,0,6,0"
+                                  SelectionChanged="CmbDocCategory_SelectionChanged" />
+                        <ui:Button x:Name="BtnReloadDocs"
+                                   Grid.Column="1"
+                                   Appearance="Secondary"
+                                   Content="🔄"
+                                   Height="34"
+                                   Width="38"
+                                   Padding="0"
+                                   Click="BtnReloadDocs_Click"
+                                   ToolTip="Reindexar arquivos .md da pasta Docs/" />
+                    </Grid>
+
+                    <Border Grid.Row="2"
+                            Background="#0b0f19"
+                            BorderBrush="#1e293b"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl x:Name="ItemsDocs">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{Binding CardBgHex}"
+                                                BorderBrush="{Binding BorderHex}"
+                                                BorderThickness="1.2"
+                                                CornerRadius="6"
+                                                Padding="10,8"
+                                                Margin="0,0,0,7"
+                                                Cursor="Hand"
+                                                Tag="{Binding}"
+                                                MouseLeftButtonUp="DocCard_MouseLeftButtonUp">
+                                            <StackPanel>
+                                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                                    <Border Background="{Binding BadgeBgHex}"
+                                                            CornerRadius="4"
+                                                            Padding="6,1.5"
+                                                            Margin="0,0,6,2"
+                                                            VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding BadgeText}"
+                                                                   FontSize="9.5"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{Binding BadgeFgHex}" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Emoji}"
+                                                               FontSize="13"
+                                                               Margin="0,0,4,0"
+                                                               VerticalAlignment="Center" />
+                                                </WrapPanel>
+
+                                                <TextBlock Text="{Binding Title}"
+                                                           FontSize="12.8"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#f8fafc"
+                                                           TextWrapping="Wrap"
+                                                           Margin="0,1,0,3" />
+
+                                                <TextBlock Text="{Binding Summary}"
+                                                           Visibility="{Binding HasSummary, Converter={StaticResource BoolToVis}}"
+                                                           FontSize="11.2"
+                                                           Foreground="#94a3b8"
+                                                           TextWrapping="Wrap"
+                                                           MaxHeight="34"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="0,0,0,4" />
+
+                                                <TextBlock Text="{Binding RelativePath}"
+                                                           FontSize="10.5"
+                                                           FontFamily="Consolas"
+                                                           Foreground="#38bdf8"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Divisor redimensionável -->
+            <GridSplitter Grid.Column="1"
+                          Width="8"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="Transparent"
+                          Cursor="SizeWE" />
+
+            <!-- Coluna Direita: Barra do Leitor + Visualizador Markdown Formatado -->
+            <Border Grid.Column="2"
+                    Background="#0b0f19"
+                    BorderBrush="#1e293b"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Barra Superior de Navegação e Ações do Documento -->
+                    <Border Grid.Row="0"
+                            Background="#0f172a"
+                            BorderBrush="#1e293b"
+                            BorderThickness="0,0,0,1"
+                            CornerRadius="8,8,0,0"
+                            Padding="12,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                <ui:Button x:Name="BtnDocBack"
+                                           Content="◀"
+                                           Appearance="Secondary"
+                                           Width="32"
+                                           Height="30"
+                                           Padding="0"
+                                           Margin="0,0,4,0"
+                                           IsEnabled="False"
+                                           Click="BtnDocBack_Click"
+                                           ToolTip="Voltar ao documento anterior" />
+                                <ui:Button x:Name="BtnDocForward"
+                                           Content="▶"
+                                           Appearance="Secondary"
+                                           Width="32"
+                                           Height="30"
+                                           Padding="0"
+                                           IsEnabled="False"
+                                           Click="BtnDocForward_Click"
+                                           ToolTip="Avançar para o próximo documento" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                                <TextBlock x:Name="TxtCurrentDocTitle"
+                                           Text="Selecione um documento"
+                                           FontSize="13"
+                                           FontWeight="SemiBold"
+                                           Foreground="#f8fafc"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="TxtCurrentDocMeta"
+                                           Text="Docs/"
+                                           FontSize="11"
+                                           FontFamily="Consolas"
+                                           Foreground="#64748b"
+                                           TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+
+                            <WrapPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:Button x:Name="BtnZoomOut"
+                                           Content="A-"
+                                           Appearance="Transparent"
+                                           Padding="7,4"
+                                           Margin="0,0,2,0"
+                                           FontSize="11.5"
+                                           Click="BtnZoomOut_Click"
+                                           ToolTip="Reduzir tamanho da fonte" />
+                                <ui:Button x:Name="BtnZoomReset"
+                                           Content="100%"
+                                           Appearance="Transparent"
+                                           Padding="7,4"
+                                           Margin="0,0,2,0"
+                                           FontSize="11"
+                                           Click="BtnZoomReset_Click"
+                                           ToolTip="Restaurar tamanho padrão da fonte" />
+                                <ui:Button x:Name="BtnZoomIn"
+                                           Content="A+"
+                                           Appearance="Transparent"
+                                           Padding="7,4"
+                                           Margin="0,0,8,0"
+                                           FontSize="11.5"
+                                           Click="BtnZoomIn_Click"
+                                           ToolTip="Aumentar tamanho da fonte" />
+
+                                <ui:Button x:Name="BtnCopyRawMd"
+                                           Content="📋 Copiar .md"
+                                           Appearance="Secondary"
+                                           Padding="9,5"
+                                           Margin="0,0,6,0"
+                                           FontSize="11.5"
+                                           Click="BtnCopyRawMd_Click"
+                                           ToolTip="Copiar o código-fonte Markdown bruto deste documento" />
+                                <ui:Button x:Name="BtnOpenDocsFolder"
+                                           Content="📂 Pasta Docs"
+                                           Appearance="Secondary"
+                                           Padding="9,5"
+                                           FontSize="11.5"
+                                           Click="BtnOpenDocsFolder_Click"
+                                           ToolTip="Abrir o diretório Docs/ no Windows Explorer" />
+                            </WrapPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Leitor Nativo WPF FlowDocument -->
+                    <FlowDocumentScrollViewer x:Name="MarkdownViewer"
+                                              Grid.Row="1"
+                                              IsToolBarVisible="False"
+                                              VerticalScrollBarVisibility="Auto"
+                                              Background="Transparent"
+                                              Foreground="#e2e8f0" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -160,6 +160,7 @@ public partial class MainWindow : FluentWindow
             NavLbl21.Visibility = Visibility.Visible;
             NavLbl22.Visibility = Visibility.Visible;
             NavLbl23.Visibility = Visibility.Visible;
+            NavLbl24.Visibility = Visibility.Visible;
         }
         else
         {
@@ -189,6 +190,7 @@ public partial class MainWindow : FluentWindow
             NavLbl21.Visibility = Visibility.Collapsed;
             NavLbl22.Visibility = Visibility.Collapsed;
             NavLbl23.Visibility = Visibility.Collapsed;
+            NavLbl24.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -374,6 +376,22 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (lower is "docs" or "doc" or "documentacao" or "documentação" or "manual" or "manuais" or "guia" or "guias" or "arquitetura" or "ajuda" or "readme")
+        {
+            NavListBox.SelectedIndex = 24;
+            TxtFooterStatus.Text = "Navegado para: Documentação Técnica";
+            return;
+        }
+
+        if (lower.StartsWith("docs ") || lower.StartsWith("doc ") || lower.StartsWith("guia "))
+        {
+            string docQuery = query[(query.IndexOf(' ') + 1)..].Trim();
+            NavListBox.SelectedIndex = 24;
+            PanelDocumentation.SetSearchFilter(docQuery);
+            TxtFooterStatus.Text = $"Navegado para Documentação filtrando por: {docQuery}";
+            return;
+        }
+
         if (lower is "logs" or "log" or "eventos" or "historico" or "histórico" or "console" or "app.log")
         {
             NavListBox.SelectedIndex = 15;
@@ -447,7 +465,7 @@ public partial class MainWindow : FluentWindow
 
     private void HighlightActiveNavMenuItem(int activeIndex)
     {
-        for (int i = 0; i <= 23; i++)
+        for (int i = 0; i <= 24; i++)
         {
             if (FindName($"NavBtn{i}") is Wpf.Ui.Controls.Button btn)
                 btn.Appearance = (i == activeIndex) ? ControlAppearance.Secondary : ControlAppearance.Transparent;
@@ -484,6 +502,7 @@ public partial class MainWindow : FluentWindow
         PanelSubnetNeighbors.Visibility = Visibility.Collapsed;
         PanelRdpServers.Visibility = Visibility.Collapsed;
         PanelPrinterMigration.Visibility = Visibility.Collapsed;
+        PanelDocumentation.Visibility = Visibility.Collapsed;
 
         switch (NavListBox.SelectedIndex)
         {
@@ -574,6 +593,10 @@ public partial class MainWindow : FluentWindow
             case 23:
                 PanelPrinterMigration.Visibility = Visibility.Visible;
                 break;
+            case 24:
+                PanelDocumentation.Visibility = Visibility.Visible;
+                PanelDocumentation.EnsureLoadedOnce();
+                break;
         }
     }
     #endregion
@@ -641,6 +664,7 @@ public partial class MainWindow : FluentWindow
             RichAppLogs.FontFamily = font;
             RichRegistryLogs.FontFamily = font;
             RichUsmtLogs.FontFamily = font;
+            PanelDocumentation?.ApplyCodeFont(fontName);
 
             foreach (var block in RichAdLogs.Document.Blocks) block.FontFamily = font;
             foreach (var block in RichCleanLogs.Document.Blocks) block.FontFamily = font;

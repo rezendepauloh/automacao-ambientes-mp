@@ -141,17 +141,22 @@ _Executável leve disponível em:_
 - **Restauração em 1 Clique (Rollback):** Permite reverter valores anteriores ou padrões da Microsoft individualmente ou em lote.
 - **Segurança e Privilégios:** Separação visual clara entre chaves em espaço de usuário (`HKCU` - seguras e sem elevação) e chaves do sistema (`HKLM` - com badge indicando necessidade de execução como Administrador).
 
-### H. Aba "Logs da Aplicação" (Item 13)
+### H. Aba "Documentação" (Acima de Logs da Aplicação)
+
+- **Leitor Markdown Integrado (`DocumentationService` + `DocumentationView`):** Indexa automaticamente todos os arquivos `.md` de `Docs/` agrupados por categoria (`Índice Geral`, `Guias Operacionais`, `Arquitetura & SecOps`, `Issues & Homologação`) com proteção estrita contra *path traversal* e *symlinks*.
+- **Busca Instantânea & Navegação Hipertexto:** Filtra por título ou conteúdo completo dos manuais, suporta links clicáveis entre documentos `.md` com histórico (`◀` / `▶`), controle de zoom tipográfico (`A-` / `A+`) e botão **📋 Copiar** individual em cada bloco de código.
+
+### I. Aba "Logs da Aplicação"
 
 - **Observabilidade em Tempo Real:** Visualizador integrado dos logs gravados em `AmbientesHub\logs\app.log`.
 - **Destaque Sintático Colorido:** Formatação rica no console WPF com identificação visual instantânea por cores para carimbos de data/hora, níveis (`INFO`, `WARNING`, `DANGER`, `SUCCESS`) e classes chamadoras.
 - **Filtros Dinâmicos:** Filtro por nível e busca por texto em tempo real com rolagem automática.
 
-### I. Aba "Configurações & Credenciais" (Item 14 - Último da Barra Lateral)
+### J. Aba "Configurações & Credenciais" (Último da Barra Lateral)
 
 - **Centralização Unificada:** Módulo posicionado como o último item da navegação, consolidando todas as variáveis de ambiente (`.env`), caminho do USMT (`USMT_PATH`) com detecção/download, botões de preenchimento padrão por campo, seleção tipográfica, arranque com o Windows e cofres seguros DPAPI.
 
-### J. Inicialização com Windows, Bandeja do Sistema & Notificações Toast
+### K. Inicialização com Windows, Bandeja do Sistema & Notificações Toast
 
 - **Iniciar com o Windows:** Alternador (ToggleSwitch) nas Configurações para habilitar ou desabilitar o arranque automático do aplicativo após login (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
 - **Atalho no Menu Iniciar:** Alternador nas Configurações que cria e remove o atalho `Ambientes Hub.lnk` na pasta de Programas do Menu Iniciar (`AppData\Roaming\Microsoft\Windows\Start Menu\Programs`) com metadados e ícone corporativo.

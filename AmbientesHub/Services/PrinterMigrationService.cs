@@ -204,36 +204,8 @@ function Ensure-PaperCutTcpPort {
         return $true
     }
 
-    Write-Host "  [PASSOS 5-8] Criando nova porta '$PortName' ($IpAddress : $TcpPort) no monitor '$Monitor'..." -ForegroundColor Cyan
-    $monRegBase = "HKLM:\SYSTEM\CurrentControlSet\Control\Print\Monitors\$Monitor\Ports"
-
-    if (Test-Path $monRegBase) {
-        $newPortKey = Join-Path $monRegBase $PortName
-        if (-not (Test-Path $newPortKey)) {
-            # Clona os atributos padrão de uma porta PAPERCUT_* já existente para manter 100% de compatibilidade com a versão do PaperCut
-            $samplePort = Get-ChildItem -Path $monRegBase -ErrorAction SilentlyContinue | Select-Object -First 1
-            New-Item -Path $newPortKey -Force | Out-Null
-            if ($null -ne $samplePort) {
-                $props = Get-ItemProperty -Path $samplePort.PSPath
-                foreach ($p in $props.PSObject.Properties) {
-                    if ($p.Name -notmatch '^PS') {
-                        New-ItemProperty -Path $newPortKey -Name $p.Name -Value $p.Value -Force | Out-Null
-                    }
-                }
-            }
-            New-ItemProperty -Path $newPortKey -Name 'HostName' -Value $IpAddress -PropertyType String -Force | Out-Null
-            New-ItemProperty -Path $newPortKey -Name 'IPAddress' -Value $IpAddress -PropertyType String -Force | Out-Null
-            New-ItemProperty -Path $newPortKey -Name 'PortNumber' -Value $TcpPort -PropertyType DWord -Force | Out-Null
-        }
-
-        # Recarrega o Spooler rapidamente para registrar a nova PaperCut TCP/IP Port no Print Management
-        Write-Host "  -> Sincronizando serviço Print Spooler para registrar '$PortName'..." -ForegroundColor Cyan
-        Restart-Service -Name Spooler -Force
-        Start-Sleep -Seconds 2
-    } else {
-        Write-Host "  [Aviso] Monitor '$Monitor' não encontrado no Registro; criando como Standard TCP/IP Port..." -ForegroundColor Yellow
-        Add-PrinterPort -Name $PortName -PrinterHostAddress $IpAddress -PortNumber $TcpPort
-    }
+    Write-Host "  [PASSOS 5-8] Criando porta TCP/IP '$PortName' ($IpAddress : $TcpPort)..." -ForegroundColor Cyan
+    Add-PrinterPort -Name $PortName -PrinterHostAddress $IpAddress -PortNumber $TcpPort
 
     $verify = Get-PrinterPort -Name $PortName -ErrorAction SilentlyContinue
     if ($null -eq $verify) {

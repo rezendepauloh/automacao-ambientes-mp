@@ -22,7 +22,8 @@ Docs/
     ├── suite_testes_automatizados.md                 # Manual da suíte de testes automatizados xUnit e runner
     ├── guia_execucao_e_uso.md                        # Guia de execução e compilação dos serviços C#
     ├── catalogo_funcoes_biblioteca.md                # Catálogo técnico dos serviços C# (AmbientesHub.Services)
-    └── preparacao_ambiente_dotnet.md                 # Instalação do .NET 8 SDK e configuração de build
+    ├── preparacao_ambiente_dotnet.md                 # Instalação do .NET 8 SDK e configuração de build
+    └── guia_migracao_impressoras_print_server.md     # Passo a passo: Print Server + PaperCut Port
 │
 └── 🚨 issues/                                        # Pendências e homologações
     └── pendencias_testes_acesso_remoto_e_ambientes.md# Checklist de validação humana para Acesso Remoto e Modos

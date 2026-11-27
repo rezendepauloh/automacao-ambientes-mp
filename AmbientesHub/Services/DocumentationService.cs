@@ -773,9 +773,18 @@ public class DocumentationService
 
                 case MarkdownBlockKind.BlockQuote:
                     string alertCls = string.IsNullOrEmpty(block.AlertKind) ? "quote" : $"quote quote-{block.AlertKind.ToLowerInvariant()}";
-                    string alertHeader = string.IsNullOrEmpty(block.AlertKind)
+                    string alertLabel = block.AlertKind switch
+                    {
+                        "NOTE" => "ℹ️ NOTA",
+                        "TIP" => "💡 DICA",
+                        "IMPORTANT" => "📌 IMPORTANTE",
+                        "WARNING" => "⚠️ ATENÇÃO",
+                        "CAUTION" => "🛑 CUIDADO",
+                        _ => block.AlertKind
+                    };
+                    string alertHeader = string.IsNullOrEmpty(alertLabel)
                         ? string.Empty
-                        : $"<div class=\"quote-badge\">{WebUtility.HtmlEncode(block.AlertKind)}</div>";
+                        : $"<div class=\"quote-badge\">{WebUtility.HtmlEncode(alertLabel)}</div>";
                     body.AppendLine($"<blockquote class=\"{alertCls}\">{alertHeader}{RenderHtmlInlines(block.Inlines)}</blockquote>");
                     break;
 
@@ -846,8 +855,9 @@ public class DocumentationService
                 .toc-drawer { width: 280px; flex-shrink: 0; background: #0d1424; border-right: 1px solid var(--border); padding: 14px 12px; position: sticky; top: 52px; height: calc(100vh - 52px); overflow-y: auto; }
                 body.toc-collapsed .toc-drawer { display: none; }
                 .toc-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 8px 10px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-                .toc-item { display: block; padding: 6px 8px; margin: 2px 0; border-radius: 6px; color: #cbd5e1; text-decoration: none; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
-                .toc-item:hover, .toc-item.active { background: #1e293b; color: var(--accent); text-decoration: none; }
+                .toc-item { display: block; padding: 6px 8px; margin: 2px 0; border-radius: 6px; border-left: 3px solid transparent; color: #cbd5e1; text-decoration: none; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+                .toc-item:hover { background: #162238; color: var(--accent); text-decoration: none; }
+                .toc-item.active { background: #1e293b; color: var(--accent); border-left-color: var(--accent); font-weight: 600; text-decoration: none; }
                 .toc-l1 { font-weight: 700; color: #f8fafc; }
                 .toc-l2 { padding-left: 14px; }
                 .toc-l3 { padding-left: 24px; font-size: 12px; color: var(--muted); }
@@ -869,11 +879,13 @@ public class DocumentationService
                 .copy-btn { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
                 pre { margin: 0; padding: 12px 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
                 pre code { background: transparent; color: var(--text); padding: 0; overflow-wrap: normal; }
-                blockquote.quote { margin: 14px 0; padding: 10px 14px; border-left: 4px solid var(--accent); background: #111c32; border-radius: 6px; color: #cbd5e1; }
-                .quote-warning { border-left-color: #fbbf24; background: #271c09; }
-                .quote-caution { border-left-color: #f87171; background: #2a1215; }
-                .quote-tip { border-left-color: #34d399; background: #071f1a; }
-                .quote-badge { font-size: 11px; font-weight: 700; margin-bottom: 4px; color: var(--accent); }
+                blockquote.quote { --q-accent: #38bdf8; --q-bg: #0f172a; margin: 14px 0; padding: 10px 14px; border: 1px solid var(--q-accent); border-left: 4px solid var(--q-accent); background: var(--q-bg); border-radius: 6px; color: #cbd5e1; }
+                blockquote.quote-note { --q-accent: #38bdf8; --q-bg: #0c192c; }
+                blockquote.quote-tip { --q-accent: #34d399; --q-bg: #071f1a; }
+                blockquote.quote-important { --q-accent: #a78bfa; --q-bg: #1a1433; }
+                blockquote.quote-warning { --q-accent: #fbbf24; --q-bg: #271c09; }
+                blockquote.quote-caution { --q-accent: #f87171; --q-bg: #2a1215; }
+                .quote-badge { font-size: 11.5px; font-weight: 700; margin-bottom: 4px; color: var(--q-accent); letter-spacing: .02em; }
                 ul.md-list { list-style: none; padding-left: 4px; }
                 ul.md-list li { display: flex; gap: 6px; margin: 6px 0; }
                 .marker { color: var(--accent); font-weight: 700; flex-shrink: 0; }
@@ -941,7 +953,51 @@ public class DocumentationService
                   function closeMobileToc() { document.body.classList.remove('toc-mobile-open'); }
                   btn.addEventListener('click', toggleToc);
                   backdrop.addEventListener('click', closeMobileToc);
-                  drawer.querySelectorAll('a.toc-item').forEach(a => a.addEventListener('click', () => { if (isMobile()) closeMobileToc(); }));
+                  drawer.querySelectorAll('a.toc-item').forEach(a => a.addEventListener('click', () => {
+                    const targetId = (a.getAttribute('href') || '').replace(/^#/, '');
+                    if (targetId) setActiveToc(targetId, false);
+                    if (isMobile()) closeMobileToc();
+                  }));
+
+                  // ScrollSpy inteligente com destaque (.active) no índice
+                  const headings = Array.from(document.querySelectorAll('main h1[id], main h2[id], main h3[id]'));
+                  const tocLinks = Array.from(drawer.querySelectorAll('a.toc-item[href^="#"]'));
+                  let lastActiveId = '';
+                  function setActiveToc(id, autoScroll) {
+                    if (!id || id === lastActiveId) return;
+                    lastActiveId = id;
+                    tocLinks.forEach(link => {
+                      const isMatch = link.getAttribute('href') === '#' + id;
+                      link.classList.toggle('active', isMatch);
+                      if (isMatch && autoScroll && !document.body.classList.contains('toc-collapsed')) {
+                        const top = link.offsetTop;
+                        if (top < drawer.scrollTop || top + link.offsetHeight > drawer.scrollTop + drawer.clientHeight) {
+                          link.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                      }
+                    });
+                  }
+                  function updateActiveSection() {
+                    if (headings.length === 0 || tocLinks.length === 0) return;
+                    const scrollY = window.scrollY || document.documentElement.scrollTop;
+                    const docHeight = document.documentElement.scrollHeight;
+                    let currentId = headings[0].id;
+                    if (scrollY + window.innerHeight >= docHeight - 15) {
+                      currentId = headings[headings.length - 1].id;
+                    } else {
+                      for (let i = 0; i < headings.length; i++) {
+                        if (headings[i].getBoundingClientRect().top <= 110) {
+                          currentId = headings[i].id;
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    setActiveToc(currentId, true);
+                  }
+                  window.addEventListener('scroll', updateActiveSection, { passive: true });
+                  window.addEventListener('resize', updateActiveSection, { passive: true });
+                  updateActiveSection();
                   document.querySelectorAll('figure.img-card img').forEach(img => {
                     img.addEventListener('click', () => {
                       document.getElementById('imgLightboxTarget').src = img.src;

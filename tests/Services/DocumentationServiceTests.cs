@@ -320,7 +320,7 @@ public class DocumentationServiceTests
             string mdPath = Path.Combine(tempRoot, "Manuais Markdown", "guia_campo.md");
             File.WriteAllBytes(imgPath, TinyValidPng);
 
-            const string md = "# Guia <script>alert(1)</script>\n\n![Passo 1](<../Imagens FAQ/passo1.png>)\n\n[Vídeo](<../Vídeos FAQ/demo.mp4>)\n";
+            const string md = "# Guia <script>alert(1)</script>\n\n## Seção 1\n\n> [!TIP] Use o atalho.\n\n> [!CAUTION] Cuidado redobrado.\n\n![Passo 1](<../Imagens FAQ/passo1.png>)\n\n[Vídeo](<../Vídeos FAQ/demo.mp4>)\n";
             File.WriteAllText(mdPath, md);
 
             var doc = new DocEntryItem
@@ -346,6 +346,13 @@ public class DocumentationServiceTests
             Assert.Contains("toc-drawer", html);
             Assert.Contains("id=\"sec-1\"", html);
             Assert.Contains("scroll-behavior: smooth", html);
+            Assert.Contains("quote quote-tip", html);
+            Assert.Contains(System.Net.WebUtility.HtmlEncode("💡 DICA"), html);
+            Assert.Contains("quote quote-caution", html);
+            Assert.Contains(System.Net.WebUtility.HtmlEncode("🛑 CUIDADO"), html);
+            Assert.Contains("blockquote.quote-tip", html);
+            Assert.Contains("updateActiveSection", html);
+            Assert.Contains("link.classList.toggle('active'", html);
             Assert.Contains("https://empresa.sharepoint.com/sites/equipe/Shared%20Documents/Tutoriais-FAQs/V%C3%ADdeos%20FAQ/demo.mp4", html);
             Assert.Contains("Assistir no SharePoint", html);
         }

@@ -39,6 +39,7 @@
   - [3.10 Backup & Restore USMT, Tweaks de Registro, Rede/Zabbix, Servidores RDP & Print Server](#310-backup--restore-usmt-tweaks-de-registro-redezabbix-servidores-rdp--print-server)
   - [3.11 Central de Chamados (OTRS & CitSmart — PostgreSQL da Bancada)](#311-central-de-chamados-otrs--citsmart--postgresql-da-bancada)
   - [3.12 Central Telefônica OXE & Impressoras PaperCut (PostgreSQL da Bancada)](#312-central-telefônica-oxe--impressoras-papercut-postgresql-da-bancada)
+  - [3.13 Central de Documentação Integrada (Markdown, SharePoint OneDrive & HTML Offline)](#313-central-de-documentação-integrada-markdown-sharepoint-onedrive--html-offline)
 - [4. Estrutura de Diretórios](#-4-estrutura-de-diretórios)
 - [5. Como Executar & Compilar](#-5-como-executar--compilar)
 - [6. Suíte de Testes Automatizados (xUnit + Runner ANSI)](#-6-suíte-de-testes-automatizados-xunit--runner-ansi)
@@ -177,6 +178,12 @@ graph TD
 - **Menu Lateral estilo PowerToys:** Os módulos são organizados em grupos dropdown expansíveis/recolhíveis (**Acesso Remoto & AD**, **Máquina Local & Auditoria**, **Scripts & Migração** e **Bancada Streamlit**), mantendo compatibilidade total com a busca global e o Tray Icon.
 - **Telefonia OXE (`central_telefonica`):** Consulta todos os ramais com KPIs (`Total`, `Com Nome/Usuário`, `Com IP/MAC`), paginação (15 por página), busca textual, 5 filtros combináveis (`Categoria do Dispositivo`, `Tipo de Estação`, `Grupo de Captura`, `Categoria Rede Pública`, `Função/Role`), 4 checkboxes (`Com/Sem MAC` e `Com/Sem IP`), modal de detalhes em 6 `Expander`s com dicionário JSON colorido e botão **Abrir Site OXE** (`URL_OXE`).
 - **Impressoras PaperCut (`impressoras`):** Consulta todas as impressoras/dispositivos com KPIs (`Total`, `OK/Online`, `Com Alerta/Erro`, `Total de Páginas`), paginação (15 por página), filtros por `Tipo`, `Status`, `Servidor` e `Localização`, botões **Abrir Admin PaperCut** (`URL_PAPERCUT`) e **Abrir IP Web**, além de modal de detalhes com `Expander`s e JSON colorido para `detalhes_extra`.
+
+### 3.13 Central de Documentação Integrada (Markdown, SharePoint OneDrive & HTML Offline)
+
+- **Leitor Markdown Nativo WPF (`DocumentationService` + `MarkdownFlowDocumentBuilder` + `DocumentationView`):** Renderiza diretamente no Hub todos os guias técnicos de `Docs/` e, quando configurado no `.env` (`SHAREPOINT_FAQS_DIR`), os tutoriais corporativos em `Manuais Markdown\` sincronizados pelo OneDrive, com modo leitura retrátil, busca por título/conteúdo, filtros de origem/categoria, histórico (`◀` / `▶`), zoom tipográfico e botão **📋 Copiar** em blocos de código.
+- **Mídia Sob Demanda (OneDrive Files On-Demand):** Imagens locais são carregadas apenas ao abrir o tutorial correspondente e vídeos `.mp4` contam com **player nativo embutido sob demanda (`MediaElement`)** + botão externo — sem baixar gigabytes de mídia antecipadamente.
+- **Sincronização SharePoint (`SharePointFaqSyncService`) & Exportação para Campo:** Botão **☁️ Sincronizar** (via Firefox autenticado, com parser XML anti-XXE — ver [Guia de Sincronização SharePoint](Docs/guias/guia_sincronizacao_faqs_sharepoint.md)) e botão **📦 Exportar HTML** que gera um manual HTML5 responsivo (com menu lateral de títulos ocultável, lightbox de imagens em Base64 e links diretos do SharePoint para vídeos via `SHAREPOINT_FAQS_WEB_URL`).
 
 ---
 

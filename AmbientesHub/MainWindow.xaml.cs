@@ -734,6 +734,8 @@ public partial class MainWindow : FluentWindow
         TxtCfgZabbixApiToken.Password = ConfigService.ZabbixApiToken;
         TxtCfgProtectedProfiles.Text = ConfigService.ProtectedProfiles;
         TxtCfgPingTimeout.Text = ConfigService.PingTimeoutMs.ToString();
+        TxtCfgSharePointFaqsDir.Text = ConfigService.SharePointFaqsDir;
+        TxtCfgSharePointFaqsWebUrl.Text = ConfigService.SharePointFaqsWebUrl;
     }
 
     private void ToggleStartWithWindows_Click(object sender, RoutedEventArgs e)
@@ -1081,12 +1083,15 @@ public partial class MainWindow : FluentWindow
                 ["BANCADA_DB_PORT"] = TxtCfgDbPort.Text.Trim(),
                 ["BANCADA_DB_NAME"] = TxtCfgDbName.Text.Trim(),
                 ["BANCADA_DB_USER"] = TxtCfgDbUser.Text.Trim(),
-                ["BANCADA_DB_PASSWORD"] = TxtCfgDbPassword.Password.Trim()
+                ["BANCADA_DB_PASSWORD"] = TxtCfgDbPassword.Password.Trim(),
+                ["SHAREPOINT_FAQS_DIR"] = TxtCfgSharePointFaqsDir.Text.Trim(),
+                ["SHAREPOINT_FAQS_WEB_URL"] = TxtCfgSharePointFaqsWebUrl.Text.Trim()
             };
 
             ConfigService.SaveConfig(dict);
             ApplyTerminalFont(chosenFont);
             RefreshUsmtBinStatusBadge();
+            PanelDocumentation?.ReloadFromConfig();
 
             AppLoggerService.Success(
                 $"Configurações salvas via UI (Chaves={dict.Count}, ApiKey={AppLoggerService.DescribeSecretPresence(TxtCfgBancadaApiKey.Password)}, DbPass={AppLoggerService.DescribeSecretPresence(TxtCfgDbPassword.Password)}).",
@@ -1130,6 +1135,8 @@ public partial class MainWindow : FluentWindow
                 case "BANCADA_DB_HOST": TxtCfgDbHost.Text = defVal; break;
                 case "BANCADA_DB_PORT": TxtCfgDbPort.Text = defVal; break;
                 case "PING_TIMEOUT_MS": TxtCfgPingTimeout.Text = defVal; break;
+                case "SHAREPOINT_FAQS_DIR": TxtCfgSharePointFaqsDir.Text = defVal; break;
+                case "SHAREPOINT_FAQS_WEB_URL": TxtCfgSharePointFaqsWebUrl.Text = defVal; break;
             }
             TxtFooterStatus.Text = $"Campo '{key}' preenchido com o valor recomendado padrão.";
         }

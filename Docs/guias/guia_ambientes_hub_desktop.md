@@ -143,8 +143,9 @@ _Executável leve disponível em:_
 
 ### H. Aba "Documentação" (Acima de Logs da Aplicação)
 
-- **Leitor Markdown Integrado (`DocumentationService` + `DocumentationView`):** Indexa automaticamente todos os arquivos `.md` de `Docs/` agrupados por categoria (`Índice Geral`, `Guias Operacionais`, `Arquitetura & SecOps`, `Issues & Homologação`) com proteção estrita contra *path traversal* e *symlinks*.
-- **Busca Instantânea & Navegação Hipertexto:** Filtra por título ou conteúdo completo dos manuais, suporta links clicáveis entre documentos `.md` com histórico (`◀` / `▶`), controle de zoom tipográfico (`A-` / `A+`) e botão **📋 Copiar** individual em cada bloco de código.
+- **Leitor Markdown Multi-Origem (`DocumentationService` + `DocumentationView`):** Indexa automaticamente os arquivos `.md` de `Docs/` (engenharia do Hub) e, quando configurado no `.env`, os tutoriais corporativos em `SHAREPOINT_FAQS_DIR\Manuais Markdown\` (sincronizados via OneDrive), com proteção *fail-closed* contra *path traversal* e *symlinks/junctions* compatível com **OneDrive Files On-Demand**.
+- **Mídia Sob Demanda & Busca Instantânea:** Renderiza imagens inline (`![alt](...)`) somente ao abrir o documento e exibe vídeos `.mp4`, `.pdf` e `.docx` como cards clicáveis baixados sob demanda apenas ao abrir, além de busca por título/conteúdo, filtro por origem/categoria, histórico (`◀` / `▶`), zoom (`A-` / `A+`) e botão **📋 Copiar** em cada bloco de código.
+- **Exportação Offline para Campo (`📦 Exportar HTML`):** Gera um único arquivo HTML5 autocontido com as imagens do tutorial embutidas em Base64, pronto para compartilhamento com técnicos em campo sem depender de VPN ou SharePoint.
 
 ### I. Aba "Logs da Aplicação"
 

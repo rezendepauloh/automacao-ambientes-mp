@@ -1719,6 +1719,31 @@
                                         </StackPanel>
                                     </Grid>
 
+                                    <!-- Documentação / SharePoint FAQs -->
+                                    <TextBlock Text="📚 Documentação &amp; Tutoriais SharePoint (OneDrive)" FontSize="14" FontWeight="SemiBold" Foreground="#38bdf8" Margin="0,4,0,8" />
+                                    <StackPanel Margin="0,0,0,10">
+                                        <TextBlock Text="Pasta Sincronizada de Tutoriais &amp; FAQs (SHAREPOINT_FAQS_DIR):" FontWeight="Medium" Margin="0,0,0,4" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox x:Name="TxtCfgSharePointFaqsDir" Grid.Column="0" PlaceholderText="C:\Users\usuario.teste\OneDrive - Organizacao\Tutoriais-FAQs" />
+                                            <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="SHAREPOINT_FAQS_DIR" />
+                                        </Grid>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,0,18">
+                                        <TextBlock Text="URL Web do SharePoint para Vídeos no HTML Offline (SHAREPOINT_FAQS_WEB_URL):" FontWeight="Medium" Margin="0,0,0,4" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <ui:TextBox x:Name="TxtCfgSharePointFaqsWebUrl" Grid.Column="0" PlaceholderText="https://empresa.sharepoint.com/sites/equipe/Shared%20Documents/Tutoriais-FAQs" />
+                                            <ui:Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=ArrowReset24}" ToolTip="Preencher valor padrão" Click="BtnResetConfigField_Click" Tag="SHAREPOINT_FAQS_WEB_URL" />
+                                        </Grid>
+                                    </StackPanel>
+
                                     <ui:Button x:Name="BtnSalvarConfiguracoes" Appearance="Primary" Content="Salvar Configurações no .env" Icon="{ui:SymbolIcon Symbol=Save24}" Click="BtnSalvarConfiguracoes_Click" Padding="18,10" HorizontalAlignment="Left" />
                                 </StackPanel>
                             </Border>

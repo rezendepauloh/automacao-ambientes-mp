@@ -3,6 +3,12 @@ using System.Runtime.CompilerServices;
 
 namespace AmbientesHub.Models;
 
+public enum DocSourceKind
+{
+    ProjectDocs,
+    SharePointFaqs
+}
+
 public class DocEntryItem : INotifyPropertyChanged
 {
     private bool _isSelected;
@@ -12,6 +18,8 @@ public class DocEntryItem : INotifyPropertyChanged
     public string FileName { get; init; } = string.Empty;
     public string RelativePath { get; init; } = string.Empty;
     public string FullPath { get; init; } = string.Empty;
+    public string SourceRootPath { get; init; } = string.Empty;
+    public DocSourceKind SourceKind { get; init; } = DocSourceKind.ProjectDocs;
     public string CategoryKey { get; init; } = string.Empty;
     public string CategoryLabel { get; init; } = "Geral";
     public string BadgeText { get; init; } = "DOC";
@@ -21,6 +29,26 @@ public class DocEntryItem : INotifyPropertyChanged
     public DateTime LastModifiedLocal { get; init; }
     public int CategorySortOrder { get; init; } = 99;
     public bool IsIndexReadme { get; init; }
+
+    public string SourceLabel => SourceKind == DocSourceKind.SharePointFaqs
+        ? "Tutoriais SharePoint"
+        : "Docs do Hub";
+
+    public string SourceBadgeText => SourceKind == DocSourceKind.SharePointFaqs
+        ? "SHAREPOINT"
+        : "HUB";
+
+    public string SourceBadgeBgHex => SourceKind == DocSourceKind.SharePointFaqs
+        ? "#0c4a6e"
+        : "#1e293b";
+
+    public string SourceBadgeFgHex => SourceKind == DocSourceKind.SharePointFaqs
+        ? "#7dd3fc"
+        : "#94a3b8";
+
+    public string DisplayPathPrefix => SourceKind == DocSourceKind.SharePointFaqs
+        ? "SharePoint"
+        : "Docs";
 
     public string LastUpdatedDisplay => LastModifiedLocal == default
         ? string.Empty
@@ -58,7 +86,9 @@ public enum MarkdownBlockKind
     BlockQuote,
     List,
     Table,
-    HorizontalRule
+    HorizontalRule,
+    Image,
+    AttachmentCard
 }
 
 public enum MarkdownInlineKind
@@ -68,7 +98,8 @@ public enum MarkdownInlineKind
     Italic,
     Code,
     Link,
-    Strikethrough
+    Strikethrough,
+    Image
 }
 
 public sealed record MarkdownInlineSpan(
@@ -88,6 +119,10 @@ public sealed class MarkdownBlock
     public string Text { get; init; } = string.Empty;
     public string CodeLanguage { get; init; } = string.Empty;
     public string AlertKind { get; init; } = string.Empty;
+    public string ImageAlt { get; init; } = string.Empty;
+    public string ImageSource { get; init; } = string.Empty;
+    public string AttachmentLabel { get; init; } = string.Empty;
+    public string AttachmentSource { get; init; } = string.Empty;
     public IReadOnlyList<MarkdownInlineSpan> Inlines { get; init; } = [];
     public IReadOnlyList<MarkdownListItem> ListItems { get; init; } = [];
     public IReadOnlyList<IReadOnlyList<MarkdownInlineSpan>> TableHeaders { get; init; } = [];
@@ -98,6 +133,8 @@ public enum MarkdownLinkKind
 {
     InternalDocument,
     ExternalHttpUrl,
+    LocalImage,
+    LocalAttachment,
     UnsupportedReference
 }
 

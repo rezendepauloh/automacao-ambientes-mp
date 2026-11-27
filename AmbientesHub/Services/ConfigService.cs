@@ -187,6 +187,8 @@ public static class ConfigService
     public static string SajmpExePath => Get("SAJMP_EXE_PATH", "");
     public static string SajmpCredPath => Get("SAJMP_CRED_PATH", "");
     public static string SajmpWindowTitle => Get("SAJMP_WINDOW_TITLE", "");
+    public static string SharePointFaqsDir => Get("SHAREPOINT_FAQS_DIR", "");
+    public static string SharePointFaqsWebUrl => Get("SHAREPOINT_FAQS_WEB_URL", "");
 
     /// <summary>
     /// Retorna valores padrão recomendados e dinâmicos (ex: perfil do usuário atual do Windows)
@@ -222,6 +224,8 @@ public static class ConfigService
             "PROTECTED_PROFILES" => "Public, Default, Default User, All Users, Administrator, Administrador",
             "PING_TIMEOUT_MS" => "2500",
             "ZABBIX_API_URL" => "https://zabbix.empresa.local/api_jsonrpc.php",
+            "SHAREPOINT_FAQS_DIR" => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "OneDrive - Organizacao", "Tutoriais-FAQs"),
+            "SHAREPOINT_FAQS_WEB_URL" => "https://empresa.sharepoint.com/sites/equipe/Shared%20Documents/Tutoriais-FAQs",
             _ => string.Empty
         };
     }

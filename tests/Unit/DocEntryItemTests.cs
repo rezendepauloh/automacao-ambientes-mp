@@ -52,4 +52,18 @@ public class DocEntryItemTests
         Assert.Equal("25/11/2026 15:30", populated.LastUpdatedDisplay);
         Assert.True(populated.HasSummary);
     }
+
+    [Fact]
+    public void SourceMetadataProperties_ReflectProjectDocsVsSharePointFaqs()
+    {
+        var hubDoc = new DocEntryItem { SourceKind = DocSourceKind.ProjectDocs };
+        Assert.Equal("Docs do Hub", hubDoc.SourceLabel);
+        Assert.Equal("HUB", hubDoc.SourceBadgeText);
+        Assert.Equal("Docs", hubDoc.DisplayPathPrefix);
+
+        var spDoc = new DocEntryItem { SourceKind = DocSourceKind.SharePointFaqs };
+        Assert.Equal("Tutoriais SharePoint", spDoc.SourceLabel);
+        Assert.Equal("SHAREPOINT", spDoc.SourceBadgeText);
+        Assert.Equal("SharePoint", spDoc.DisplayPathPrefix);
+    }
 }

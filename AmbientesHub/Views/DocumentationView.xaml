@@ -19,12 +19,12 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                <TextBlock Text="Documentação Técnica &amp; Manuais Operacionais"
+                <TextBlock Text="Documentação Técnica &amp; Tutoriais Operacionais"
                            FontSize="22"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                            TextWrapping="Wrap" />
-                <TextBlock Text="Consulte guias de operação, decisões arquiteturais, hardening SecOps e checklists diretamente da pasta Docs/ já formatados."
+                <TextBlock Text="Consulte manuais do AmbientesHub (Docs/) e tutoriais sincronizados do SharePoint (OneDrive sob demanda) já formatados, com exportação HTML offline para campo."
                            FontSize="13"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Margin="0,3,0,0"
@@ -49,13 +49,14 @@
         <!-- Corpo Mestre-Detalhe: Catálogo lateral de Docs + Leitor Markdown -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="335" MinWidth="240" MaxWidth="480" />
-                <ColumnDefinition Width="8" />
+                <ColumnDefinition x:Name="ColDocsCatalog" Width="345" MinWidth="250" MaxWidth="500" />
+                <ColumnDefinition x:Name="ColDocsSplitter" Width="8" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Coluna Esquerda: Busca, Filtro de Categoria e Lista de Documentos -->
-            <Border Grid.Column="0"
+            <!-- Coluna Esquerda: Busca, Filtros (Origem + Categoria) e Lista de Documentos -->
+            <Border x:Name="PanelDocsCatalog"
+                    Grid.Column="0"
                     Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
@@ -63,6 +64,7 @@
                     Padding="12">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
@@ -76,7 +78,13 @@
                                 Margin="0,0,0,8"
                                 TextChanged="TxtSearchDocs_TextChanged" />
 
-                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                    <ComboBox x:Name="CmbDocSource"
+                              Grid.Row="1"
+                              Height="34"
+                              Margin="0,0,0,8"
+                              SelectionChanged="CmbDocSource_SelectionChanged" />
+
+                    <Grid Grid.Row="2" Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -94,10 +102,10 @@
                                    Width="38"
                                    Padding="0"
                                    Click="BtnReloadDocs_Click"
-                                   ToolTip="Reindexar arquivos .md da pasta Docs/" />
+                                   ToolTip="Reindexar arquivos .md (Docs/ e SharePoint)" />
                     </Grid>
 
-                    <Border Grid.Row="2"
+                    <Border Grid.Row="3"
                             Background="#0b0f19"
                             BorderBrush="#1e293b"
                             BorderThickness="1"
@@ -118,6 +126,16 @@
                                                 MouseLeftButtonUp="DocCard_MouseLeftButtonUp">
                                             <StackPanel>
                                                 <WrapPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                                    <Border Background="{Binding SourceBadgeBgHex}"
+                                                            CornerRadius="4"
+                                                            Padding="5,1.5"
+                                                            Margin="0,0,5,2"
+                                                            VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding SourceBadgeText}"
+                                                                   FontSize="9"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{Binding SourceBadgeFgHex}" />
+                                                    </Border>
                                                     <Border Background="{Binding BadgeBgHex}"
                                                             CornerRadius="4"
                                                             Padding="6,1.5"
@@ -166,7 +184,8 @@
             </Border>
 
             <!-- Divisor redimensionável -->
-            <GridSplitter Grid.Column="1"
+            <GridSplitter x:Name="SplitterDocsCatalog"
+                          Grid.Column="1"
                           Width="8"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch"
@@ -200,6 +219,15 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                                <ui:Button x:Name="BtnToggleDocsSidebar"
+                                           Icon="{ui:SymbolIcon Symbol=PanelLeft24}"
+                                           Appearance="Secondary"
+                                           Width="34"
+                                           Height="30"
+                                           Padding="0"
+                                           Margin="0,0,6,0"
+                                           Click="BtnToggleDocsSidebar_Click"
+                                           ToolTip="Ocultar/Mostrar lista de documentos (Modo Leitura)" />
                                 <ui:Button x:Name="BtnDocBack"
                                            Content="◀"
                                            Appearance="Secondary"
@@ -262,8 +290,24 @@
                                            Click="BtnZoomIn_Click"
                                            ToolTip="Aumentar tamanho da fonte" />
 
+                                <ui:Button x:Name="BtnSyncSharePoint"
+                                           Content="☁️ Sincronizar"
+                                           Appearance="Secondary"
+                                           Padding="9,5"
+                                           Margin="0,0,6,0"
+                                           FontSize="11.5"
+                                           Click="BtnSyncSharePoint_Click"
+                                           ToolTip="Sincroniza os FAQs do SharePoint (SitePages) para Manuais Markdown usando sua sessão no Firefox" />
+                                <ui:Button x:Name="BtnExportHtml"
+                                           Content="📦 Exportar HTML"
+                                           Appearance="Primary"
+                                           Padding="9,5"
+                                           Margin="0,0,6,0"
+                                           FontSize="11.5"
+                                           Click="BtnExportHtml_Click"
+                                           ToolTip="Exporta este tutorial em HTML único com imagens embutidas (offline para campo)" />
                                 <ui:Button x:Name="BtnCopyRawMd"
-                                           Content="📋 Copiar .md"
+                                           Content="📋 .md"
                                            Appearance="Secondary"
                                            Padding="9,5"
                                            Margin="0,0,6,0"
@@ -271,12 +315,12 @@
                                            Click="BtnCopyRawMd_Click"
                                            ToolTip="Copiar o código-fonte Markdown bruto deste documento" />
                                 <ui:Button x:Name="BtnOpenDocsFolder"
-                                           Content="📂 Pasta Docs"
+                                           Content="📂 Pasta"
                                            Appearance="Secondary"
                                            Padding="9,5"
                                            FontSize="11.5"
                                            Click="BtnOpenDocsFolder_Click"
-                                           ToolTip="Abrir o diretório Docs/ no Windows Explorer" />
+                                           ToolTip="Abrir o diretório do documento atual no Windows Explorer" />
                             </WrapPanel>
                         </Grid>
                     </Border>

@@ -37,6 +37,7 @@ Docs/
 
 - **Suíte de Testes Automatizados (xUnit):** [Guia da Suíte de Testes](guias/suite_testes_automatizados.md)
 - **Manual do Ambientes Hub Desktop:** [Guia do Aplicativo](guias/guia_ambientes_hub_desktop.md)
+- **Sincronização dos FAQs do SharePoint:** [Guia de Sincronização SharePoint](guias/guia_sincronizacao_faqs_sharepoint.md)
 - **Guia de Compilação & Uso dos Serviços C#:** [Guia de Execução e Uso](guias/guia_execucao_e_uso.md)
 - **Catálogo dos Serviços C#:** [Catálogo de Serviços Nativos](guias/catalogo_funcoes_biblioteca.md)
 

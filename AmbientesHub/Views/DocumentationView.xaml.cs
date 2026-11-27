@@ -561,6 +561,16 @@ public partial class DocumentationView : WControls.UserControl
         }
     }
 
+    private void BtnCopySharePoint_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentDoc == null || string.IsNullOrWhiteSpace(_currentRawMarkdown)) return;
+        string richHtml = DocumentationService.ExportSharePointRichHtml(_currentDoc, _currentRawMarkdown);
+        if (ClipboardHelper.CopyHtml(richHtml, _currentRawMarkdown))
+        {
+            SetStatus($"📋 Formatado p/ SharePoint copiado! Dê Ctrl+V na Web Part Texto.", "#064e3b", "#34d399", "#10b981");
+        }
+    }
+
     private void BtnCopyRawMd_Click(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(_currentRawMarkdown)) return;

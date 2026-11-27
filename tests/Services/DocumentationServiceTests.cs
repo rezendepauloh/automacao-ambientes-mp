@@ -363,6 +363,87 @@ public class DocumentationServiceTests
     }
 
     [Fact]
+    public void ExportSharePointRichHtml_SkipsBannerAndH1_AndBuildsCleanSemanticHtml()
+    {
+        var doc = new DocEntryItem
+        {
+            Title = "Formatação na Bancada",
+            FileName = "formatacao_na_bancada.md",
+            RelativePath = "formatacao/formatacao_na_bancada.md",
+            SourceKind = DocSourceKind.SharePointFaqs
+        };
+
+        const string md = """
+            # 🖥️ Formatação na Bancada
+
+            > **Origem SharePoint:** [Abrir página original](https://empresa.sharepoint.com/SitePages/Teste.aspx)
+
+            ---
+
+            ## 1. Passo Inicial
+
+            1. Primeiro passo com **negrito** e **`F12`**.
+               - Subitem recuado
+            2. Segundo passo com `comando`.
+
+            > [!TIP] Use o cabo de rede.
+
+            | Col1 | Col2 |
+            | --- | --- |
+            | A | B |
+            """;
+
+        string html = DocumentationService.ExportSharePointRichHtml(doc, md);
+
+        Assert.DoesNotContain("<h1>", html);
+        Assert.DoesNotContain("Origem SharePoint", html);
+        Assert.Contains("<h2>1. Passo Inicial</h2>", html);
+        Assert.Contains("<ol>", html);
+        Assert.Contains("<strong>negrito</strong>", html);
+        Assert.Contains("<strong>F12</strong>", html);
+        Assert.DoesNotContain("`F12`", html);
+        Assert.Contains("<ul>", html);
+        Assert.Contains("<li>Subitem recuado</li>", html);
+        Assert.Contains("<table>", html);
+        Assert.Contains("<th>Col1</th><th>Col2</th>", html);
+        Assert.Contains(System.Net.WebUtility.HtmlEncode("💡 DICA"), html);
+
+        // Verifica mapeamento de imagem SiteAssets para URL do SharePoint
+        string tempRoot = CreateTempDocsDir();
+        try
+        {
+            string imgDir = Path.Combine(tempRoot, "Imagens FAQ", "SiteAssets", "Minha-Pagina");
+            string mdDir = Path.Combine(tempRoot, "Manuais Markdown", "formatacao");
+            Directory.CreateDirectory(imgDir);
+            Directory.CreateDirectory(mdDir);
+            File.WriteAllBytes(Path.Combine(imgDir, "tela.png"), TinyValidPng);
+            string mdPath = Path.Combine(mdDir, "doc.md");
+            File.WriteAllText(mdPath, "![Tela](<../../Imagens FAQ/SiteAssets/Minha-Pagina/tela.png>)");
+
+            var spDoc = new DocEntryItem
+            {
+                FullPath = mdPath,
+                SourceRootPath = tempRoot,
+                SourceKind = DocSourceKind.SharePointFaqs
+            };
+            string imgHtml = DocumentationService.ExportSharePointRichHtml(
+                spDoc,
+                "![Tela](<../../Imagens FAQ/SiteAssets/Minha-Pagina/tela.png>)",
+                sharePointWebBaseUrl: "https://empresa.sharepoint.com/sites/equipe/Shared%20Documents/Tutoriais-FAQs");
+            Assert.Contains("https://empresa.sharepoint.com/sites/equipe/SiteAssets/SitePages/Minha-Pagina/tela.png", imgHtml);
+        }
+        finally
+        {
+            Directory.Delete(tempRoot, recursive: true);
+        }
+
+        string cfHtml = ClipboardHelper.BuildCfHtmlPayload(html);
+        Assert.Contains("Version:0.9", cfHtml);
+        Assert.Contains("<!--StartFragment-->", cfHtml);
+        Assert.Contains("<!--EndFragment-->", cfHtml);
+    }
+
+    [Fact]
     public void BuildSharePointWebUrl_ReturnsNull_WhenProjectDocsOrUnsafeUrlOrTraversal()
     {
         string tempRoot = CreateTempDocsDir();

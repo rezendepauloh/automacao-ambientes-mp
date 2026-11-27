@@ -306,6 +306,14 @@
                                            FontSize="11.5"
                                            Click="BtnExportHtml_Click"
                                            ToolTip="Exporta este tutorial em HTML único com imagens embutidas (offline para campo)" />
+                                <ui:Button x:Name="BtnCopySharePoint"
+                                           Content="📋 SharePoint"
+                                           Appearance="Secondary"
+                                           Padding="9,5"
+                                           Margin="0,0,6,0"
+                                           FontSize="11.5"
+                                           Click="BtnCopySharePoint_Click"
+                                           ToolTip="Copia o texto formatado (títulos, listas, tabelas e links) para colar direto com Ctrl+V na Web Part Texto do SharePoint" />
                                 <ui:Button x:Name="BtnCopyRawMd"
                                            Content="📋 .md"
                                            Appearance="Secondary"

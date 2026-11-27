@@ -644,23 +644,23 @@ public class DocumentationService
                 }
                 else if (m.Groups["bold1"].Success)
                 {
-                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Bold, m.Groups["b1text"].Value));
+                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Bold, m.Groups["b1text"].Value.Replace("`", string.Empty)));
                 }
                 else if (m.Groups["bold2"].Success)
                 {
-                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Bold, m.Groups["b2text"].Value));
+                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Bold, m.Groups["b2text"].Value.Replace("`", string.Empty)));
                 }
                 else if (m.Groups["strike"].Success)
                 {
-                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Strikethrough, m.Groups["stext"].Value));
+                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Strikethrough, m.Groups["stext"].Value.Replace("`", string.Empty)));
                 }
                 else if (m.Groups["ital1"].Success)
                 {
-                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Italic, m.Groups["i1text"].Value));
+                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Italic, m.Groups["i1text"].Value.Replace("`", string.Empty)));
                 }
                 else if (m.Groups["ital2"].Success)
                 {
-                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Italic, m.Groups["i2text"].Value));
+                    spans.Add(new MarkdownInlineSpan(MarkdownInlineKind.Italic, m.Groups["i2text"].Value.Replace("`", string.Empty)));
                 }
 
                 lastIndex = m.Index + m.Length;
@@ -730,6 +730,219 @@ public class DocumentationService
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Gera um fragmento HTML semântico e limpo (sem fundo escuro nem estilos invasivos),
+    /// ideal para colar diretamente na Web Part "Texto" do SharePoint via CF_HTML.
+    /// Remove o H1 inicial e o cabeçalho "Origem SharePoint:" que já existem na página do SharePoint.
+    /// </summary>
+    public static string ExportSharePointRichHtml(DocEntryItem doc, string rawMarkdown, string? sharePointWebBaseUrl = null)
+    {
+        var blocks = ParseMarkdown(rawMarkdown);
+        var sb = new StringBuilder();
+        bool skippedLeadingH1 = false;
+        bool skippedOriginBanner = false;
+
+        for (int i = 0; i < blocks.Count; i++)
+        {
+            var block = blocks[i];
+
+            if (!skippedLeadingH1 && block.Kind == MarkdownBlockKind.Heading && block.HeadingLevel == 1)
+            {
+                skippedLeadingH1 = true;
+                continue;
+            }
+
+            if (!skippedOriginBanner && block.Kind == MarkdownBlockKind.BlockQuote &&
+                block.Text.Contains("Origem SharePoint:", StringComparison.OrdinalIgnoreCase))
+            {
+                skippedOriginBanner = true;
+                if (i + 1 < blocks.Count && blocks[i + 1].Kind == MarkdownBlockKind.HorizontalRule)
+                    i++;
+                continue;
+            }
+
+            switch (block.Kind)
+            {
+                case MarkdownBlockKind.Heading:
+                    int lvl = Math.Clamp(block.HeadingLevel, 2, 4);
+                    sb.AppendLine($"<h{lvl}>{RenderHtmlInlines(block.Inlines)}</h{lvl}>");
+                    break;
+
+                case MarkdownBlockKind.Paragraph:
+                    sb.AppendLine($"<p>{RenderHtmlInlines(block.Inlines)}</p>");
+                    break;
+
+                case MarkdownBlockKind.HorizontalRule:
+                    sb.AppendLine("<hr />");
+                    break;
+
+                case MarkdownBlockKind.BlockQuote:
+                    string alertLabel = block.AlertKind switch
+                    {
+                        "NOTE" => "ℹ️ NOTA",
+                        "TIP" => "💡 DICA",
+                        "IMPORTANT" => "📌 IMPORTANTE",
+                        "WARNING" => "⚠️ ATENÇÃO",
+                        "CAUTION" => "🛑 CUIDADO",
+                        _ => string.Empty
+                    };
+                    string prefix = string.IsNullOrEmpty(alertLabel)
+                        ? string.Empty
+                        : $"<strong>{WebUtility.HtmlEncode(alertLabel)}:</strong> ";
+                    sb.AppendLine($"<blockquote><p>{prefix}{RenderHtmlInlines(block.Inlines)}</p></blockquote>");
+                    break;
+
+                case MarkdownBlockKind.CodeBlock:
+                    sb.AppendLine($"<pre><code>{WebUtility.HtmlEncode(block.Text)}</code></pre>");
+                    break;
+
+                case MarkdownBlockKind.List:
+                    RenderSharePointList(sb, block.ListItems);
+                    break;
+
+                case MarkdownBlockKind.Table:
+                    sb.AppendLine("<table><thead><tr>");
+                    foreach (var h in block.TableHeaders)
+                        sb.Append($"<th>{RenderHtmlInlines(h)}</th>");
+                    sb.AppendLine("</tr></thead><tbody>");
+                    foreach (var row in block.TableRows)
+                    {
+                        sb.Append("<tr>");
+                        foreach (var cell in row)
+                            sb.Append($"<td>{RenderHtmlInlines(cell)}</td>");
+                        sb.AppendLine("</tr>");
+                    }
+                    sb.AppendLine("</tbody></table>");
+                    break;
+
+                case MarkdownBlockKind.Image:
+                    string? imgSrc = ResolveSharePointRichImageSrc(doc, block.ImageSource, sharePointWebBaseUrl);
+                    if (!string.IsNullOrWhiteSpace(imgSrc))
+                    {
+                        string safeAlt = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(block.ImageAlt) ? Path.GetFileName(block.ImageSource) : block.ImageAlt);
+                        sb.AppendLine($"<p><img src=\"{WebUtility.HtmlEncode(imgSrc)}\" alt=\"{safeAlt}\" /></p>");
+                    }
+                    break;
+
+                case MarkdownBlockKind.AttachmentCard:
+                    string? spUrl = BuildSharePointWebUrl(doc, block.AttachmentSource, sharePointWebBaseUrl);
+                    string safeLabel = WebUtility.HtmlEncode(block.AttachmentLabel);
+                    if (!string.IsNullOrWhiteSpace(spUrl))
+                        sb.AppendLine($"<p>🎬 <a href=\"{WebUtility.HtmlEncode(spUrl)}\">{safeLabel}</a></p>");
+                    else
+                        sb.AppendLine($"<p>📎 {safeLabel}</p>");
+                    break;
+            }
+        }
+
+        return sb.ToString().Trim();
+    }
+
+    private static void RenderSharePointList(StringBuilder sb, IReadOnlyList<MarkdownListItem> items)
+    {
+        if (items.Count == 0) return;
+
+        var openTags = new Stack<string>();
+        int currentLevel = -1;
+
+        for (int idx = 0; idx < items.Count; idx++)
+        {
+            var item = items[idx];
+            int level = Math.Max(0, item.IndentLevel);
+            string tag = item.Marker.EndsWith('.') ? "ol" : "ul";
+
+            while (level > currentLevel)
+            {
+                sb.AppendLine($"<{tag}>");
+                openTags.Push(tag);
+                currentLevel++;
+            }
+
+            while (level < currentLevel && openTags.Count > 0)
+            {
+                sb.AppendLine($"</{openTags.Pop()}>");
+                currentLevel--;
+            }
+
+            sb.AppendLine($"<li>{RenderHtmlInlines(item.Inlines)}</li>");
+        }
+
+        while (openTags.Count > 0)
+        {
+            sb.AppendLine($"</{openTags.Pop()}>");
+        }
+    }
+
+    private static string? ResolveSharePointRichImageSrc(DocEntryItem doc, string imageSource, string? sharePointWebBaseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageSource))
+            return null;
+
+        if (InputValidator.IsSafeHttpUrl(imageSource))
+            return imageSource;
+
+        string sourceRoot = !string.IsNullOrWhiteSpace(doc.SourceRootPath)
+            ? doc.SourceRootPath
+            : (ResolveConfiguredSharePointDirectory() ?? ResolveDefaultDocsDirectory());
+
+        string? resolvedLocal = null;
+        if (!string.IsNullOrWhiteSpace(sourceRoot) && !string.IsNullOrWhiteSpace(doc.FullPath))
+        {
+            var res = ResolveMarkdownLinkTarget(sourceRoot, doc.FullPath, imageSource);
+            if (res.Kind == MarkdownLinkKind.LocalImage)
+                resolvedLocal = res.Target;
+        }
+
+        if (doc.SourceKind == DocSourceKind.SharePointFaqs)
+        {
+            string baseUrl = (sharePointWebBaseUrl ?? ConfigService.SharePointFaqsWebUrl).Trim();
+            if (!string.IsNullOrWhiteSpace(resolvedLocal) && InputValidator.IsSafeHttpUrl(baseUrl))
+            {
+                string rel = Path.GetRelativePath(Path.GetFullPath(sourceRoot), resolvedLocal).Replace('\\', '/');
+                const string siteAssetsPrefix = "Imagens FAQ/SiteAssets/";
+                if (rel.StartsWith(siteAssetsPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    int sharedIdx = baseUrl.IndexOf("/Shared%20Documents", StringComparison.OrdinalIgnoreCase);
+                    if (sharedIdx < 0)
+                        sharedIdx = baseUrl.IndexOf("/Shared Documents", StringComparison.OrdinalIgnoreCase);
+
+                    if (sharedIdx > 0)
+                    {
+                        string siteRoot = baseUrl[..sharedIdx].TrimEnd('/');
+                        string subPath = rel[siteAssetsPrefix.Length..];
+                        string encodedSub = string.Join("/", subPath.Split('/', StringSplitOptions.RemoveEmptyEntries).Select(Uri.EscapeDataString));
+                        string candidate = $"{siteRoot}/SiteAssets/SitePages/{encodedSub}";
+                        if (InputValidator.IsSafeHttpUrl(candidate))
+                            return candidate;
+                    }
+                }
+            }
+
+            string? spDocUrl = BuildSharePointWebUrl(doc, imageSource, sharePointWebBaseUrl);
+            if (!string.IsNullOrWhiteSpace(spDocUrl))
+                return spDocUrl;
+        }
+
+        if (!string.IsNullOrWhiteSpace(resolvedLocal) && File.Exists(resolvedLocal))
+        {
+            try
+            {
+                var fi = new FileInfo(resolvedLocal);
+                if (fi.Length > 0 && fi.Length <= 5 * 1024 * 1024)
+                {
+                    string mime = GetImageMimeType(Path.GetExtension(resolvedLocal));
+                    return $"data:{mime};base64,{Convert.ToBase64String(File.ReadAllBytes(resolvedLocal))}";
+                }
+            }
+            catch
+            {
+                // Ignora imagem ilegível
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
